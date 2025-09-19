@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Buchungshistorie - Barsystem{% endblock %}
+
+{% block head_content %}
+{# Spezifisches CSS für diese Seite #}
+<style>
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+    th, td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+    }
+    th {
+        background-color: #f2f2f2;
+    }
+    .storniert {
+        color: red;
+        font-weight: bold;
+    }
+    .stornieren-btn {
+        background-color: #f44336; /* Rot */
+        color: white;
+        padding: 5px 10px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none; /* Für a-Tags */
+        display: inline-block; /* Für a-Tags */
+    }
+    .stornieren-btn:hover {
+        background-color: #d32f2f;
+    }
+    .storniert-text {
+        color: gray;
+        font-style: italic;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>Buchungshistorie</h1>
+
+{# Die Navigationslinks "Zurück zum Admin-Bereich" und "Logout" sind bereits in base.html enthalten und passen sich an, ob der Benutzer eingeloggt ist. #}
+{# Wenn du diese spezifischen Links zusätzlich haben möchtest, lass sie hier stehen, aber meistens sind sie redundant, wenn die Hauptnavigation in base.html diese Zwecke erfüllt. #}
+{# Beispiel: Du könntest einen Link 'Zurück zum Admin-Bereich' als Button im Inhalt hier lassen, aber 'Logout' sollte primär über die Top-Navigation gehandhabt werden. #}
+{# Zur Vereinfachung habe ich die redundante Navigationsleiste hier entfernt. #}
+
+{% if buchungen %}
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Mitglied</th>
+                <th>Artikel</th>
+                <th>Menge</th>
+                <th>Einzelpreis</th>
+                <th>Gesamtpreis</th>
+                <th>Zeitstempel</th>
+                <th>Status</th>
+                <th>Aktion</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for buchung in buchungen %}
+                <tr class="{{ 'storniert' if buchung.storniert }}">
+                    <td>{{ buchung.id }}</td>
+                    <td>{{ buchung.mitglied_name }}</td>
+                    <td>{{ buchung.artikel_name }}</td>
+                    <td>{{ buchung.menge }}</td>
+                    <td>{{ buchung.preis_pro_einheit | round(2) }}€</td>
+                    <td>{{ buchung.gesamtpreis | round(2) }}€</td>
+                    <td>{{ buchung.zeitstempel }}</td>
+                    <td>
+                        {% if buchung.storniert %}
+                            <span class="storniert-text">Storniert</span>
+                        {% else %}
+                            Aktiv
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if not buchung.storniert %}
+                            <a href="{{ url_for('storniere_buchung', buchung_id=buchung.id) }}"
+                               class="stornieren-btn"
+                               onclick="return confirm('Sind Sie sicher, dass Sie diese Buchung stornieren möchten? Das Guthaben des Mitglieds wird korrigiert.');">
+                                Stornieren
+                            </a>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p>Es wurden noch keine Buchungen erfasst.</p>
+{% endif %}
+{% endblock %}

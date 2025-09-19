@@ -1,0 +1,342 @@
+/* Grundlegende Farben */
+:root {
+    --primary-white: #f8f9fb; /* Hintergrundfarbe */
+    --primary-red: #8d1d2c;   /* Akzentfarbe Rot */
+    --primary-gold: #f7ba0b;  /* Akzentfarbe Gold */
+    --text-dark: #333;        /* Dunkler Text für gute Lesbarkeit */
+    --text-light: #f8f9fb;    /* Heller Text auf dunklem Hintergrund */
+}
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: var(--primary-white); /* Hintergrund auf gebrochenes Weiß setzen */
+    color: var(--text-dark); /* Standardtextfarbe */
+    line-height: 1.6;
+}
+
+header {
+    background-color: var(--primary-red); /* Dunkelrot als Header-Hintergrund */
+    color: var(--text-light); /* Weißer Text auf rotem Header */
+    padding: 1rem 0;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+nav {
+    background-color: var(--primary-red); /* Navigationsleiste ebenfalls rot */
+    padding: 0.7rem 0;
+    text-align: center;
+    border-bottom: 2px solid var(--primary-gold); /* Goldene Linie als Trenner */
+}
+
+nav a {
+    color: var(--text-light); /* Links in der Navigationsleiste weiß */
+    text-decoration: none;
+    padding: 0 15px;
+    font-weight: bold;
+    transition: color 0.3s ease;
+}
+
+nav a:hover {
+    color: var(--primary-gold); /* Goldener Hover-Effekt */
+}
+
+hr {
+    border: 0;
+    height: 1px;
+    background: #ccc;
+    margin: 20px 0;
+}
+
+h1, h2, h3 {
+    color: #333;
+}
+
+ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+li {
+    background-color: #fff;
+    margin-bottom: 5px;
+    padding: 8px 15px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+
+form {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+form label {
+    display: inline-block;
+    width: 120px;
+    margin-bottom: 10px;
+}
+
+/* Allgemeine Container-Styles */
+.container,
+.login-container,
+.form-container { /* Alle Container, die du hast */
+    background-color: #fff; /* Weißer Hintergrund für den Inhalt */
+    padding: 30px;
+    border-radius: 10px; /* Leicht abgerundete Ecken */
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1); /* Sanfter Schatten */
+    margin: 30px auto;
+    max-width: 800px;
+}
+
+/* Formularfelder */
+input[type="text"],
+input[type="number"],
+input[type="password"],
+input[type="email"],
+select {
+    width: calc(100% - 22px);
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box; /* Wichtig für korrekte Breitenberechnung */
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus,
+select:focus {
+    border-color: var(--primary-gold); /* Goldener Rahmen beim Fokus */
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(247, 186, 11, 0.3); /* Leichter Goldschimmer */
+}
+
+/* Allgemeine Button-Styles */
+button,
+input[type="submit"] {
+    background-color: var(--primary-red); /* Roter Hintergrund für Buttons */
+    color: var(--text-light); /* Weißer Text */
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    text-transform: uppercase; /* Optional: Text in Großbuchstaben */
+}
+
+button:hover,
+input[type="submit"]:hover {
+    background-color: darken(var(--primary-red), 10%); /* Dunkleres Rot beim Hover */
+    transform: translateY(-1px); /* Leichter Hoch-Effekt */
+}
+
+/* Spezielle Buttons (falls vorhanden, z.B. für "Hinzufügen" oder "Bestätigen") */
+#addArtikelWithQuantity,
+.confirm-button { /* Beispiel für einen Bestätigungs-Button */
+    background-color: var(--primary-gold); /* Goldener Button */
+    color: var(--text-dark); /* Dunkler Text auf goldenem Button */
+    border: 1px solid darken(var(--primary-gold), 10%);
+}
+
+#addArtikelWithQuantity:hover,
+.confirm-button:hover {
+    background-color: darken(var(--primary-gold), 10%);
+}
+
+/* Löschen-Buttons könnten auch in einem dunkleren Rot sein */
+.remove-btn,
+.delete-button {
+    background-color: #dc3545; /* Standard-Rot für Löschen/Fehler */
+    color: var(--text-light);
+}
+.remove-btn:hover,
+.delete-button:hover {
+    background-color: #c82333;
+}
+
+/* Flashed Messages */
+.flashes li {
+    padding: 12px 20px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    font-weight: bold;
+    text-align: center;
+    list-style: none; /* Keine Punkte */
+}
+
+.flashes .success {
+    background-color: #d4edda; /* Helles Grün */
+    color: #155724; /* Dunkles Grün */
+    border: 1px solid #c3e6cb;
+}
+
+.flashes .error {
+    background-color: #f8d7da; /* Helles Rot */
+    color: #721c24; /* Dunkles Rot */
+    border: 1px solid #f5c6cb;
+}
+
+.flashes .info {
+    background-color: #d1ecf1; /* Helles Blau */
+    color: #0c5460; /* Dunkles Blau */
+    border: 1px solid #bee5eb;
+}
+
+footer {
+    text-align: center;
+    margin-top: 30px;
+    font-size: 0.9em;
+    color: #777;
+}
+
+.button.small {
+    padding: 5px 10px;
+    font-size: 0.8em;
+    margin-left: 5px;
+}
+
+/* Modal-Grundlagen */
+.modal {
+    display: none; /* Standardmäßig versteckt */
+    position: fixed; /* Positioniert über allem anderen */
+    z-index: 1000; /* Ganz oben */
+    left: 0;
+    top: 0;
+    width: 100%; /* Volle Breite und Höhe */
+    height: 100%;
+    overflow: auto; /* Scrollbar, falls Inhalt zu groß */
+    background-color: rgba(0,0,0,0.6); /* Dunkler, halbtransparenter Hintergrund */
+    justify-content: center; /* Zentriert den Inhalt horizontal */
+    align-items: center; /* Zentriert den Inhalt vertikal */
+}
+
+.modal-content {
+    background-color: var(--primary-white); /* Hintergrundfarbe des Modals */
+    margin: auto; /* Zentriert das Modal */
+    padding: 30px;
+    border: 1px solid #888;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
+    position: relative;
+    max-height: 90vh; /* Maximale Höhe, damit es scrollbar bleibt */
+    overflow-y: auto; /* Scrollbar für Modal-Inhalt */
+}
+
+/* Spezifische Größe für das große Buchungs-Modal */
+.modal-content.large-modal {
+    width: 90%; /* Breite des großen Modals */
+    max-width: 900px; /* Maximale Breite */
+}
+
+.close-button {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    position: absolute;
+    top: 10px;
+    right: 20px;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: var(--primary-red);
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* Styling für den Artikel-Grid im Modal */
+#artikelListInModal {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); /* Kleinere Kacheln im Modal */
+    gap: 10px;
+    margin-top: 20px;
+}
+
+#artikelListInModal .artikel-item {
+    padding: 10px;
+    margin: 0; /* Keine äußeren Margins */
+    font-size: 0.9em;
+
+    background-color: #e0e0e0; /* Ein sehr helles Grau als Hintergrund */
+    color: #333; /* Dunkelgrauer Text */
+    border: 1px solid #c0c0c0; /* Dezenter grauer Rahmen */
+    border-radius: 5px; /* Leicht abgerundete Ecken */
+    cursor: pointer; /* Zeigt an, dass es klickbar ist */
+    text-align: center; /* Text zentrieren */
+    box-shadow: none; /* Wichtig, um eventuelle Schatten zu entfernen */
+    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.1s ease; /* Sanfter Übergang für Hover/Active */
+}
+
+/* Hover-Effekt für die Artikel-Buttons */
+#artikelListInModal .artikel-item:hover {
+    background-color: #d0d0d0; /* Etwas dunkler beim Hover */
+    border-color: #a0a0a0; /* Rahmen auch etwas dunkler */
+    transform: translateY(-1px); /* Leichter "Heben"-Effekt */
+}
+
+/* Aktiver (geklickter) Zustand für die Artikel-Buttons */
+#artikelListInModal .artikel-item:active {
+    background-color: #c0c0c0; /* Noch dunkler beim Klicken */
+    border-color: #808080;
+    transform: translateY(0); /* Zurücksetzen des "Heben"-Effekts */
+}
+
+/* Optional: Stil für ausgewählte Artikel, falls dein JS eine Klasse wie 'selected' hinzufügt */
+#artikelListInModal .artikel-item.selected {
+    background-color: #4CAF50; /* Grün für ausgewählte Artikel */
+    color: white;
+    border-color: #3d8c40;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* --- Hinzugefügte Grid-Eigenschaften für den Container --- */
+#artikelListInModal.artikel-grid { /* Wichtig: Diese Klasse ist auf dem div mit der ID 'artikelListInModal' */
+    display: flex;       /* Nutzt Flexbox */
+    flex-wrap: wrap;     /* Lässt Artikel umbrechen */
+    justify-content: center; /* Zentriert die Artikel im Grid */
+    gap: 10px;           /* Abstand zwischen den Artikel-Items */
+    padding: 10px;       /* Polsterung um das gesamte Grid */
+}
+
+#artikelListInModal .artikel-item h4 {
+    margin-top: 0;
+    margin-bottom: 5px;
+    font-size: 1.1em;
+}
+
+#artikelListInModal .artikel-item p {
+    margin-bottom: 0;
+    font-size: 0.9em;
+}
+
+/* Bereiche im Modal (Artikel-Auswahl, Mengen-Eingabe, Zusammenfassung) */
+.artikel-selection-area,
+.quantity-input-area,
+.booking-summary-area {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.quantity-input-area input[type="number"] {
+    width: 100px; /* Kleinere Breite für Mengen-Input */
+    text-align: center;
+    margin-right: 10px;
+}
+
+.niedriger-bestand {
+    background-color: #ffe0e0; /* Ein helles Rot oder Rosa als Hintergrund */
+    border: 1px solid #ff6b6b; /* Ein roter Rand */
+    padding: 5px; /* Etwas Innenabstand */
+    margin-bottom: 5px; /* Abstand zwischen den Listenelementen */
+    border-radius: 4px; /* Abgerundete Ecken */
+}

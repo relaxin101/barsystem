@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Barsystem Herulia{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head_content %}{% endblock %} {# Für seiten-spezifische Head-Inhalte #}
+</head>
+<body>
+    <header>
+        <h1>Bar der Herulia</h1> {# Beibehalten, da es in deiner nav ist #}
+    </header>
+    <nav>
+        <a href="{{ url_for('bar_interface') }}">Bar-Verkauf</a>
+        {% if current_user.is_authenticated %}
+            | <a href="{{ url_for('admin_bereich') }}">Admin-Bereich</a>
+            | <a href="{{ url_for('aufladen_seite_anzeigen') }}">Guthaben aufladen</a>
+            | <a href="{{ url_for('buchungshistorie') }}">Buchungshistorie</a>
+            | <a href="{{ url_for('berichte') }}">Berichte</a>
+            {# Der Top Verkäufer Link bleibt im Admin-Bereich laut deiner Präferenz #}
+            | <a href="{{ url_for('logout') }}">Logout ({{ current_user.username }})</a>
+        {% else %}
+            | <a href="{{ url_for('login') }}">Admin Login</a>
+        {% endif %}
+    </nav>
+    <hr>
+
+    <main> {# Hier beginnt der Content-Block #}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul class="flashes">
+                {% for category, message in messages %}
+                    <li class="{{ category }}">{{ message }}</li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %} {# Das ist der Platzhalter für den Inhalt jeder Seite #}
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Dein Verein</p>
+    </footer>
+
+    {% block scripts %}{% endblock %} {# Optional: Für seiten-spezifische JavaScripts #}
+</body>
+</html>

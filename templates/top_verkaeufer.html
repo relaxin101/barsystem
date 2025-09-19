@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Top Verkäufer{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Top 10 Verkäufer</h2>
+
+{% if top_artikel %}
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>Artikelname</th>
+                <th>Verkaufte Menge</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for artikel in top_artikel %}
+            <tr>
+                <td>{{ artikel.name }}</td>
+                <td>{{ artikel.total_menge_verkauft }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="alert alert-info">Noch keine Verkaufsdaten verfügbar, um Top-Verkäufer zu bestimmen.</p>
+{% endif %}
+
+<a href="{{ url_for('admin_bereich') }}" class="btn btn-secondary mt-3">Zurück zum Admin-Bereich</a>
+{% endblock %}
