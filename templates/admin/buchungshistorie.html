@@ -84,7 +84,7 @@
                     </td>
                     <td>
                         {% if not buchung.storniert %}
-                            <a href="{{ url_for('storniere_buchung', buchung_id=buchung.id) }}"
+                            <a href="{{ url_for('admin.storniere_buchung', buchung_id=buchung.id) }}"
                                class="stornieren-btn"
                                onclick="return confirm('Sind Sie sicher, dass Sie diese Buchung stornieren möchten? Das Guthaben des Mitglieds wird korrigiert.');">
                                 Stornieren

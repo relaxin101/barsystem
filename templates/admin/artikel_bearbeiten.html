@@ -6,7 +6,7 @@
 <h2>Artikel bearbeiten</h2>
 
 <div class="form-container">
-    <form action="{{ url_for('artikel_bearbeiten', artikel_id=artikel.id) }}" method="POST">
+    <form action="{{ url_for('admin.artikel_bearbeiten', artikel_id=artikel.id) }}" method="POST">
         <label for="name">Name:</label>
         <input type="text" id="name" name="name" value="{{ artikel.name }}" required><br><br>
 
@@ -14,7 +14,7 @@
         <input type="number" id="preis" name="preis" step="0.01" value="{{ artikel.preis | round(2) }}" required><br><br>
 
         <button type="submit">Änderungen speichern</button>
-        <a href="{{ url_for('admin_bereich') }}" class="button">Abbrechen</a>
+        <a href="{{ url_for('admin.admin_bereich') }}" class="button">Abbrechen</a>
     </form>
 </div>
 {% endblock %}

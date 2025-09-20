@@ -222,12 +222,12 @@
 <div class="admin-section">
     <h2>Admin-Optionen</h2>
     <ul>
-        <li><a href="{{ url_for('add_mitglied') }}">Mitglied hinzufügen</a></li>
-        <li><a href="{{ url_for('add_artikel') }}">Artikel hinzufügen</a></li>
-        <li><a href="{{ url_for('guthaben_aufladen') }}">Guthaben aufladen</a></li>
-        <li><a href="{{ url_for('berichte') }}">Berichte anzeigen</a></li>
-        <li><a href="{{ url_for('change_password') }}">Passwort ändern</a></li>
-        <li><a href="{{ url_for('top_verkaeufer') }}">Top Verkäufer anzeigen</a></li>
+        <li><a href="{{ url_for('admin.add_mitglied') }}">Mitglied hinzufügen</a></li>
+        <li><a href="{{ url_for('admin.add_artikel') }}">Artikel hinzufügen</a></li>
+        <li><a href="{{ url_for('admin.aufladen_seite_anzeigen') }}">Guthaben aufladen</a></li>
+        <li><a href="{{ url_for('admin.berichte') }}">Berichte anzeigen</a></li>
+        <li><a href="{{ url_for('admin.change_password') }}">Passwort ändern</a></li>
+        <li><a href="{{ url_for('admin.top_verkaeufer') }}">Top Verkäufer anzeigen</a></li>
     </ul>
 </div>
 
@@ -235,7 +235,7 @@
 
 {# -- MITGLIED HINZUFÜGEN -- #}
 <h2>Mitglied hinzufügen</h2>
-<form action="{{ url_for('add_mitglied') }}" method="POST">
+<form action="{{ url_for('admin.add_mitglied') }}" method="POST">
     <label for="name">Name:</label>
     <input type="text" id="name" name="name" required><br><br>
     <label for="pin">PIN:</label>
@@ -247,7 +247,7 @@
 
 {# -- ARTIKEL HINZUFÜGEN -- #}
 <h2>Artikel hinzufügen</h2>
-<form action="{{ url_for('add_artikel') }}" method="POST">
+<form action="{{ url_for('admin.add_artikel') }}" method="POST">
     <label for="artikel_name">Name:</label>
     <input type="text" id="artikel_name" name="name" required><br><br>
     <label for="artikel_preis">Preis (€):</label>
@@ -314,8 +314,8 @@
                 <td>{{ mitglied.pin }}</td>
                 <td>{{ "%.2f"|format(mitglied.guthaben) }}€</td>
                 <td>
-                    <a href="{{ url_for('mitglied_bearbeiten', mitglied_id=mitglied.id) }}" class="button small">Bearbeiten</a>
-                    <form action="{{ url_for('mitglied_loeschen', mitglied_id=mitglied.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Sicher, dass du {{ mitglied.name }} löschen möchtest? Alle Transaktionen dieses Mitglieds werden ebenfalls gelöscht!');">
+                    <a href="{{ url_for('admin.mitglied_bearbeiten', mitglied_id=mitglied.id) }}" class="button small">Bearbeiten</a>
+                    <form action="{{ url_for('admin.mitglied_loeschen', mitglied_id=mitglied.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Sicher, dass du {{ mitglied.name }} löschen möchtest? Alle Transaktionen dieses Mitglieds werden ebenfalls gelöscht!');">
     <button type="submit" class="button small delete-button">Löschen</button>
 </form>
                 </td>
@@ -352,7 +352,7 @@
                 <td>{{ artikel_item.bestand }}</td> {# Dies zeigt den aktuellen Bestand an #}
                 <td>
                     {# FORMULAR FÜR MINDESTBESTAND #}
-                    <form action="{{ url_for('mindestbestand_setzen', artikel_id=artikel_item.id) }}" method="post" class="d-inline-flex align-items-center">
+                    <form action="{{ url_for('admin.mindestbestand_setzen', artikel_id=artikel_item.id) }}" method="post" class="d-inline-flex align-items-center">
                         <input type="hidden" name="artikel_id" value="{{ artikel_item.id }}">
                         <input type="number" name="neuer_mindestbestand" value="{{ artikel_item.mindestbestand }}" min="0" class="form-control form-control-sm mr-2" style="width: 70px;">
                         <button type="submit" class="btn btn-info btn-sm">Speichern</button>
@@ -360,15 +360,15 @@
                 </td>
                 <td>
                     {# NEUES FORMULAR HINZUFÜGEN: FÜR DEN AKTUELLEN BESTAND (STAND) #}
-                    <form action="{{ url_for('bestand_auf_setzen', artikel_id=artikel_item.id) }}" method="post" class="d-inline-flex align-items-center">
+                    <form action="{{ url_for('admin.bestand_auf_setzen', artikel_id=artikel_item.id) }}" method="post" class="d-inline-flex align-items-center">
                         <input type="number" name="neuer_bestand" value="{{ artikel_item.bestand }}" min="0" class="form-control form-control-sm mr-2" style="width: 70px;">
                         <button type="submit" class="btn btn-primary btn-sm">Stand setzen</button> {# Button-Farbe geändert, um sie zu unterscheiden #}
                     </form>
                 </td>
                 <td>
                     {# AKTIONEN (Bearbeiten/Löschen) - Bleibt unverändert #}
-                    <a href="{{ url_for('artikel_bearbeiten', artikel_id=artikel_item.id) }}" class="btn btn-primary btn-sm">Bearbeiten</a>
-                    <form action="{{ url_for('artikel_loeschen', artikel_id=artikel_item.id) }}" method="post" class="d-inline-flex">
+                    <a href="{{ url_for('admin.artikel_bearbeiten', artikel_id=artikel_item.id) }}" class="btn btn-primary btn-sm">Bearbeiten</a>
+                    <form action="{{ url_for('admin.artikel_loeschen', artikel_id=artikel_item.id) }}" method="post" class="d-inline-flex">
                         <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Sicher?');">Löschen</button>
                     </form>
                 </td>
