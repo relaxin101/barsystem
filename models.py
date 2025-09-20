@@ -2,7 +2,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
-
 db = SQLAlchemy()
 
 class Mitglied(db.Model):
@@ -38,7 +37,7 @@ class Artikel(db.Model):
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
-    password = db.Column(db.String(128), nullable=False) # Speichert das gehashte Passwort
+    password = db.Column(db.Text(), nullable=False) # Speichert das gehashte Passwort
     is_admin = db.Column(db.Boolean, default=False) # Optional: Feld, um Admins zu kennzeichnen
     
     def set_password(self, password):

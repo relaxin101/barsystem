@@ -1,0 +1,82 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_USERNAME}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    env_file:
+      - .env
+   
+  flask-app:
+    build: 
+      dockerfile: Dockerfile
+      context: .
+    container_name: flask-app
+    volumes:
+      - .:/app
+    ports:
+      - "5000:5000"
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    working_dir: /app
+    command: >
+       sh -c "python app.py"
+
+    environment:
+      FLASK_SECRET_KEY: ${FLASK_SECRET_KEY}
+      DEBUG: ${DEBUG}
+      FLASK_LOGLEVEL: ${FLASK_LOGLEVEL}
+      FLASK_ALLOWED_HOSTS: ${FLASK_ALLOWED_HOSTS}
+      DATABASE_ENGINE: ${DATABASE_ENGINE}
+      DATABASE_NAME: ${DATABASE_NAME}
+      DATABASE_USERNAME: ${DATABASE_USERNAME}
+ 
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_HOST: ${DATABASE_HOST}
+      DATABASE_PORT: ${DATABASE_PORT}
+    env_file:
+      - .env
+
+  db-init:
+    build: 
+      dockerfile: Dockerfile
+      context: .
+    container_name: db-init
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+    working_dir: /app
+    command: >
+       sh -c "(flask db init || true) && flask db migrate && flask db upgrade"
+
+    environment:
+      FLASK_SECRET_KEY: ${FLASK_SECRET_KEY}
+      DEBUG: ${DEBUG}
+      FLASK_LOGLEVEL: ${FLASK_LOGLEVEL}
+      FLASK_ALLOWED_HOSTS: ${FLASK_ALLOWED_HOSTS}
+      DATABASE_ENGINE: ${DATABASE_ENGINE}
+      DATABASE_NAME: ${DATABASE_NAME}
+      DATABASE_USERNAME: ${DATABASE_USERNAME}
+ 
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_HOST: ${DATABASE_HOST}
+      DATABASE_PORT: ${DATABASE_PORT}
+    env_file:
+      - .env
+volumes:
+  postgres_data:
+    

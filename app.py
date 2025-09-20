@@ -840,18 +840,9 @@ def storniere_buchung(buchung_id):
 # Hier dann weitere Sachen einfügen
 
 # --- App starten ---
-if __name__ == "__main__":  # <-- Startet ganz links
-    with app.app_context():  # <-- Startet ganz links, auf gleicher Ebene wie 'if __name__'
-        # Der gesamte folgende Code MUSS um EINE Ebene eingerückt sein (z.B. 4 Leerzeichen)
-        # --- Teil 1: Datenbank überprüfen und erstellen ---
-        if not os.path.exists(os.path.join(config.BASE_DIR, "barsystem.db")):
-            print("Datenbank 'barsystem.db' wird erstellt...")
-            db.create_all()
-            print("Datenbank erfolgreich erstellt!")
-        else:
-            print("Datenbank 'barsystem.db' existiert bereits.")
-
-        # --- Teil 2: Admin-Benutzer überprüfen und erstellen ---
+if __name__ == "__main__":
+    with app.app_context():
+        # --- Admin-Benutzer überprüfen und erstellen ---
         if not User.query.filter_by(username=config.ADMIN_USERNAME).first():
             print(f"Erstelle initialen Admin-Benutzer: {config.ADMIN_USERNAME}")
             admin_user = User(username=config.ADMIN_USERNAME)
@@ -860,6 +851,4 @@ if __name__ == "__main__":  # <-- Startet ganz links
             db.session.commit()
             print("Admin-Benutzer erfolgreich erstellt!")
 
-        # DIESE ZEILE MUSS AUF DER GLEICHEN EBENE WIE 'if not os.path.exists...' und 'if not AdminUser...' SEIN!
-        # Sie gehört also ZUM 'with app.app_context():' Block.
         app.run(host="0.0.0.0", debug=True)
