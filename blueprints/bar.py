@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
-from sqlalchemy import or_
+from sqlalchemy import or_, func, text
 from models import db, Mitglied, Artikel, Buchung
 from datetime import datetime
 
@@ -19,9 +19,11 @@ def get_members_api():
     search_term = request.args.get("search", "")  # Suchbegriff aus den URL-Parametern
 
     if search_term:
+        # PostgreSQL text search across name and nickname columns
+        # Using to_tsvector for full-text search
         members_query = Mitglied.query.filter(
-            or_(Mitglied.name.ilike(f"%{search_term}%"), Mitglied.pin == search_term)
-        )
+            text("to_tsvector('german', name || ' ' || nickname) @@ plainto_tsquery('german', :search_term)")
+        ).params(search_term=search_term)
     else:
         members_query = Mitglied.query
 
@@ -34,6 +36,7 @@ def get_members_api():
             {
                 "id": member.id,
                 "name": member.name,
+                "nickname": member.nickname,
                 "guthaben": member.guthaben,
                 # Füge hier alle weiteren Daten hinzu, die du im Frontend benötigst
             }
@@ -57,7 +60,7 @@ def bar_interface():
     mitglieder_data = []
     for mitglied in all_mitglieder_objects:
         mitglieder_data.append(
-            {"id": mitglied.id, "name": mitglied.name, "guthaben": mitglied.guthaben}
+            {"id": mitglied.id, "name": mitglied.name, "nickname": mitglied.nickname, "guthaben": mitglied.guthaben}
         )
 
     artikel_liste = Artikel.query.order_by(Artikel.name).all()

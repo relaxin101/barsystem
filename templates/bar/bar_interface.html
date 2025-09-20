@@ -39,7 +39,7 @@
 <div class="member-selection">
     <h2>Mitglied auswählen</h2>
     <form id="memberSearchForm" action="{{ url_for('bar.bar_interface') }}" method="POST">
-        <label for="search_term">Name oder PIN:</label>
+        <label for="search_term">Name oder Nickname:</label>
         <input type="text" id="search_term" name="search_term" placeholder="Mitglied suchen..." value="{{ request.form.get('search_term', '') }}"><br><br>
         <button type="submit">Suchen</button>
         {% if request.form.get('search_term') %}

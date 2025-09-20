@@ -6,8 +6,8 @@ db = SQLAlchemy()
 
 class Mitglied(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), unique=True, nullable=False)
-    pin = db.Column(db.String(10), unique=True, nullable=False)
+    name = db.Column(db.Text(), unique=True, nullable=False)
+    nickname = db.Column(db.String(10), unique=True, nullable=False)
     guthaben = db.Column(db.Float, default=0.0)
     
     buchungen_von_mitglied = db.relationship('Buchung', back_populates='mitglied_obj', lazy=True)

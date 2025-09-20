@@ -72,12 +72,12 @@ def admin_bereich():
 def add_mitglied():
     """Ein neues Mitglied hinzufügen."""
     name = request.form.get("name")
-    pin = request.form.get("pin")
-    if not name or not pin:
-        flash("Name und PIN dürfen nicht leer sein!", "error")
+    nickname = request.form.get("nickname")
+    if not name or not nickname:
+        flash("Name und Nickname dürfen nicht leer sein!", "error")
         return redirect(url_for("admin.admin_bereich"))
 
-    neues_mitglied = Mitglied(name=name, pin=pin, guthaben=0.0)
+    neues_mitglied = Mitglied(name=name, nickname=nickname, guthaben=0.0)
     try:
         db.session.add(neues_mitglied)
         db.session.commit()
@@ -159,7 +159,7 @@ def mitglied_bearbeiten(mitglied_id):
     if request.method == "POST":
         try:
             mitglied.name = request.form["name"]
-            mitglied.pin = request.form["pin"]
+            mitglied.nickname = request.form["nickname"]
             # Guthaben nur aktualisieren, wenn es explizit im Formularfeld ist
             # und nicht leer, da wir hier primär Name/PIN bearbeiten.
             # Für Guthabenaufladung gibt es die separate Funktion.
