@@ -1,17 +1,61 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
-from sqlalchemy import or_, func, text
+from sqlalchemy import or_, func, text, desc
 from models import db, Mitglied, Artikel, Buchung
 from datetime import datetime
 
-bar_bp = Blueprint('bar', __name__)
+bar_bp = Blueprint("bar", __name__)
 
 
-@bar_bp.route("/")
-def index():
-    """Startseite der Bar-Anwendung (hier wird später die Suche/Bedienung stattfinden)."""
-    alle_mitglieder = Mitglied.query.order_by(Mitglied.name).all()
-    alle_artikel = Artikel.query.order_by(Artikel.name).all()
-    return redirect(url_for("bar.bar_interface"))
+def hotlist():
+    """
+    Hole die letzten häufigsten Käufer
+    """
+    # Hole die letzten 20 Buchungen
+    letzte_buchungen = (
+        Buchung.query.order_by(Buchung.id.desc())
+        .limit(50)  # etwas größer, falls einige doppelt sind
+        .all()
+    )
+
+    # Sammle die Mitglieds-IDs aus diesen Buchungen
+    mitglied_ids = {b.mitglied_id for b in letzte_buchungen}
+
+    # Berechne für diese Mitglieder die Gesamtmenge aller Käufe
+    mitglieder_mit_mengen = (
+        db.session.query(Mitglied, func.sum(Buchung.menge).label("gesamtmenge"))
+        .join(Mitglied.buchungen_von_mitglied)
+        .filter(Buchung.mitglied_id.in_(mitglied_ids))
+        .group_by(Mitglied.id)
+        .order_by(desc("gesamtmenge"), Mitglied.name)
+        .limit(20)
+        .all()
+    )
+    return [m for m, _ in mitglieder_mit_mengen]
+
+
+@bar_bp.route("/", methods=["GET", "POST"])
+def bar_interface():
+    """
+    Hauptinterface für die Bar.
+    Zeigt eine Mitglieder-Suchleiste und nach der Auswahl die Artikel an.
+    """
+    # Mitglieder abrufen
+    mitglieder = hotlist()
+    artikel_liste = Artikel.query.order_by(Artikel.name).all()
+
+    return render_template(
+        "bar/bar_interface.html",
+        mitglieder=[
+            {
+                "id": mitglied.id,
+                "name": mitglied.name,
+                "nickname": mitglied.nickname,
+                "guthaben": mitglied.guthaben,
+            }
+            for mitglied in mitglieder
+        ],
+        artikel=artikel_liste,
+    )
 
 
 @bar_bp.route("/api/members", methods=["GET"])
@@ -22,53 +66,33 @@ def get_members_api():
         # PostgreSQL text search across name and nickname columns
         # Using to_tsvector for full-text search
         members_query = Mitglied.query.filter(
-            text("to_tsvector('german', name || ' ' || nickname) @@ plainto_tsquery('german', :search_term)")
+            text(
+                """
+                to_tsvector( name || ' ' || nickname)  @@  to_tsquery(:search_term) 
+                or name iLike '%' || :search_term || '%' 
+                or nickname iLike '%' || :search_term || '%'"""
+            )
         ).params(search_term=search_term)
+        members = members_query.order_by(Mitglied.name).all()
     else:
-        members_query = Mitglied.query
+        members = hotlist()
 
-    members = members_query.order_by(Mitglied.name).all()
-
-    # Mitgliederdaten in ein Listen von Dictionaries umwandeln
-    members_data = []
-    for member in members:
-        members_data.append(
-            {
-                "id": member.id,
-                "name": member.name,
-                "nickname": member.nickname,
-                "guthaben": member.guthaben,
-                # Füge hier alle weiteren Daten hinzu, die du im Frontend benötigst
-            }
-        )
-
-    return jsonify({"success": True, "members": members_data})
-
-
-@bar_bp.route("/bar", methods=["GET", "POST"])
-def bar_interface():
-    """
-    Hauptinterface für die Bar.
-    Zeigt eine Mitglieder-Suchleiste und nach der Auswahl die Artikel an.
-    """
-    # Mitglieder abrufen
-    all_mitglieder_objects = Mitglied.query.order_by(
-        Mitglied.name
-    ).all()  # Hier holen wir die ORM-Objekte
-
-    # Mitgliederobjekte in eine Liste von Dictionaries umwandeln
-    mitglieder_data = []
-    for mitglied in all_mitglieder_objects:
-        mitglieder_data.append(
-            {"id": mitglied.id, "name": mitglied.name, "nickname": mitglied.nickname, "guthaben": mitglied.guthaben}
-        )
-
-    artikel_liste = Artikel.query.order_by(Artikel.name).all()
-
-    return render_template(
-        "bar/bar_interface.html",
-        mitglieder=mitglieder_data,  # Jetzt übergeben wir die Liste der Dictionaries
-        artikel=artikel_liste,
+    return jsonify(
+        {
+            "success": True,
+            "members": list(
+                map(
+                    lambda member: {
+                        "id": member.id,
+                        "name": member.name,
+                        "nickname": member.nickname,
+                        "guthaben": member.guthaben,
+                        # Füge hier alle weiteren Daten hinzu, die du im Frontend benötigst
+                    },
+                    members,
+                )
+            ),
+        }
     )
 
 
@@ -102,21 +126,9 @@ def buchen():
                 400,
             )
 
-        # NEU: Bestand prüfen, bevor der Verkauf stattfindet
-        if artikel.bestand < menge:
-            return (
-                jsonify(
-                    {
-                        "success": False,
-                        "message": f"Nicht genügend {artikel.name} auf Lager. Verfügbar: {artikel.bestand}",
-                    }
-                ),
-                400,
-            )
-
         gesamtpreis = artikel.preis * menge
 
-        if mitglied.guthaben < gesamtpreis:
+        if mitglied.guthaben - gesamtpreis < -50.0:
             return (
                 jsonify({"success": False, "message": "Nicht genügend Guthaben."}),
                 400,
@@ -136,7 +148,7 @@ def buchen():
             preis_pro_einheit=artikel.preis,  # Speichern wir den Preis zum Zeitpunkt des Kaufs
             gesamtpreis=gesamtpreis,
             zeitstempel=datetime.utcnow(),  # Aktuellen UTC-Zeitstempel verwenden
-            storniert=False,  # Standardmäßig nicht storniert
+            storniert=None,  # Standardmäßig nicht storniert
         )
         db.session.add(neue_buchung)
 
@@ -149,7 +161,7 @@ def buchen():
                 "success": True,
                 "message": "Buchung erfolgreich!",
                 "new_balance": mitglied.guthaben,
-                "artikel_name": artikel.name,  # Optional: nützlich für Bestätigungstexte im Frontend
+                "artikel_name": artikel.name,
                 "menge": menge,
                 "gesamtpreis": gesamtpreis,
                 "new_artikel_bestand": artikel.bestand,  # Optional: Neuen Bestand zurückgeben

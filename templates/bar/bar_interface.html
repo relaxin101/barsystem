@@ -1,316 +1,151 @@
 {% extends "base.html" %}
-
-{% block title %}Vereinsbar - Verkauf{% endblock %}
-
-{% block head_content %}
-{# Spezifisches Styling für die Bar-Ansicht #}
-<style>
-    /* ... (dein CSS-Code, der ist soweit in Ordnung) ... */
-
-    /* --- Styling für das Modal --- */
-    .modal {
-        display: none; /* Versteckt das Modal standardmäßig */
-        position: fixed; /* Über dem gesamten Bildschirm */
-        z-index: 1000; /* Ganz oben */
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        overflow: auto; /* Scrollbar, falls Inhalt zu groß */
-        background-color: rgba(0,0,0,0.6); /* Halbdurchsichtiger Hintergrund */
-        backdrop-filter: blur(5px); /* Optional: Unscharfer Hintergrund */
-        -webkit-backdrop-filter: blur(5px); /* Für Safari */
-        justify-content: center; /* Horizontal zentrieren */
-        align-items: center; /* Vertikal zentrieren */
-    }
-
-/* NEU: Klasse für das sichtbare Modal */
-    .modal.is-visible {
-        display: flex; /* Nur wenn diese Klasse hinzugefügt wird, wird es sichtbar */
-    }
-
-    /* ... (Rest deines Modal-Stylings) ... */
-</style>
-{% endblock %}
-
 {% block content %}
-<h1>Vereinsbar - Verkauf</h1>
+<div class="container mt-4">
+  <h2 class="mb-4 text-center">Bar-Interface</h2>
 
-<div class="member-selection">
-    <h2>Mitglied auswählen</h2>
-    <form id="memberSearchForm" action="{{ url_for('bar.bar_interface') }}" method="POST">
-        <label for="search_term">Name oder Nickname:</label>
-        <input type="text" id="search_term" name="search_term" placeholder="Mitglied suchen..." value="{{ request.form.get('search_term', '') }}"><br><br>
-        <button type="submit">Suchen</button>
-        {% if request.form.get('search_term') %}
-            <button type="button" id="resetSearchButton">Alle Mitglieder anzeigen</button>
-        {% endif %}
-    </form>
+  <!-- Suchfeld -->
+  <div class="input-group mb-4">
+    <input
+      id="member-search"
+      type="text"
+      class="form-control form-control-lg"
+      placeholder="🔍 Mitglied suchen..."
+      aria-label="Mitglied suchen"
+    />
+  </div>
 
-    {# HIER IST DER WICHTIGE CONTAINER! #}
-    <div id="memberList" class="member-grid">
-    </div>
+  <!-- Grid -->
+  <div id="member-grid" class="row g-3 justify-content-center">
+    <!-- Wird per JS befüllt -->
+  </div>
 </div>
 
-<div id="bookingModal" class="modal">
-    <div class="modal-content large-modal">
-        <span class="close-button">&times;</span>
-        <h2>Buchung für: <span id="selectedMemberName"></span></h2>
-        <p>Guthaben: <span id="selectedMemberBalance"></span> €</p>
+<style>
+  .member-card {
+    border-radius: 0.8rem;
+    padding: 0.8rem; /* 👈 kompakter */
+    text-align: center;
+    color: #fff;
+    transition: transform 0.15s ease-in-out, box-shadow 0.15s;
+    cursor: default;
+    min-height: 110px; /* 👈 etwas flacher */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
 
-        <div class="artikel-selection-area">
-            <h3>Artikel auswählen:</h3>
-            <div id="artikelListInModal" class="artikel-grid">
-                {% for artikel in artikel %}
-                <div class="artikel-item" data-id="{{ artikel.id }}" data-preis="{{ artikel.preis }}">
-                    <h4>{{ artikel.name }}</h4>
-                    <p>{{ artikel.preis|float_format }} €</p>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
+  .member-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+  }
 
-        <div class="quantity-input-area" style="display: none;"> <h3>Menge eingeben für: <span id="selectedArtikelName"></span></h3>
-            <p>Preis pro Einheit: <span id="selectedArtikelPrice"></span> €</p>
-            <input type="number" id="quantityInput" min="1" value="1">
-            <button id="confirmQuantityButton">Buchen</button>
-            <button id="cancelQuantityButton">Abbrechen</button>
-        </div>
+  .member-name-row {
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    gap: 0.3rem;
+    font-weight: 600;
+    font-size: 1rem; /* 👈 etwas kleiner */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
-        <div class="booking-summary-area" style="display: none;">
-            <h3>Zusammenfassung:</h3>
-            <p>Artikel: <span id="summaryArtikelName"></span></p>
-            <p>Menge: <span id="summaryQuantity"></span></p>
-            <p>Gesamtpreis: <span id="summaryTotalPrice"></span> €</p>
-            <button id="finalConfirmBookingButton">Buchung abschließen</button>
-            <button id="cancelBookingSummaryButton">Abbrechen</button>
-        </div>
-    </div>
-</div>
-{% endblock %}
+  .member-name {
+    max-width: 65%; /* 👈 mehr Platz für Name */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
-{% block scripts %}
+  .member-nickname {
+    opacity: 0.9;
+    font-size: 0.9rem;
+  }
+
+  .member-balance {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-top: 0.3rem;
+  }
+
+  .color-1 { background: #007bff; }
+  .color-2 { background: #28a745; }
+  .color-3 { background: #17a2b8; }
+  .color-4 { background: #ffc107; color: #212529; }
+  .color-5 { background: #fd7e14; }
+  .color-6 { background: #6f42c1; }
+</style>
+
 <script>
-    // Globale Variablen für das aktuell ausgewählte Mitglied und den Artikel
-    let selectedMemberId = null;
-    let selectedMemberName = '';
-    let selectedMemberBalance = 0;
-    let selectedArtikelId = null;
-    let selectedArtikelName = '';
-    let selectedArtikelPrice = 0;
+  // ---------- Mitglieder laden ----------
+  async function fetchMembers(search = "") {
+    try {
+      const url = search
+        ? `/api/members?search=${encodeURIComponent(search)}`
+        : "/api/members";
+      const res = await fetch(url);
+      const data = await res.json();
 
-    // DOM-Elemente
-    const memberListContainer = document.getElementById('memberList'); // Container für die Mitgliederliste
-    const searchForm = document.getElementById('memberSearchForm');
-    const searchTermInput = document.getElementById('search_term');
-    const resetSearchButton = document.getElementById('resetSearchButton'); // Optional
+      if (data.success) renderMembers(data.members);
+      else renderError("Fehler beim Laden der Mitglieder.");
+    } catch (err) {
+      renderError("Netzwerkfehler beim Laden der Mitglieder.");
+      console.error(err);
+    }
+  }
 
-    // DOM-Elemente des Buchungs-Modals
-    const bookingModal = document.getElementById('bookingModal');
-    const closeBookingButton = bookingModal.querySelector('.close-button');
-    const selectedMemberNameSpan = document.getElementById('selectedMemberName');
-    const selectedMemberBalanceSpan = document.getElementById('selectedMemberBalance');
-    const artikelListInModal = document.getElementById('artikelListInModal'); // Artikel im Modal werden einmal von Jinja gerendert
+  // ---------- Mitglieder anzeigen ----------
+  function renderMembers(members) {
+    const grid = document.getElementById("member-grid");
+    grid.innerHTML = "";
 
-    const quantityInputArea = document.querySelector('.quantity-input-area');
-    const selectedArtikelNameSpan = document.getElementById('selectedArtikelName');
-    const selectedArtikelPriceSpan = document.getElementById('selectedArtikelPrice');
-    const quantityInput = document.getElementById('quantityInput');
-    const confirmQuantityButton = document.getElementById('confirmQuantityButton');
-    const cancelQuantityButton = document.getElementById('cancelQuantityButton');
-
-    const bookingSummaryArea = document.querySelector('.booking-summary-area');
-    const summaryArtikelNameSpan = document.getElementById('summaryArtikelName');
-    const summaryQuantitySpan = document.getElementById('summaryQuantity');
-    const summaryTotalPriceSpan = document.getElementById('summaryTotalPrice');
-    const finalConfirmBookingButton = document.getElementById('finalConfirmBookingButton');
-    const cancelBookingSummaryButton = document.getElementById('cancelBookingSummaryButton');
-
-    // --- Funktionen ---
-
-    // Funktion zum Rendern der Mitglieder im memberListContainer
-    function renderMembers(members) {
-        memberListContainer.innerHTML = ''; // Vorherige Liste leeren
-        if (members.length === 0) {
-            memberListContainer.innerHTML = '<p>Keine Mitglieder gefunden.</p>';
-            return;
-        }
-
-        members.forEach(mitglied => {
-            const memberItem = document.createElement('div');
-            memberItem.classList.add('member-item');
-            memberItem.dataset.id = mitglied.id;
-            memberItem.dataset.name = mitglied.name;
-            memberItem.dataset.balance = mitglied.guthaben; // Wichtig: Guthaben als Data-Attribut
-
-            memberItem.innerHTML = `
-                <h3>${mitglied.name}</h3>
-                <p>Guthaben: ${mitglied.guthaben.toFixed(2)} €</p>
-            `;
-            memberListContainer.appendChild(memberItem);
-
-            // Event Listener direkt an das neu erstellte Element hängen
-            memberItem.addEventListener('click', function() {
-                selectedMemberId = this.dataset.id;
-                selectedMemberName = this.dataset.name;
-                selectedMemberBalance = parseFloat(this.dataset.balance);
-
-                selectedMemberNameSpan.textContent = selectedMemberName;
-                selectedMemberBalanceSpan.textContent = selectedMemberBalance.toFixed(2);
-
-                // Modal-Ansichten zurücksetzen
-                artikelListInModal.style.display = 'grid';
-                quantityInputArea.style.display = 'none';
-                bookingSummaryArea.style.display = 'none';
-
-                // **KORREKTUR HIER:**
-                bookingModal.classList.add('is-visible'); // Modal anzeigen
-            });
-        });
+    if (members.length === 0) {
+      grid.innerHTML =
+        '<div class="col-12 text-center text-muted">Keine Mitglieder gefunden.</div>';
+      return;
     }
 
-    // Funktion, um Mitglieder vom Server abzurufen (z.B. nach einer Suche)
-    async function fetchMembers(searchTerm = '') {
-        const url = searchTerm ? `/api/members?search=${searchTerm}` : '/api/members';
-        try {
-            const response = await fetch(url);
-            const data = await response.json();
-            if (data.success) {
-                renderMembers(data.members);
-            } else {
-                alert('Fehler beim Laden der Mitglieder: ' + data.message);
-            }
-        } catch (error) {
-            console.error('Fehler beim Abrufen der Mitglieder:', error);
-            alert('Ein Fehler ist beim Laden der Mitglieder aufgetreten.');
-        }
-    }
-
-
-    // --- Event Listener ---
-
-    // Initiales Laden der Mitglieder beim Seitenstart
-    // Da Flask die Mitglieder schon an das Template übergibt, können wir sie initial rendern
-    // Das Jinja-Array 'mitglieder' ist direkt im JS verfügbar, wenn es von Flask übergeben wird
-    const initialMembersData = {{ mitglieder | tojson | safe }};
-    console.log("Initial geladene Mitgliederdaten:", initialMembersData);
-    renderMembers(initialMembersData);
-
-
-    // Suchformular-Submit (verhindert volles Neuladen der Seite)
-    searchForm.addEventListener('submit', function(event) {
-        event.preventDefault(); // Standard-Submit verhindern
-        const searchTerm = searchTermInput.value;
-        fetchMembers(searchTerm);
+    members.forEach((m, i) => {
+      const colorClass = `color-${(i % 6) + 1}`;
+      const card = document.createElement("div");
+      card.className = "col-6 col-md-4 col-lg-3";
+      const nickname = m.nickname ? `(${m.nickname})` : "";
+      card.innerHTML = `
+        <div class="member-card ${colorClass}" title="${m.name}">
+          <div class="member-name-row">
+            <span class="member-name">${m.name}</span>
+            <span class="member-nickname">${nickname}</span>
+          </div>
+          <div class="member-balance">${m.guthaben.toFixed(2)} €</div>
+        </div>`;
+      grid.appendChild(card);
     });
+  }
 
-    // Reset-Button für die Suche
-    if (resetSearchButton) {
-        resetSearchButton.addEventListener('click', function() {
-            searchTermInput.value = ''; // Suchfeld leeren
-            fetchMembers(''); // Alle Mitglieder laden
-        });
-    }
+  function renderError(msg) {
+    const grid = document.getElementById("member-grid");
+    grid.innerHTML = `<div class="col-12 text-center text-danger">${msg}</div>`;
+  }
 
+  // ---------- Live-Suche (mit Delay & Mindestlänge) ----------
+  let searchTimeout = null;
+  const searchInput = document.getElementById("member-search");
 
-    // Artikel-Klick im Modal (zeigt Mengen-Eingabe an)
-    artikelListInModal.querySelectorAll('.artikel-item').forEach(item => {
-        item.addEventListener('click', function() {
-            selectedArtikelId = this.dataset.id;
-            selectedArtikelName = this.querySelector('h4').textContent;
-            selectedArtikelPrice = parseFloat(this.dataset.preis);
+  searchInput.addEventListener("input", (e) => {
+    clearTimeout(searchTimeout);
+    const search = e.target.value.trim();
 
-            selectedArtikelNameSpan.textContent = selectedArtikelName;
-            selectedArtikelPriceSpan.textContent = selectedArtikelPrice.toFixed(2);
-            quantityInput.value = 1; // Standardmenge zurücksetzen
+    searchTimeout = setTimeout(() => {
+      if (search.length >= 2 || search.length === 0) {
+        fetchMembers(search);
+      }
+    }, 500);
+  });
 
-            artikelListInModal.style.display = 'none';
-            quantityInputArea.style.display = 'block';
-            bookingSummaryArea.style.display = 'none';
-        });
-    });
-
-    // Mengen-Bestätigen-Button (zeigt Zusammenfassung an)
-    confirmQuantityButton.addEventListener('click', function() {
-        const quantity = parseInt(quantityInput.value);
-        if (isNaN(quantity) || quantity <= 0) {
-            alert('Bitte eine gültige Menge eingeben.');
-            return;
-        }
-
-        const totalPrice = quantity * selectedArtikelPrice;
-
-        summaryArtikelNameSpan.textContent = selectedArtikelName;
-        summaryQuantitySpan.textContent = quantity;
-        summaryTotalPriceSpan.textContent = totalPrice.toFixed(2);
-
-        quantityInputArea.style.display = 'none';
-        bookingSummaryArea.style.display = 'block';
-    });
-
-    // "Buchung abschließen" Button in der Zusammenfassung (führt die Buchung aus)
-    finalConfirmBookingButton.addEventListener('click', function() {
-        const quantity = parseInt(summaryQuantitySpan.textContent);
-        const totalPrice = parseFloat(summaryTotalPriceSpan.textContent);
-
-        // AJAX-Anfrage an den Server senden
-        fetch('/bar/buchen', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                mitglied_id: selectedMemberId,
-                artikel_id: selectedArtikelId,
-                menge: quantity
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Buchung erfolgreich!');
-                // Kontostand des Mitglieds im Hauptfenster aktualisieren
-                // Da wir jetzt dynamisch rendern, müssen wir den Kontostand im gerenderten Element aktualisieren
-                const memberItemToUpdate = document.querySelector(`.member-item[data-id="${selectedMemberId}"]`);
-                if (memberItemToUpdate) {
-                    memberItemToUpdate.querySelector('p').textContent = `Guthaben: ${data.new_balance.toFixed(2)} €`;
-                    memberItemToUpdate.dataset.balance = data.new_balance; // Dataset aktualisieren
-                }
-                bookingModal.classList.remove('is-visible'); // Modal schließen
-                // Nach erfolgreicher Buchung können wir die Mitgliederliste aktualisieren
-                // fetchMembers(searchTermInput.value); // Mitgliederliste mit aktuellem Suchbegriff neu laden
-            } else {
-                alert('Fehler bei der Buchung: ' + data.message);
-            }
-        })
-        .catch((error) => {
-            console.error('Error:', error);
-            alert('Ein unerwarteter Fehler ist aufgetreten.');
-        });
-    });
-
-    // Abbrechen-Buttons im Modal
-    cancelQuantityButton.addEventListener('click', function() {
-        quantityInputArea.style.display = 'none';
-        artikelListInModal.style.display = 'grid';
-    });
-
-    cancelBookingSummaryButton.addEventListener('click', function() {
-        bookingSummaryArea.style.display = 'none';
-        quantityInputArea.style.display = 'block';
-    });
-
-    // Modal schließen (X-Button)
-    closeBookingButton.addEventListener('click', function() {
-        bookingModal.classList.remove('is-visible');
-    });
-
-    // Modal schließen, wenn außerhalb geklickt wird
-    window.addEventListener('click', function(event) {
-        if (event.target == bookingModal) {
-            bookingModal.classList.remove('is-visible');
-        }
-    });
-
+  // ---------- Initiale Hotlist ----------
+  document.addEventListener("DOMContentLoaded", () => {
+    fetchMembers("");
+  });
 </script>
 {% endblock %}

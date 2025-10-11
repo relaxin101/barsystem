@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h3 class="mb-4 text-center">
+    {{ mitglied.name }} {% if mitglied.nickname %}({{ mitglied.nickname }}){% endif %}:
+    <span id="guthaben" class="fw-bold">{{ "%.2f"|format(mitglied.guthaben) }} €</span>
+  </h3>
+
+  <div class="row">
+    <!-- Linke Seite: Produkte -->
+    <div class="col-md-8">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5>Produkte</h5>
+        <div>
+          Menge:
+          <input id="menge" type="number" min="1" value="1" class="form-control d-inline-block" style="width: 80px;">
+        </div>
+      </div>
+
+      <div class="row g-2">
+        {% for artikel in artikel_liste %}
+        <div class="col-6 col-sm-4 col-lg-3">
+          <button
+            class="btn btn-primary w-100 artikel-btn"
+            data-artikel-id="{{ artikel.id }}"
+            data-artikel-name="{{ artikel.name }}"
+            data-artikel-preis="{{ artikel.preis }}"
+          >
+            {{ artikel.name }}<br>
+            <small>{{ "%.2f"|format(artikel.preis) }} €</small>
+          </button>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Rechte Seite: Übersicht -->
+    <div class="col-md-4 mt-4 mt-md-0">
+      <h5>Letzte Buchungen</h5>
+      <ul class="list-group mb-3">
+        {% for b in buchungen %}
+        <li class="list-group-item d-flex justify-content-between">
+          <span>{{ b.artikel.name }} × {{ b.menge }}</span>
+          <span>{{ "%.2f"|format(b.gesamtpreis) }} €</span>
+        </li>
+        {% else %}
+        <li class="list-group-item text-muted">Keine Buchungen vorhanden.</li>
+        {% endfor %}
+      </ul>
+
+      <h5>Aktuelle Bestellung</h5>
+      <ul id="bestellung-list" class="list-group mb-3"></ul>
+      <button id="buchen-btn" class="btn btn-success w-100">Buchen</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const mitgliedId = {{ mitglied.id }};
+  const bestellung = [];
+
+  document.querySelectorAll(".artikel-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const artikelId = btn.dataset.artikelId;
+      const name = btn.dataset.artikelName;
+      const preis = parseFloat(btn.dataset.artikelPreis);
+      const menge = parseInt(document.getElementById("menge").value);
+
+      const bestehend = bestellung.find(b => b.artikelId === artikelId);
+      if (bestehend) bestehend.menge += menge;
+      else bestellung.push({ artikelId, name, preis, menge });
+
+      renderBestellung();
+    });
+  });
+
+  function renderBestellung() {
+    const list = document.getElementById("bestellung-list");
+    list.innerHTML = "";
+    let summe = 0;
+
+    bestellung.forEach(item => {
+      const gesamt = item.preis * item.menge;
+      summe += gesamt;
+      const li = document.createElement("li");
+      li.className = "list-group-item d-flex justify-content-between";
+      li.innerHTML = `<span>${item.name} × ${item.menge}</span><span>${gesamt.toFixed(2)} €</span>`;
+      list.appendChild(li);
+    });
+
+    if (bestellung.length > 0) {
+      const sumLi = document.createElement("li");
+      sumLi.className = "list-group-item d-flex justify-content-between fw-bold";
+      sumLi.innerHTML = `<span>Gesamt:</span><span>${summe.toFixed(2)} €</span>`;
+      list.appendChild(sumLi);
+    }
+  }
+
+  document.getElementById("buchen-btn").addEventListener("click", async () => {
+    if (bestellung.length === 0) {
+      alert("Bitte mindestens ein Produkt auswählen!");
+      return;
+    }
+
+    for (const item of bestellung) {
+      const res = await fetch("/bar/buchen", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mitglied_id: mitgliedId,
+          artikel_id: item.artikelId,
+          menge: item.menge
+        })
+      });
+
+      const data = await res.json();
+      if (!data.success) {
+        alert(`Fehler: ${data.message}`);
+        return;
+      }
+
+      document.getElementById("guthaben").innerText = data.new_balance.toFixed(2) + " €";
+    }
+
+    alert("Buchung erfolgreich!");
+    bestellung.length = 0;
+    renderBestellung();
+    location.reload(); // aktualisiert Buchungsliste
+  });
+</script>
+{% endblock %}
+
