@@ -1,23 +1,23 @@
 /* Grundlegende Farben */
 :root {
-    --primary-white: #f8f9fb; /* Hintergrundfarbe */
-    --primary-red: #8d1d2c;   /* Akzentfarbe Rot */
-    --primary-gold: #f7ba0b;  /* Akzentfarbe Gold */
-    --text-dark: #333;        /* Dunkler Text für gute Lesbarkeit */
-    --text-light: #f8f9fb;    /* Heller Text auf dunklem Hintergrund */
+    --primary-light: #bbbbbb; /* Hintergrundfarbe */
+    --primary-main: #8d1d2c;   /* Akzentfarbe Rot */
+    --primary-secondary: #f7ba0b;  /* Akzentfarbe Gold */
+    --text-dark: #303030;        /* Dunkler Text für gute Lesbarkeit */
+    --text-light: #e8e9eb;    /* Heller Text auf dunklem Hintergrund */
 }
 
 body {
     font-family: Arial, sans-serif;
     margin: 0;
     padding: 0;
-    background-color: var(--primary-white); /* Hintergrund auf gebrochenes Weiß setzen */
+    background-color: var(--primary-light); /* Hintergrund auf gebrochenes Weiß setzen */
     color: var(--text-dark); /* Standardtextfarbe */
     line-height: 1.6;
 }
 
-header {
-    background-color: var(--primary-red); /* Dunkelrot als Header-Hintergrund */
+header h1 {
+    background-color: var(--primary-main); /* Dunkelrot als Header-Hintergrund */
     color: var(--text-light); /* Weißer Text auf rotem Header */
     padding: 1rem 0;
     text-align: center;
@@ -25,10 +25,10 @@ header {
 }
 
 nav {
-    background-color: var(--primary-red); /* Navigationsleiste ebenfalls rot */
+    background-color: var(--primary-main); /* Navigationsleiste ebenfalls rot */
     padding: 0.7rem 0;
     text-align: center;
-    border-bottom: 2px solid var(--primary-gold); /* Goldene Linie als Trenner */
+    border-bottom: 2px solid var(--primary-secondary); /* Goldene Linie als Trenner */
 }
 
 nav a {
@@ -40,7 +40,7 @@ nav a {
 }
 
 nav a:hover {
-    color: var(--primary-gold); /* Goldener Hover-Effekt */
+    color: var(--primary-secondary); /* Goldener Hover-Effekt */
 }
 
 hr {
@@ -112,7 +112,7 @@ input[type="number"]:focus,
 input[type="password"]:focus,
 input[type="email"]:focus,
 select:focus {
-    border-color: var(--primary-gold); /* Goldener Rahmen beim Fokus */
+    border-color: var(--primary-secondary); /* Goldener Rahmen beim Fokus */
     outline: none;
     box-shadow: 0 0 0 3px rgba(247, 186, 11, 0.3); /* Leichter Goldschimmer */
 }
@@ -120,7 +120,7 @@ select:focus {
 /* Allgemeine Button-Styles */
 button,
 input[type="submit"] {
-    background-color: var(--primary-red); /* Roter Hintergrund für Buttons */
+    background-color: var(--primary-main); /* Roter Hintergrund für Buttons */
     color: var(--text-light); /* Weißer Text */
     padding: 10px 15px;
     border: none;
@@ -133,21 +133,21 @@ input[type="submit"] {
 
 button:hover,
 input[type="submit"]:hover {
-    background-color: darken(var(--primary-red), 10%); /* Dunkleres Rot beim Hover */
+    background-color: darken(var(--primary-main), 10%); /* Dunkleres Rot beim Hover */
     transform: translateY(-1px); /* Leichter Hoch-Effekt */
 }
 
 /* Spezielle Buttons (falls vorhanden, z.B. für "Hinzufügen" oder "Bestätigen") */
 #addArtikelWithQuantity,
 .confirm-button { /* Beispiel für einen Bestätigungs-Button */
-    background-color: var(--primary-gold); /* Goldener Button */
+    background-color: var(--primary-secondary); /* Goldener Button */
     color: var(--text-dark); /* Dunkler Text auf goldenem Button */
-    border: 1px solid darken(var(--primary-gold), 10%);
+    border: 1px solid darken(var(--primary-secondary), 10%);
 }
 
 #addArtikelWithQuantity:hover,
 .confirm-button:hover {
-    background-color: darken(var(--primary-gold), 10%);
+    background-color: darken(var(--primary-secondary), 10%);
 }
 
 /* Löschen-Buttons könnten auch in einem dunkleren Rot sein */
@@ -218,7 +218,7 @@ footer {
 }
 
 .modal-content {
-    background-color: var(--primary-white); /* Hintergrundfarbe des Modals */
+    background-color: var(--primary-light); /* Hintergrundfarbe des Modals */
     margin: auto; /* Zentriert das Modal */
     padding: 30px;
     border: 1px solid #888;
@@ -248,7 +248,7 @@ footer {
 
 .close-button:hover,
 .close-button:focus {
-    color: var(--primary-red);
+    color: var(--primary-main);
     text-decoration: none;
     cursor: pointer;
 }
