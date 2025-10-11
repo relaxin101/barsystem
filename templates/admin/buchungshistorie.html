@@ -34,7 +34,7 @@
     </thead>
     <tbody>
       {% for b in buchungen %}
-      <tr class="{% if b.storniert %}table-danger{% endif %}">
+      <tr data-buchung-id="{{ b.id }}" class="{% if b.storniert %}table-danger{% endif %}">
         <td>{{ b.zeitstempel.strftime('%d.%m.%Y %H:%M') }}</td>
         <td>{{ b.mitglied_obj.name }}</td>
         <td>{{ b.artikel_obj.name }}</td>
@@ -43,9 +43,9 @@
         <td>{{ "%.2f"|format(b.gesamtpreis) }}</td>
         <td>
           {% if b.storniert %}
-            <span class="badge bg-danger">Storniert</span>
+            <span class="badge bg-danger status-badge" style="cursor:pointer;">Storno</span>
           {% else %}
-            <span class="badge bg-success">Aktiv</span>
+            <span class="badge bg-success status-badge" style="cursor:pointer;">Aktiv</span>
           {% endif %}
         </td>
       </tr>
@@ -77,4 +77,45 @@
   </nav>
   {% endif %}
 </div>
+
+<script>
+// Stornieren / Aktivieren per Klick
+document.querySelectorAll('.status-badge').forEach(badge => {
+  badge.addEventListener('click', async (e) => {
+    const row = e.target.closest('tr');
+    const buchungId = row.dataset.buchungId;
+
+    try {
+      const res = await fetch(`/admin/buchung_toggle/${buchungId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({})
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        // Badge aktualisieren
+        if (data.storniert) {
+          badge.textContent = "Storno";
+          badge.classList.remove("bg-success");
+          badge.classList.add("bg-danger");
+          row.classList.add("table-danger");
+        } else {
+          badge.textContent = "Aktiv";
+          badge.classList.remove("bg-danger");
+          badge.classList.add("bg-success");
+          row.classList.remove("table-danger");
+        }
+      } else {
+        alert("Fehler: " + data.message);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Fehler beim Stornieren");
+    }
+  });
+});
+</script>
 {% endblock %}

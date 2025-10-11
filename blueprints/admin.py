@@ -11,9 +11,11 @@ from flask import (
     url_for,
     flash,
     send_file,
+    jsonify,
+    current_app,
 )
 from flask_login import login_required
-from sqlalchemy import desc
+from sqlalchemy import desc, text
 import pandas as pd
 
 from models import db, Artikel, Buchung, Mitglied
@@ -49,6 +51,20 @@ def buchungshistorie():
         start_date=start_date,
         end_date=end_date,
     )
+
+
+@login_required
+@admin_bp.route("/buchung_toggle/<int:buchung_id>", methods=["POST"])
+def buchung_toggle(buchung_id):
+    buchung = Buchung.query.get_or_404(buchung_id)
+    if buchung.storniert:
+        buchung.storniert = None
+        # flash(f"Buchung i.d.H.v. {buchung.gesamtpreis} storniert")
+    else:
+        buchung.storniert = datetime.utcnow()
+        # flash(f"Storno i.d.H.v. {buchung.gesamtpreis} rückgängig gemacht")
+    db.session.commit()
+    return jsonify({"success": True, "storniert": bool(buchung.storniert)})
 
 
 # -------------------------
@@ -93,17 +109,46 @@ def export_buchungen():
 # --------------------------------
 # 📦 Admin-Seite: Export Auswahl
 # --------------------------------
-@admin_bp.route("/admin/export", methods=["GET"])
+@admin_bp.route("/export", methods=["GET", "POST"])
 @login_required
 def admin_export():
-    """Zeigt eine Seite mit Buttons für verschiedene Exporte."""
-    return render_template("admin/admin_export.html")
+    """
+    Admin-Interface für eigene SQL Queries.
+    Query wird readonly ausgeführt, Ergebnis als Tabelle angezeigt und kann als Excel exportiert werden.
+    """
+    results = None
+    query = ""
+    error = None
+
+    if request.method == "POST":
+        query = request.form.get("query", "").strip()
+        if query:
+            try:
+                # Reine Lese-Verbindung
+                readonly_engine = db.get_engine()
+                with readonly_engine.connect() as conn:
+                    conn = conn.execution_options(
+                        isolation_level="AUTOCOMMIT", readonly=True
+                    )
+                    result_proxy = conn.execute(text(query))
+                    # Spalten + Daten für Template
+                    columns = result_proxy.keys()
+                    results = [
+                        dict(zip(columns, row)) for row in result_proxy.fetchall()
+                    ]
+
+            except Exception as e:
+                error = str(e.args)
+
+    return render_template(
+        "admin/admin_export.html", query=query, results=results, error=error
+    )
 
 
 # --------------------------------
 # 📋 Mitglieder-Export
 # --------------------------------
-@admin_bp.route("/admin/export/mitglieder")
+@admin_bp.route("/export/mitglieder")
 @login_required
 def export_mitglieder():
     return export_model_to_excel(
@@ -116,14 +161,35 @@ def export_mitglieder():
 # --------------------------------
 # 🛒 Produkte-Export
 # --------------------------------
-@admin_bp.route("/admin/export/produkte")
+@admin_bp.route("/export/produkte")
 @login_required
 def export_produkte():
     return export_model_to_excel(
         model=Artikel,
-        columns=["id", "name", "preis"],  # Passe an dein Modell an
+        columns=[
+            "id",
+            "name",
+            "preis",
+            "bestand",
+            "mindestbestand",
+            "bestand",
+        ],  # Passe an dein Modell an
         filename="produkte_export.xlsx",
     )
+
+
+@admin_bp.route("/sql_export/download", methods=["POST"])
+@login_required
+def sql_export_download():
+    query = request.form.get("query", "").strip()
+
+    readonly_engine = db.get_engine()
+    with readonly_engine.connect() as conn:
+        conn = conn.execution_options(isolation_level="AUTOCOMMIT", readonly=True)
+        result_proxy = conn.execute(text(query))
+        df = pd.DataFrame(result_proxy.fetchall(), columns=result_proxy.keys())
+
+    return export_df_to_excel(df, "export.xlsx")
 
 
 # Mitglieder
@@ -152,7 +218,7 @@ def admin_mitglieder():
 @admin_bp.route("/produkte", methods=["GET", "POST"])
 @login_required
 def admin_produkte():
-    db_fields = ["id", "name", "preis"]
+    db_fields = ["id", "name", "preis", "bestand", "mindestbestand", "bestand"]
 
     if request.method == "POST":
         return handle_excel_import(
@@ -168,67 +234,3 @@ def admin_produkte():
         action_url=url_for("admin.admin_produkte"),
         db_fields=db_fields,
     )
-
-
-###############################################################################
-################### ALT
-##############################################################################
-
-
-@admin_bp.route("/bestand_anpassen/<int:artikel_id>", methods=["POST"])
-@login_required  # Oder @admin_required, falls du eine separate Admin-Rolle hast
-def bestand_anpassen(artikel_id):
-    if request.method == "POST":
-        try:
-            menge = int(request.form.get("menge"))  # Menge aus dem Formular abrufen
-
-            artikel = Artikel.query.get_or_404(artikel_id)  # Artikel finden
-
-            # Bestand anpassen (addieren)
-            artikel.bestand += menge
-
-            db.session.commit()  # Änderungen speichern
-            flash(
-                f'Bestand für "{artikel.name}" um {menge} aktualisiert. Neuer Bestand: {artikel.bestand}',
-                "success",
-            )
-        except ValueError:
-            flash("Ungültige Menge eingegeben.", "danger")
-        except Exception as e:
-            flash(f"Fehler beim Anpassen des Bestands: {e}", "danger")
-            db.session.rollback()  # Bei Fehler Rollback
-
-    return redirect(url_for("admin.admin_bereich"))  # Zurück zur Admin-Seite
-
-
-@admin_bp.route("/bestand_auf_setzen/<int:artikel_id>", methods=["POST"])
-@login_required  # Oder @admin_required
-def bestand_auf_setzen(artikel_id):
-    if request.method == "POST":
-        try:
-            # Die neue Bestandsmenge aus dem Formular abrufen
-            neuer_bestand = int(request.form.get("neuer_bestand"))
-
-            if neuer_bestand < 0:
-                flash("Der Bestand kann nicht negativ sein.", "danger")
-                return redirect(url_for("admin.admin_bereich"))
-
-            artikel = Artikel.query.get_or_404(artikel_id)  # Artikel finden
-
-            alter_bestand = (
-                artikel.bestand
-            )  # Speichere den alten Wert für die Nachricht
-            artikel.bestand = neuer_bestand  # Bestand auf den exakten Wert setzen
-
-            db.session.commit()  # Änderungen speichern
-            flash(
-                f'Bestand für "{artikel.name}" von {alter_bestand} auf {neuer_bestand} gesetzt.',
-                "success",
-            )
-        except ValueError:
-            flash("Ungültiger Wert eingegeben.", "danger")
-        except Exception as e:
-            flash(f"Fehler beim Setzen des Bestands: {e}", "danger")
-            db.session.rollback()  # Bei Fehler Rollback
-
-    return redirect(url_for("admin.admin_bereich"))  # Zurück zur Admin-Seite
