@@ -1,10 +1,17 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container mt-4">
-  <h3 class="mb-4 text-center">
-    {{ mitglied.name }} {% if mitglied.nickname %}({{ mitglied.nickname }}){% endif %}:
-    <span id="guthaben" class="fw-bold">{{ "%.2f"|format(mitglied.guthaben) }} €</span>
-  </h3>
+<div class="container-fluid mt-4">
+
+  <!-- Überschrift + Zurück-Button -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="mb-0 text-center flex-grow-1">
+      {{ mitglied.name }}{% if mitglied.nickname %} ({{ mitglied.nickname }}){% endif %}:
+      <span id="guthaben" class="fw-bold">{{ "%.2f"|format(mitglied.guthaben) }} €</span>
+    </h3>
+    <a href="{{ url_for('bar.bar_interface') }}" class="btn btn-secondary ms-3">
+      &larr; Zurück
+    </a>
+  </div>
 
   <div class="row">
     <!-- Linke Seite: Produkte -->
@@ -17,11 +24,12 @@
         </div>
       </div>
 
-      <div class="row g-2">
+      <div class="row g-3">
         {% for artikel in artikel_liste %}
-        <div class="col-6 col-sm-4 col-lg-3">
+        <div class="col-12 col-sm-6 col-md-4 col-lg-3">
           <button
-            class="btn btn-primary w-100 artikel-btn"
+            class="btn btn-primary w-100 artikel-btn d-flex flex-column justify-content-center align-items-center text-center"
+            style="min-height: 180px; font-size: 1.3rem; padding: 1rem; white-space: normal;"
             data-artikel-id="{{ artikel.id }}"
             data-artikel-name="{{ artikel.name }}"
             data-artikel-preis="{{ artikel.preis }}"
@@ -40,7 +48,7 @@
       <ul class="list-group mb-3">
         {% for b in buchungen %}
         <li class="list-group-item d-flex justify-content-between">
-          <span>{{ b.artikel.name }} × {{ b.menge }}</span>
+          <span>{{ b.artikel_obj.name }} × {{ b.menge }}</span>
           <span>{{ "%.2f"|format(b.gesamtpreis) }} €</span>
         </li>
         {% else %}
@@ -56,52 +64,52 @@
 </div>
 
 <script>
-  const mitgliedId = {{ mitglied.id }};
-  const bestellung = [];
+const mitgliedId = {{ mitglied.id }};
+const bestellung = [];
 
-  document.querySelectorAll(".artikel-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const artikelId = btn.dataset.artikelId;
-      const name = btn.dataset.artikelName;
-      const preis = parseFloat(btn.dataset.artikelPreis);
-      const menge = parseInt(document.getElementById("menge").value);
+// Produkte klicken → zur aktuellen Bestellung hinzufügen
+document.querySelectorAll(".artikel-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const artikelId = btn.dataset.artikelId;
+    const name = btn.dataset.artikelName;
+    const preis = parseFloat(btn.dataset.artikelPreis);
+    const menge = parseInt(document.getElementById("menge").value);
 
-      const bestehend = bestellung.find(b => b.artikelId === artikelId);
-      if (bestehend) bestehend.menge += menge;
-      else bestellung.push({ artikelId, name, preis, menge });
+    const bestehend = bestellung.find(b => b.artikelId === artikelId);
+    if (bestehend) bestehend.menge += menge;
+    else bestellung.push({ artikelId, name, preis, menge });
 
-      renderBestellung();
-    });
+    renderBestellung();
+  });
+});
+
+function renderBestellung() {
+  const list = document.getElementById("bestellung-list");
+  list.innerHTML = "";
+  let summe = 0;
+
+  bestellung.forEach(item => {
+    const gesamt = item.preis * item.menge;
+    summe += gesamt;
+    const li = document.createElement("li");
+    li.className = "list-group-item d-flex justify-content-between";
+    li.innerHTML = `<span>${item.name} × ${item.menge}</span><span>${gesamt.toFixed(2)} €</span>`;
+    list.appendChild(li);
   });
 
-  function renderBestellung() {
-    const list = document.getElementById("bestellung-list");
-    list.innerHTML = "";
-    let summe = 0;
-
-    bestellung.forEach(item => {
-      const gesamt = item.preis * item.menge;
-      summe += gesamt;
-      const li = document.createElement("li");
-      li.className = "list-group-item d-flex justify-content-between";
-      li.innerHTML = `<span>${item.name} × ${item.menge}</span><span>${gesamt.toFixed(2)} €</span>`;
-      list.appendChild(li);
-    });
-
-    if (bestellung.length > 0) {
-      const sumLi = document.createElement("li");
-      sumLi.className = "list-group-item d-flex justify-content-between fw-bold";
-      sumLi.innerHTML = `<span>Gesamt:</span><span>${summe.toFixed(2)} €</span>`;
-      list.appendChild(sumLi);
-    }
+  if (bestellung.length > 0) {
+    const sumLi = document.createElement("li");
+    sumLi.className = "list-group-item d-flex justify-content-between fw-bold";
+    sumLi.innerHTML = `<span>Gesamt:</span><span>${summe.toFixed(2)} €</span>`;
+    list.appendChild(sumLi);
   }
+}
 
-  document.getElementById("buchen-btn").addEventListener("click", async () => {
-    if (bestellung.length === 0) {
-      alert("Bitte mindestens ein Produkt auswählen!");
-      return;
-    }
+// Buchung absenden (Flashes + Redirect)
+document.getElementById("buchen-btn").addEventListener("click", async () => {
+  if (bestellung.length === 0) return;
 
+  try {
     for (const item of bestellung) {
       const res = await fetch("/bar/buchen", {
         method: "POST",
@@ -115,18 +123,18 @@
 
       const data = await res.json();
       if (!data.success) {
-        alert(`Fehler: ${data.message}`);
+        window.location.href = "{{ url_for('bar.bar_interface') }}";
         return;
       }
-
-      document.getElementById("guthaben").innerText = data.new_balance.toFixed(2) + " €";
     }
 
-    alert("Buchung erfolgreich!");
-    bestellung.length = 0;
-    renderBestellung();
-    location.reload(); // aktualisiert Buchungsliste
-  });
+    // Alles erfolgreich → zurück zur Suche, Flash wird angezeigt
+    window.location.href = "{{ url_for('bar.bar_interface') }}";
+
+  } catch (err) {
+    console.error("Buchung fehlgeschlagen", err);
+    window.location.href = "{{ url_for('bar.bar_interface') }}";
+  }
+});
 </script>
 {% endblock %}
-

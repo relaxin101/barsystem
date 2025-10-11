@@ -1,151 +1,77 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container mt-4">
-  <h2 class="mb-4 text-center">Bar-Interface</h2>
+<div class="container-fluid mt-4 d-flex flex-column" style="height: calc(100vh - 100px);">
+  <h3 class="mb-3 text-center flex-shrink-0">Mitglieder suchen oder auswählen</h3>
 
-  <!-- Suchfeld -->
-  <div class="input-group mb-4">
-    <input
-      id="member-search"
-      type="text"
-      class="form-control form-control-lg"
-      placeholder="🔍 Mitglied suchen..."
-      aria-label="Mitglied suchen"
-    />
-  </div>
+  <input
+    type="text"
+    id="search"
+    class="form-control mb-3 flex-shrink-0"
+    placeholder="Mitglied oder Spitzname eingeben..."
+  />
 
-  <!-- Grid -->
-  <div id="member-grid" class="row g-3 justify-content-center">
-    <!-- Wird per JS befüllt -->
-  </div>
+  <!-- Scrollbarer Grid-Bereich -->
+  <div id="members-grid" class="row g-3 flex-grow-1 overflow-auto"></div>
 </div>
 
-<style>
-  .member-card {
-    border-radius: 0.8rem;
-    padding: 0.8rem; /* 👈 kompakter */
-    text-align: center;
-    color: #fff;
-    transition: transform 0.15s ease-in-out, box-shadow 0.15s;
-    cursor: default;
-    min-height: 110px; /* 👈 etwas flacher */
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-
-  .member-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
-  }
-
-  .member-name-row {
-    display: flex;
-    justify-content: center;
-    align-items: baseline;
-    gap: 0.3rem;
-    font-weight: 600;
-    font-size: 1rem; /* 👈 etwas kleiner */
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .member-name {
-    max-width: 65%; /* 👈 mehr Platz für Name */
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .member-nickname {
-    opacity: 0.9;
-    font-size: 0.9rem;
-  }
-
-  .member-balance {
-    font-size: 0.95rem;
-    font-weight: 600;
-    margin-top: 0.3rem;
-  }
-
-  .color-1 { background: #007bff; }
-  .color-2 { background: #28a745; }
-  .color-3 { background: #17a2b8; }
-  .color-4 { background: #ffc107; color: #212529; }
-  .color-5 { background: #fd7e14; }
-  .color-6 { background: #6f42c1; }
-</style>
-
 <script>
-  // ---------- Mitglieder laden ----------
-  async function fetchMembers(search = "") {
-    try {
-      const url = search
-        ? `/api/members?search=${encodeURIComponent(search)}`
-        : "/api/members";
-      const res = await fetch(url);
-      const data = await res.json();
+let searchTimeout = null;
 
-      if (data.success) renderMembers(data.members);
-      else renderError("Fehler beim Laden der Mitglieder.");
-    } catch (err) {
-      renderError("Netzwerkfehler beim Laden der Mitglieder.");
-      console.error(err);
-    }
-  }
+const colors = [
+  "#1b262c", "#0f4c75", "#3282b8", "#1a759f",
+  "#6a2c70", "#b83b5e", "#f08a5d", "#f28482"
+];
 
-  // ---------- Mitglieder anzeigen ----------
-  function renderMembers(members) {
-    const grid = document.getElementById("member-grid");
-    grid.innerHTML = "";
+async function loadMembers(search = "") {
+  const res = await fetch(`/api/members?search=${encodeURIComponent(search)}`);
+  const data = await res.json();
+  if (!data.success) return;
 
-    if (members.length === 0) {
-      grid.innerHTML =
-        '<div class="col-12 text-center text-muted">Keine Mitglieder gefunden.</div>';
-      return;
-    }
+  const container = document.getElementById("members-grid");
+  container.innerHTML = "";
 
-    members.forEach((m, i) => {
-      const colorClass = `color-${(i % 6) + 1}`;
-      const card = document.createElement("div");
-      card.className = "col-6 col-md-4 col-lg-3";
-      const nickname = m.nickname ? `(${m.nickname})` : "";
-      card.innerHTML = `
-        <div class="member-card ${colorClass}" title="${m.name}">
-          <div class="member-name-row">
-            <span class="member-name">${m.name}</span>
-            <span class="member-nickname">${nickname}</span>
-          </div>
-          <div class="member-balance">${m.guthaben.toFixed(2)} €</div>
-        </div>`;
-      grid.appendChild(card);
+  data.members.forEach(member => {
+    const col = document.createElement("div");
+    col.className = "col-6 col-md-3 col-lg-2 d-flex";
+
+    const div = document.createElement("div");
+    div.className = "text-white rounded member-card flex-fill d-flex flex-column justify-content-center align-items-center text-center";
+    div.style.cursor = "pointer";
+    div.style.fontSize = "1.3rem";
+    div.style.padding = "0.5rem";
+
+    const colorIndex = member.id % colors.length;
+    div.style.backgroundColor = colors[colorIndex];
+
+    let displayName = member.name;
+    if (displayName.length > 12) displayName = displayName.slice(0, 12) + "…";
+
+    div.innerHTML = `
+      <strong>${displayName}</strong> <small>(${member.nickname || "-"})</small>
+      <div class="text-white-50 mt-1" style="font-size:0.9rem;">${member.guthaben.toFixed(2)} €</div>
+    `;
+
+    div.addEventListener("click", () => {
+      window.location.href = `/bar/buchen?mitglied_id=${member.id}`;
     });
-  }
 
-  function renderError(msg) {
-    const grid = document.getElementById("member-grid");
-    grid.innerHTML = `<div class="col-12 text-center text-danger">${msg}</div>`;
-  }
-
-  // ---------- Live-Suche (mit Delay & Mindestlänge) ----------
-  let searchTimeout = null;
-  const searchInput = document.getElementById("member-search");
-
-  searchInput.addEventListener("input", (e) => {
-    clearTimeout(searchTimeout);
-    const search = e.target.value.trim();
-
-    searchTimeout = setTimeout(() => {
-      if (search.length >= 2 || search.length === 0) {
-        fetchMembers(search);
-      }
-    }, 500);
+    col.appendChild(div);
+    container.appendChild(col);
   });
+}
 
-  // ---------- Initiale Hotlist ----------
-  document.addEventListener("DOMContentLoaded", () => {
-    fetchMembers("");
-  });
+document.getElementById("search").addEventListener("input", e => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => loadMembers(e.target.value), 400);
+});
+
+loadMembers();
 </script>
+
+<style>
+.member-card {
+  width: 100%;
+  min-height: 140px;
+}
+</style>
 {% endblock %}

@@ -130,7 +130,7 @@ def export_produkte():
 @admin_bp.route("/mitglieder", methods=["GET", "POST"])
 @login_required
 def admin_mitglieder():
-    db_fields = ["id", "name", "nickname", "email"]
+    db_fields = ["id", "name", "nickname", "email", "guthaben"]
 
     if request.method == "POST":
         return handle_excel_import(

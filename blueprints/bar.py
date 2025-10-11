@@ -96,10 +96,36 @@ def get_members_api():
     )
 
 
-@bar_bp.route("/bar/buchen", methods=["POST"])
+@bar_bp.route("/bar/buchen", methods=["GET", "POST"])
 def buchen():
-    data = request.get_json()  # Daten als JSON empfangen
+    if request.method == "GET":
+        mitglied_id = request.args.get("mitglied_id")
+        if not mitglied_id:
+            flash("Mitglied-ID fehlt!", "danger")
+            return redirect(url_for("bar.bar_interface"))
 
+        mitglied = Mitglied.query.get(mitglied_id)
+        if not mitglied:
+            flash("Mitglied nicht gefunden!", "danger")
+            return redirect(url_for("bar.bar_interface"))
+
+        artikel_liste = Artikel.query.order_by(Artikel.id).all()
+        buchungen = (
+            Buchung.query.filter_by(mitglied_id=mitglied.id)
+            .order_by(Buchung.zeitstempel.desc())
+            .limit(5)
+            .all()
+        )
+
+        return render_template(
+            "bar/buchen.html",
+            mitglied=mitglied,
+            artikel_liste=artikel_liste,
+            buchungen=buchungen,
+        )
+
+    # POST → Buchung
+    data = request.get_json()
     mitglied_id = data.get("mitglied_id")
     artikel_id = data.get("artikel_id")
     menge = data.get("menge")
@@ -109,7 +135,6 @@ def buchen():
 
     mitglied = Mitglied.query.get(mitglied_id)
     artikel = Artikel.query.get(artikel_id)
-
     if not mitglied or not artikel:
         return (
             jsonify(
@@ -119,7 +144,7 @@ def buchen():
         )
 
     try:
-        menge = int(menge)  # Stelle sicher, dass Menge eine ganze Zahl ist
+        menge = int(menge)
         if menge <= 0:
             return (
                 jsonify({"success": False, "message": "Menge muss positiv sein."}),
@@ -127,55 +152,36 @@ def buchen():
             )
 
         gesamtpreis = artikel.preis * menge
-
         if mitglied.guthaben - gesamtpreis < -50.0:
             return (
                 jsonify({"success": False, "message": "Nicht genügend Guthaben."}),
                 400,
             )
 
-        # 1. Guthaben des Mitglieds aktualisieren
         mitglied.guthaben -= gesamtpreis
+        artikel.bestand -= menge
 
-        # 2. BESTAND DES ARTIKELS REDUZIEREN - DIESE ZEILE HAT GEFEHLT!
-        artikel.bestand -= menge  # <-- HIER HINZUGEFÜGT!
-
-        # 3. Buchung in der Datenbank speichern
         neue_buchung = Buchung(
             mitglied_id=mitglied.id,
             artikel_id=artikel.id,
             menge=menge,
-            preis_pro_einheit=artikel.preis,  # Speichern wir den Preis zum Zeitpunkt des Kaufs
+            preis_pro_einheit=artikel.preis,
             gesamtpreis=gesamtpreis,
-            zeitstempel=datetime.utcnow(),  # Aktuellen UTC-Zeitstempel verwenden
-            storniert=None,  # Standardmäßig nicht storniert
+            zeitstempel=datetime.utcnow(),
         )
         db.session.add(neue_buchung)
-
-        # 4. Alle Änderungen (Guthaben, Bestand und neue Buchung) in der Datenbank speichern
         db.session.commit()
 
-        # Erfolgreiche JSON-Antwort an das Frontend
-        return jsonify(
-            {
-                "success": True,
-                "message": "Buchung erfolgreich!",
-                "new_balance": mitglied.guthaben,
-                "artikel_name": artikel.name,
-                "menge": menge,
-                "gesamtpreis": gesamtpreis,
-                "new_artikel_bestand": artikel.bestand,  # Optional: Neuen Bestand zurückgeben
-            }
+        # Flask flash und redirect
+        flash(
+            f"Buchung für {mitglied.name} erfolgreich: {menge}× {artikel.name} ({gesamtpreis:.2f}€)",
+            "success",
         )
+        return jsonify({"success": True, "redirect_url": url_for("bar.bar_interface")})
 
-    except ValueError:
-        return (
-            jsonify({"success": False, "message": "Ungültige Menge oder Daten."}),
-            400,
-        )
     except Exception as e:
-        db.session.rollback()  # Wichtig: Rollback bei Fehlern
-        print(f"Fehler bei der Buchung: {e}")  # Fehler im Terminal loggen
+        db.session.rollback()
+        print(f"Fehler bei der Buchung: {e}")
         return (
             jsonify(
                 {"success": False, "message": "Interner Serverfehler bei der Buchung."}
