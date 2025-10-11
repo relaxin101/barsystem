@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Barsystem Herulia{% endblock %}</title>
+	<!-- Bootstrap 5 style css-->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" 
+	integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" 
+	crossorigin="anonymous">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block head_content %}{% endblock %} {# Für seiten-spezifische Head-Inhalte #}
 </head>
@@ -14,10 +18,16 @@
     <nav>
         <a href="{{ url_for('bar.bar_interface') }}">Bar-Verkauf</a>
         {% if current_user.is_authenticated %}
-            | <a href="{{ url_for('admin.admin_bereich') }}">Admin-Bereich</a>
-            | <a href="{{ url_for('admin.aufladen_seite_anzeigen') }}">Guthaben aufladen</a>
+            | <a href="{{ url_for('admin.admin_export') }}">Datenexport</a>
+        {% endif %}
+        {% if current_user.is_authenticated %}
+            | <a href="{{ url_for('admin.admin_produkte') }}">Produkt Import</a>
+        {% endif %}
+        {% if current_user.is_authenticated %}
+            | <a href="{{ url_for('admin.admin_mitglieder') }}">Mitglieder Import</a>
+        {% endif %}
+        {% if current_user.is_authenticated %}
             | <a href="{{ url_for('admin.buchungshistorie') }}">Buchungshistorie</a>
-            | <a href="{{ url_for('admin.berichte') }}">Berichte</a>
             {# Der Top Verkäufer Link bleibt im Admin-Bereich laut deiner Präferenz #}
             | <a href="{{ url_for('auth.logout') }}">Logout ({{ current_user.username }})</a>
         {% else %}
@@ -41,7 +51,7 @@
     </main>
 
     <footer>
-        <p>&copy; 2024 Dein Verein</p>
+        <p>&copy; 2024 K.Ö.St.V. Herulia Stockerau</p>
     </footer>
 
     {% block scripts %}{% endblock %} {# Optional: Für seiten-spezifische JavaScripts #}

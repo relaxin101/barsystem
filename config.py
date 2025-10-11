@@ -2,11 +2,11 @@ import os
 
 # PostgreSQL Database Configuration
 # Uses environment variables for database connection
-DATABASE_NAME = os.environ.get('DATABASE_NAME', 'postgres')
-DATABASE_USERNAME = os.environ.get('DATABASE_USERNAME', 'postgres')
-DATABASE_PASSWORD = os.environ.get('DATABASE_PASSWORD', 'postgres')
-DATABASE_HOST = os.environ.get('DATABASE_HOST', 'localhost')
-DATABASE_PORT = os.environ.get('DATABASE_PORT', '5432')
+DATABASE_NAME = os.environ.get("DATABASE_NAME", "postgres")
+DATABASE_USERNAME = os.environ.get("DATABASE_USERNAME", "postgres")
+DATABASE_PASSWORD = os.environ.get("DATABASE_PASSWORD", "postgres")
+DATABASE_HOST = os.environ.get("DATABASE_HOST", "localhost")
+DATABASE_PORT = os.environ.get("DATABASE_PORT", "5432")
 
 # PostgreSQL Database URI
 SQLALCHEMY_DATABASE_URI = (
@@ -19,8 +19,13 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 # Ein geheimer Schlüssel für Flask-Sitzungen und Sicherheitsfunktionen.
 # Ändere diesen Wert in der echten Anwendung zu einem langen, zufälligen String!
-SECRET_KEY = os.environ.get('SECRET_KEY', 'asdfasdfasdfasdf')
+SECRET_KEY = os.environ.get("SECRET_KEY", "asdfasdfasdfasdf")
 
 # --- Admin Zugang für Flask-Login (für den Admin-Bereich) ---
-ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
-ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'password!')
+ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "password!")
+
+
+# NEU: Schwellenwert für niedrigen Bestand definieren
+BESTAND_WARN_SCHWELLENWERT = 5  # Du kannst diesen Wert anpassen, wie du möchtest
+MINDEST_GUTHABEN = os.environ.get("MINDEST_GUTHABEN", -50.0)

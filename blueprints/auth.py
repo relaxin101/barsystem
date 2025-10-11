@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from models import db, User
 from flask_login import login_user, logout_user, login_required, current_user
 
-auth_bp = Blueprint('auth', __name__)
+auth_bp = Blueprint("auth", __name__)
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
@@ -17,11 +17,11 @@ def login():
         if user and user.check_password(password):
             login_user(user)
             flash("Erfolgreich angemeldet!", "success")
-            return redirect(url_for("admin.admin_bereich"))
+            return redirect(url_for("admin.buchungshistorie"))
         else:
             flash("Ungültige Anmeldedaten!", "error")
 
-    return render_template("admin/login.html")
+    return render_template("auth/login.html")
 
 
 @auth_bp.route("/logout")

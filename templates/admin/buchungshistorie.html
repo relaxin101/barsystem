@@ -1,103 +1,80 @@
 {% extends "base.html" %}
-
-{% block title %}Buchungshistorie - Barsystem{% endblock %}
-
-{% block head_content %}
-{# Spezifisches CSS für diese Seite #}
-<style>
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 20px;
-    }
-    th, td {
-        border: 1px solid #ddd;
-        padding: 8px;
-        text-align: left;
-    }
-    th {
-        background-color: #f2f2f2;
-    }
-    .storniert {
-        color: red;
-        font-weight: bold;
-    }
-    .stornieren-btn {
-        background-color: #f44336; /* Rot */
-        color: white;
-        padding: 5px 10px;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        text-decoration: none; /* Für a-Tags */
-        display: inline-block; /* Für a-Tags */
-    }
-    .stornieren-btn:hover {
-        background-color: #d32f2f;
-    }
-    .storniert-text {
-        color: gray;
-        font-style: italic;
-    }
-</style>
-{% endblock %}
-
 {% block content %}
-<h1>Buchungshistorie</h1>
+<div class="container mt-4">
+  <h2 class="mb-4">Buchungshistorie</h2>
 
-{# Die Navigationslinks "Zurück zum Admin-Bereich" und "Logout" sind bereits in base.html enthalten und passen sich an, ob der Benutzer eingeloggt ist. #}
-{# Wenn du diese spezifischen Links zusätzlich haben möchtest, lass sie hier stehen, aber meistens sind sie redundant, wenn die Hauptnavigation in base.html diese Zwecke erfüllt. #}
-{# Beispiel: Du könntest einen Link 'Zurück zum Admin-Bereich' als Button im Inhalt hier lassen, aber 'Logout' sollte primär über die Top-Navigation gehandhabt werden. #}
-{# Zur Vereinfachung habe ich die redundante Navigationsleiste hier entfernt. #}
+  <form method="get" class="row g-3 mb-4">
+    <div class="col-md-3">
+      <label for="start" class="form-label">Startdatum</label>
+      <input type="date" class="form-control" id="start" name="start" value="{{ start_date }}">
+    </div>
+    <div class="col-md-3">
+      <label for="end" class="form-label">Enddatum</label>
+      <input type="date" class="form-control" id="end" name="end" value="{{ end_date }}">
+    </div>
+    <div class="col-md-3 align-self-end">
+      <button type="submit" class="btn btn-primary me-2">Filtern</button>
+      <a href="{{ url_for('admin.export_buchungen', start=start_date, end=end_date) }}" class="btn btn-success">
+        <i class="bi bi-download"></i> Exportieren
+      </a>
+    </div>
+  </form>
 
-{% if buchungen %}
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Mitglied</th>
-                <th>Artikel</th>
-                <th>Menge</th>
-                <th>Einzelpreis</th>
-                <th>Gesamtpreis</th>
-                <th>Zeitstempel</th>
-                <th>Status</th>
-                <th>Aktion</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for buchung in buchungen %}
-                <tr class="{{ 'storniert' if buchung.storniert }}">
-                    <td>{{ buchung.id }}</td>
-                    <td>{{ buchung.mitglied_name }}</td>
-                    <td>{{ buchung.artikel_name }}</td>
-                    <td>{{ buchung.menge }}</td>
-                    <td>{{ buchung.preis_pro_einheit | round(2) }}€</td>
-                    <td>{{ buchung.gesamtpreis | round(2) }}€</td>
-                    <td>{{ buchung.zeitstempel }}</td>
-                    <td>
-                        {% if buchung.storniert %}
-                            <span class="storniert-text">Storniert</span>
-                        {% else %}
-                            Aktiv
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if not buchung.storniert %}
-                            <a href="{{ url_for('admin.storniere_buchung', buchung_id=buchung.id) }}"
-                               class="stornieren-btn"
-                               onclick="return confirm('Sind Sie sicher, dass Sie diese Buchung stornieren möchten? Das Guthaben des Mitglieds wird korrigiert.');">
-                                Stornieren
-                            </a>
-                        {% else %}
-                            -
-                        {% endif %}
-                    </td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-{% else %}
-    <p>Es wurden noch keine Buchungen erfasst.</p>
-{% endif %}
+  <table class="table table-striped table-hover align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>Datum</th>
+        <th>Mitglied</th>
+        <th>Artikel</th>
+        <th>Menge</th>
+        <th>Preis/Einheit (€)</th>
+        <th>Gesamtpreis (€)</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in buchungen %}
+      <tr class="{% if b.storniert %}table-danger{% endif %}">
+        <td>{{ b.zeitstempel.strftime('%d.%m.%Y %H:%M') }}</td>
+        <td>{{ b.mitglied_obj.name }}</td>
+        <td>{{ b.artikel_obj.name }}</td>
+        <td>{{ b.menge }}</td>
+        <td>{{ "%.2f"|format(b.preis_pro_einheit) }}</td>
+        <td>{{ "%.2f"|format(b.gesamtpreis) }}</td>
+        <td>
+          {% if b.storniert %}
+            <span class="badge bg-danger">Storniert</span>
+          {% else %}
+            <span class="badge bg-success">Aktiv</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if pagination.pages > 1 %}
+  <nav aria-label="Seiten-Navigation">
+    <ul class="pagination">
+      <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+        <a class="page-link" href="?page={{ pagination.prev_num }}&start={{ start_date }}&end={{ end_date }}">« Zurück</a>
+      </li>
+
+      {% for p in pagination.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
+        {% if p %}
+          <li class="page-item {% if p == pagination.page %}active{% endif %}">
+            <a class="page-link" href="?page={{ p }}&start={{ start_date }}&end={{ end_date }}">{{ p }}</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">…</span></li>
+        {% endif %}
+      {% endfor %}
+
+      <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+        <a class="page-link" href="?page={{ pagination.next_num }}&start={{ start_date }}&end={{ end_date }}">Weiter »</a>
+      </li>
+    </ul>
+  </nav>
+  {% endif %}
+</div>
 {% endblock %}

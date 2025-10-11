@@ -20,7 +20,9 @@ db.init_app(app)
 # Initialisiere Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = "auth.login"  # Wo der Benutzer hingeleitet wird, wenn er nicht angemeldet ist
+login_manager.login_view = (
+    "auth.login"  # Wo der Benutzer hingeleitet wird, wenn er nicht angemeldet ist
+)
 
 
 @login_manager.user_loader

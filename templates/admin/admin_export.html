@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h2 class="mb-4">Daten-Export</h2>
+
+  <div class="row">
+    <div class="col-md-6 mb-4">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <strong>Mitglieder</strong>
+        </div>
+        <div class="card-body">
+          <p>Exportiere alle Mitglieder als Excel-Datei.</p>
+          <a href="{{ url_for('admin.export_mitglieder') }}" class="btn btn-success">
+            <i class="bi bi-download"></i> Mitglieder-Export starten
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <strong>Produkte</strong>
+        </div>
+        <div class="card-body">
+          <p>Exportiere alle Produkte als Excel-Datei.</p>
+          <a href="{{ url_for('admin.export_produkte') }}" class="btn btn-success">
+            <i class="bi bi-download"></i> Produkt-Export starten
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
