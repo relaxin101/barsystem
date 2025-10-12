@@ -135,7 +135,7 @@ def admin_export():
             readonly_engine = db.get_engine()
             with readonly_engine.connect() as conn:
                 conn = conn.execution_options(
-                    isolation_level="AUTOCOMMIT", readonly=True
+                    isolation_level="AUTOCOMMIT",  # SQL-injection as a Service (SaaS)
                 )
                 result_proxy = conn.execute(text(query))
                 # Spalten + Daten für Template
