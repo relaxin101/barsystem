@@ -29,6 +29,7 @@ class Artikel(db.Model):
     """
 
     id = db.Column(db.Integer, primary_key=True)
+    order = db.Column(db.Integer, nullable=True)
     name = db.Column(db.String(100), unique=True, nullable=False)
     preis = db.Column(db.Float, nullable=False)
     bestand = db.Column(db.Integer, nullable=False, default=0)
@@ -83,7 +84,7 @@ class User(db.Model, UserMixin):
 class Buchung(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     mitglied_id = db.Column(db.Integer, db.ForeignKey("mitglied.id"), nullable=False)
-    artikel_id = db.Column(db.Integer, db.ForeignKey("artikel.id"), nullable=False)
+    artikel_id = db.Column(db.Integer, db.ForeignKey("artikel.id"), nullable=True)
     menge = db.Column(db.Integer, nullable=False)
     preis_pro_einheit = db.Column(db.Float, nullable=False)
     gesamtpreis = db.Column(db.Float, nullable=False)
@@ -98,3 +99,9 @@ class Buchung(db.Model):
 
     def __repr__(self):
         return f"<Buchung {self.id}: {self.menge}x {self.artikel.name} für {self.mitglied.name}>"
+
+
+class Bericht(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.Text, nullable=False)
+    sql = db.Column(db.Text, nullable=False)

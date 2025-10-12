@@ -11,39 +11,20 @@
   </script>
 {% endblock %}
 {% block content %}
-<div class="container mt-4">
+<div class="container-fluid mt-4">
   <h2 class="mb-4">Daten-Export</h2>
 
-  <div class="row">
-    <!-- Mitglieder Export -->
-    <div class="col-md-6 mb-4">
-      <div class="card">
-        <div class="card-header bg-primary text-white">
-          <strong>Mitglieder</strong>
-        </div>
-        <div class="card-body">
-          <p>Exportiere alle Mitglieder als Excel-Datei.</p>
-          <a href="{{ url_for('admin.export_mitglieder') }}" class="btn btn-success">
-            <i class="bi bi-download"></i> Mitglieder-Export starten
-          </a>
-        </div>
-      </div>
-    </div>
+  <div class="row g-3">
 
-    <!-- Produkte Export -->
-    <div class="col-md-6 mb-4">
-      <div class="card">
-        <div class="card-header bg-primary text-white">
-          <strong>Produkte</strong>
-        </div>
-        <div class="card-body">
-          <p>Exportiere alle Produkte als Excel-Datei.</p>
-          <a href="{{ url_for('admin.export_produkte') }}" class="btn btn-success">
-            <i class="bi bi-download"></i> Produkt-Export starten
-          </a>
-        </div>
-      </div>
-    </div>
+	{% for bericht in berichte %}
+	    <div class="col-md-6 mb-4">
+		  
+		  <a href="{{ url_for('admin.admin_export', id=bericht.id) }}" class="btn btn-success">
+			  <i class="bi bi-clipboard"></i> {{bericht.name}}
+		  </a>
+	    </div>
+	{% endfor %}
+
   </div>
 
   <!-- Eigene SQL-Query -->
@@ -74,8 +55,27 @@
                   <i class="bi bi-download"></i> Excel herunterladen
                 </button>
               {% endif %}
+
+              {% if not id %}
+		    <div class="col-md-3">
+		      <label for="name" class="form-label">Bericht-Name</label>
+		      <input type="text" class="form-control" id="name" name="name" ">
+		    </div>
+		
+                <button formaction="{{ url_for('admin.create_berichte') }}" formmethod="POST" class="btn btn-success">
+                  <i class="bi bi-bookmark"></i> Bericht speichern
+                </button>
+              {% endif %}
             </div>
           </form>
+          {% if id %}
+		<form method="post" action="{{ url_for('admin.delete_berichte', bericht_id=id) }}">
+		  <input type="hidden" name="_method" value="DELETE">
+		  <button type="submit" class="btn btn-danger">
+		    <i class="bi bi-bookmark-fill"></i> Bericht löschen
+		  </button>
+		</form>
+          {% endif %}
 
           {% if results %}
 		<div class="table-responsive" style="max-height:400px; overflow:auto;">

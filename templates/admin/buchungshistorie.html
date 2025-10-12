@@ -1,9 +1,12 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container mt-4">
-  <h2 class="mb-4">Buchungshistorie</h2>
+<div class="container-fluid mt-4">
+  <div class="row">
+    <div class="col-12">
+<div class="card">
+  <h2 class="m-4">Buchungshistorie</h2>
 
-  <form method="get" class="row g-3 mb-4">
+  <form method="get" class="g-3 mb-4">
     <div class="col-md-3">
       <label for="start" class="form-label">Startdatum</label>
       <input type="date" class="form-control" id="start" name="start" value="{{ start_date }}">
@@ -20,8 +23,9 @@
     </div>
   </form>
 
-  <table class="table table-striped table-hover align-middle">
-    <thead class="table-light">
+<div class="table-responsive" style="">
+  <table class="table table-striped table-hover table-bordered align-middle">
+    <thead class="table-dark">
       <tr>
         <th>Datum</th>
         <th>Mitglied</th>
@@ -52,6 +56,7 @@
       {% endfor %}
     </tbody>
   </table>
+</div>
 
   {% if pagination.pages > 1 %}
   <nav aria-label="Seiten-Navigation">
@@ -76,6 +81,9 @@
     </ul>
   </nav>
   {% endif %}
+</div>
+</div>
+</div>
 </div>
 
 <script>

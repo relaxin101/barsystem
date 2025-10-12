@@ -18,6 +18,9 @@
     <nav>
         <a href="{{ url_for('bar.bar_interface') }}">Bar-Verkauf</a>
         {% if current_user.is_authenticated %}
+            | <a href="{{ url_for('admin.guthaben_management') }}">Guthaben Management</a>
+        {% endif %}
+        {% if current_user.is_authenticated %}
             | <a href="{{ url_for('admin.admin_export') }}">Datenexport</a>
         {% endif %}
         {% if current_user.is_authenticated %}

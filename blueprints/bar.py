@@ -42,7 +42,6 @@ def bar_interface():
     """
     # Mitglieder abrufen
     mitglieder = hotlist()
-    artikel_liste = Artikel.query.order_by(Artikel.name).all()
 
     return render_template(
         "bar/bar_interface.html",
@@ -56,7 +55,6 @@ def bar_interface():
             }
             for mitglied in mitglieder
         ],
-        artikel=artikel_liste,
     )
 
 
@@ -112,7 +110,7 @@ def buchen():
             flash("Mitglied nicht gefunden!", "error")
             return redirect(url_for("bar.bar_interface"))
 
-        artikel_liste = Artikel.query.order_by(Artikel.id).all()
+        artikel_liste = Artikel.query.order_by(Artikel.order).all()
         buchungen = (
             Buchung.query.filter_by(mitglied_id=mitglied.id)
             .order_by(Buchung.zeitstempel.desc())
@@ -150,14 +148,11 @@ def buchen():
         menge = int(menge)
 
         gesamtpreis = artikel.preis * menge
-        if not mitglied.blacklist and mitglied.guthaben > MINDEST_GUTHABEN:
+        if not mitglied.blacklist and mitglied.guthaben < MINDEST_GUTHABEN:
             pass  # User ist manuell entschwärzt worden
         elif mitglied.blacklist:
             message = "Kein Geld 🗿"
-            flash(
-                message,
-                "error"
-            )
+            flash(message, "error")
             return (
                 jsonify({"success": False, "message": message}),
                 400,

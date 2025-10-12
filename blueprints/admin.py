@@ -18,9 +18,9 @@ from flask_login import login_required
 from sqlalchemy import desc, text
 import pandas as pd
 
-from models import db, Artikel, Buchung, Mitglied
+from models import db, Artikel, Buchung, Mitglied, Bericht
 from utils.admin import *
-from config import BESTAND_WARN_SCHWELLENWERT
+from config import BESTAND_WARN_SCHWELLENWERT, MINDEST_GUTHABEN
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -36,7 +36,7 @@ def buchungshistorie():
 
     query = (
         Buchung.query.join(Buchung.mitglied_obj)
-        .join(Buchung.artikel_obj)
+        .outerjoin(Buchung.artikel_obj)
         .filter(Buchung.zeitstempel.between(start_date, end_date + timedelta(days=1)))
         .order_by(desc(Buchung.zeitstempel))
     )
@@ -122,29 +122,75 @@ def admin_export():
     query = ""
     error = None
 
+    bericht_id = request.args.get("id", "").strip()
+    if bericht_id:
+        query = Bericht.query.get_or_404(bericht_id).sql
+
     if request.method == "POST":
         query = request.form.get("query", "").strip()
-        if query:
-            try:
-                # Reine Lese-Verbindung
-                readonly_engine = db.get_engine()
-                with readonly_engine.connect() as conn:
-                    conn = conn.execution_options(
-                        isolation_level="AUTOCOMMIT", readonly=True
-                    )
-                    result_proxy = conn.execute(text(query))
-                    # Spalten + Daten für Template
-                    columns = result_proxy.keys()
-                    results = [
-                        dict(zip(columns, row)) for row in result_proxy.fetchall()
-                    ]
 
-            except Exception as e:
-                error = str(e.args)
+    if query:
+        try:
+            # Reine Lese-Verbindung
+            readonly_engine = db.get_engine()
+            with readonly_engine.connect() as conn:
+                conn = conn.execution_options(
+                    isolation_level="AUTOCOMMIT", readonly=True
+                )
+                result_proxy = conn.execute(text(query))
+                # Spalten + Daten für Template
+                columns = result_proxy.keys()
+                results = [dict(zip(columns, row)) for row in result_proxy.fetchall()]
 
+        except Exception as e:
+            error = str(e.args)
+
+    berichte = [
+        {
+            "id": bericht.id,
+            "name": bericht.name,
+            "sql": bericht.sql,
+        }
+        for bericht in Bericht.query.all()
+    ]
     return render_template(
-        "admin/admin_export.html", query=query, results=results, error=error
+        "admin/admin_export.html",
+        id=bericht_id,
+        query=query,
+        results=results,
+        error=error,
+        berichte=berichte,
     )
+
+
+@login_required
+@admin_bp.route("berichte", methods=["POST"])
+def create_berichte():
+    query = request.form.get("query", "").strip()
+    if not query:
+        flash("Es muss eine Query angegeben werden", "error")
+        return redirect(url_for("admin.admin_export"))
+
+    name = request.form.get("name", "").strip()
+
+    if not name:
+        flash("Es muss ein Name angegeben werden", "error")
+        return redirect(url_for("admin.admin_export"))
+    bericht = Bericht(sql=query, name=name)
+    db.session.add(bericht)
+    db.session.commit()
+    return redirect(url_for("admin.admin_export"))
+
+
+@admin_bp.route("/berichte/<int:bericht_id>", methods=["POST"])
+@login_required
+def delete_berichte(bericht_id):
+    if request.form.get("_method") == "DELETE":
+        bericht = Bericht.query.get_or_404(bericht_id)
+        db.session.delete(bericht)
+        db.session.commit()
+        flash(f"Bericht '{bericht.name}' wurde gelöscht.", "success")
+    return redirect(url_for("admin.admin_export"))
 
 
 # --------------------------------
@@ -205,7 +251,7 @@ def admin_mitglieder():
             db_fields=db_fields,
             model=Mitglied,
             redirect_url=url_for("admin.admin_mitglieder"),
-            unique_field="email",
+            unique_field="id",
         )
 
     return render_template(
@@ -220,14 +266,15 @@ def admin_mitglieder():
 @admin_bp.route("/produkte", methods=["GET", "POST"])
 @login_required
 def admin_produkte():
-    db_fields = ["id", "name", "preis", "bestand", "mindestbestand", "bestand"]
+    """Endpoint um Artikel zu importieren oder aktualisieren"""
+    db_fields = ["id", "name", "preis", "bestand", "mindestbestand", "bestand", "order"]
 
     if request.method == "POST":
         return handle_excel_import(
             db_fields=db_fields,
             model=Artikel,
             redirect_url=url_for("admin.admin_produkte"),
-            unique_field="name",
+            unique_field="id",
         )
 
     return render_template(
@@ -236,3 +283,96 @@ def admin_produkte():
         action_url=url_for("admin.admin_produkte"),
         db_fields=db_fields,
     )
+
+
+# --------------------------------
+# 💶 Guthaben Management
+# --------------------------------
+@admin_bp.route("/guthaben", methods=["GET"])
+@login_required
+def guthaben_management():
+    mitglieder = Mitglied.query.order_by(Mitglied.name).all()
+    return render_template("admin/guthaben.html", mitglieder=mitglieder)
+
+
+# 🧮 Toggle Blacklist
+@admin_bp.route("/mitglied_blacklist_toggle/<int:mitglied_id>", methods=["POST"])
+@login_required
+def mitglied_blacklist_toggle(mitglied_id):
+    data = request.get_json()
+    mitglied = Mitglied.query.get_or_404(mitglied_id)
+    mitglied.blacklist = bool(data.get("blacklist"))
+    db.session.commit()
+    return jsonify({"success": True, "blacklist": mitglied.blacklist})
+
+
+# 📤 Excel Import für Guthabenänderungen
+@admin_bp.route("/guthaben_import", methods=["POST"])
+@login_required
+def guthaben_import():
+    file = request.files.get("file")
+    mitglied_col = request.form.get("mitglied_id_col")
+    aufbuchung_col = request.form.get("aufbuchung_col")
+
+    if not file:
+        flash("Keine Datei hochgeladen!", "error")
+        return redirect(url_for("admin.guthaben_management"))
+
+    # Excel einlesen
+    df = pd.read_excel(file)
+
+    # Prüfen, ob die Spalten existieren
+    if mitglied_col not in df.columns or aufbuchung_col not in df.columns:
+        flash("Spaltennamen nicht gefunden. Bitte überprüfe die Zuordnung.", "error")
+        return redirect(url_for("admin.guthaben_management"))
+
+    # Nur Zeilen behalten, wo BEIDE Werte numerisch und nicht leer sind
+    df = df[[mitglied_col, aufbuchung_col]].copy()
+    df = df.dropna(subset=[mitglied_col, aufbuchung_col])
+
+    # Versuch, die Werte in Zahlen umzuwandeln (nicht konvertierbare werden NaN)
+    df[mitglied_col] = pd.to_numeric(df[mitglied_col], errors="coerce")
+    df[aufbuchung_col] = pd.to_numeric(df[aufbuchung_col], errors="coerce")
+
+    # Nur Zeilen mit gültigen Zahlen behalten
+    df = df.dropna(subset=[mitglied_col, aufbuchung_col])
+
+    if df.empty:
+        flash(
+            "Keine gültigen Zeilen gefunden (beide Spalten müssen Zahlen enthalten).",
+            "error",
+        )
+        return redirect(url_for("admin.guthaben_management"))
+
+    count = 0
+    for _, row in df.iterrows():
+        try:
+            mitglied_id = int(row[mitglied_col])
+            betrag = float(row[aufbuchung_col])
+            mitglied = Mitglied.query.get(mitglied_id)
+            print(row)
+            if mitglied:
+                mitglied.guthaben += betrag
+
+                if mitglied.guthaben < MINDEST_GUTHABEN:
+                    mitglied.blacklist = True
+                elif mitglied.guthaben > MINDEST_GUTHABEN:
+                    mitglied.blacklist = False
+
+                buchung = Buchung(
+                    mitglied_id=mitglied.id,
+                    artikel_id=None,  # oder Dummy
+                    menge=1,
+                    preis_pro_einheit=betrag,
+                    gesamtpreis=betrag,
+                    zeitstempel=datetime.now(),
+                    storniert=None,
+                )
+                db.session.add(buchung)
+                count += 1
+        except Exception as e:
+            print("Fehler bei Zeile:", e)
+
+    db.session.commit()
+    flash(f"{count} Guthabenänderungen durchgeführt.", "success")
+    return redirect(url_for("admin.guthaben_management"))
