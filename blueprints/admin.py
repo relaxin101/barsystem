@@ -59,10 +59,12 @@ def buchung_toggle(buchung_id):
     buchung = Buchung.query.get_or_404(buchung_id)
     if buchung.storniert:
         buchung.storniert = None
-        # flash(f"Buchung i.d.H.v. {buchung.gesamtpreis} storniert")
+        buchung.mitglied_obj.guthaben -= buchung.gesamtpreis
+        flash(f"Buchung i.d.H.v. {buchung.gesamtpreis} storniert", "info")
     else:
         buchung.storniert = datetime.utcnow()
-        # flash(f"Storno i.d.H.v. {buchung.gesamtpreis} rückgängig gemacht")
+        buchung.mitglied_obj.guthaben += buchung.gesamtpreis
+        flash(f"Storno i.d.H.v. {buchung.gesamtpreis} rückgängig gemacht", "info")
     db.session.commit()
     return jsonify({"success": True, "storniert": bool(buchung.storniert)})
 

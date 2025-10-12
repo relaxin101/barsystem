@@ -42,12 +42,15 @@ async function loadMembers(search = "") {
 
     const colorIndex = member.id % colors.length;
     div.style.backgroundColor = colors[colorIndex];
+     if (member.blacklist) {
+    	div.style.backgroundColor = '#000000';
+     }
 
     let displayName = member.name;
     if (displayName.length > 12) displayName = displayName.slice(0, 12) + "…";
 
     div.innerHTML = `
-      <strong>${displayName}</strong> <small>(${member.nickname || "-"})</small>
+      <strong>${displayName}</strong> <small>${member.nickname || ""}</small>
       <div class="text-white-50 mt-1" style="font-size:0.9rem;">${member.guthaben.toFixed(2)} €</div>
     `;
 

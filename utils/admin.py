@@ -123,7 +123,7 @@ def handle_excel_import(db_fields, model, redirect_url, unique_field=None):
     mapping = {f: request.form.get(f) for f in db_fields}
 
     if not file or file.filename == "":
-        flash("Bitte wähle eine Datei aus.", "warning")
+        flash("Bitte wähle eine Datei aus.", "error")
         return redirect(redirect_url)
 
     try:
@@ -132,6 +132,6 @@ def handle_excel_import(db_fields, model, redirect_url, unique_field=None):
         flash(f"{model.__tablename__.capitalize()} erfolgreich importiert!", "success")
     except Exception as e:
         db.session.rollback()
-        flash(f"Fehler beim Import: {e}", "danger")
+        flash(f"Fehler beim Import: {e}", "error")
 
     return redirect(redirect_url)

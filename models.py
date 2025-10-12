@@ -12,6 +12,7 @@ class Mitglied(db.Model):
     nickname = db.Column(db.String(10), nullable=True)
     email = db.Column(db.Text(), nullable=True)
     guthaben = db.Column(db.Float, default=0.0)
+    blacklist = db.Column(db.Boolean, default=False)
 
     buchungen_von_mitglied = db.relationship(
         "Buchung", back_populates="mitglied_obj", lazy=True

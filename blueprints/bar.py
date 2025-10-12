@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from sqlalchemy import or_, func, text, desc
 from models import db, Mitglied, Artikel, Buchung
 from datetime import datetime
+from config import MINDEST_GUTHABEN
 
 bar_bp = Blueprint("bar", __name__)
 
@@ -51,6 +52,7 @@ def bar_interface():
                 "name": mitglied.name,
                 "nickname": mitglied.nickname,
                 "guthaben": mitglied.guthaben,
+                "blacklist": mitglied.blacklist,
             }
             for mitglied in mitglieder
         ],
@@ -87,6 +89,7 @@ def get_members_api():
                         "name": member.name,
                         "nickname": member.nickname,
                         "guthaben": member.guthaben,
+                        "blacklist": member.blacklist,
                         # Füge hier alle weiteren Daten hinzu, die du im Frontend benötigst
                     },
                     members,
@@ -101,12 +104,12 @@ def buchen():
     if request.method == "GET":
         mitglied_id = request.args.get("mitglied_id")
         if not mitglied_id:
-            flash("Mitglied-ID fehlt!", "danger")
+            flash("Mitglied-ID fehlt!", "error")
             return redirect(url_for("bar.bar_interface"))
 
         mitglied = Mitglied.query.get(mitglied_id)
         if not mitglied:
-            flash("Mitglied nicht gefunden!", "danger")
+            flash("Mitglied nicht gefunden!", "error")
             return redirect(url_for("bar.bar_interface"))
 
         artikel_liste = Artikel.query.order_by(Artikel.id).all()
@@ -145,18 +148,24 @@ def buchen():
 
     try:
         menge = int(menge)
-        if menge <= 0:
-            return (
-                jsonify({"success": False, "message": "Menge muss positiv sein."}),
-                400,
-            )
 
         gesamtpreis = artikel.preis * menge
-        if mitglied.guthaben - gesamtpreis < -50.0:
+        if not mitglied.blacklist and mitglied.guthaben > MINDEST_GUTHABEN:
+            pass  # User ist manuell entschwärzt worden
+        elif mitglied.blacklist:
+            message = "Kein Geld 🗿"
+            flash(
+                message,
+                "error"
+            )
             return (
-                jsonify({"success": False, "message": "Nicht genügend Guthaben."}),
+                jsonify({"success": False, "message": message}),
                 400,
             )
+        elif mitglied.guthaben - gesamtpreis < MINDEST_GUTHABEN:
+            mitglied.blacklist = True
+        else:
+            mitglied.blacklist = False
 
         mitglied.guthaben -= gesamtpreis
         artikel.bestand -= menge
