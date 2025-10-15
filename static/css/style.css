@@ -1,8 +1,8 @@
 /* Grundlegende Farben */
 :root {
-    --primary-light: #D7BE5C; /* Hintergrundfarbe */
-    --primary-main: #7150A7;   /* Akzentfarbe Rot */
-    --primary-secondary: #D7BE5C;  /* Akzentfarbe Gold */
+    --primary-light: #8DB8FF; /* Hintergrundfarbe */
+    --primary-main: #FF864D;   /* Akzentfarbe Rot */
+    --primary-secondary: #8DB8FF;  /* Akzentfarbe Gold */
     --text-dark: #303030;        /* Dunkler Text für gute Lesbarkeit */
     --text-light: #e8e9eb;    /* Heller Text auf dunklem Hintergrund */
 }
