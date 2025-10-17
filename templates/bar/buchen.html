@@ -83,6 +83,7 @@ document.querySelectorAll(".artikel-btn").forEach(btn => {
   });
 });
 
+
 function renderBestellung() {
   const list = document.getElementById("bestellung-list");
   list.innerHTML = "";
@@ -92,8 +93,26 @@ function renderBestellung() {
     const gesamt = item.preis * item.menge;
     summe += gesamt;
     const li = document.createElement("li");
-    li.className = "list-group-item d-flex justify-content-between";
-    li.innerHTML = `<span>${item.name} × ${item.menge}</span><span>${gesamt.toFixed(2)} €</span>`;
+    li.className = "list-group-item d-flex justify-content-between align-items-center";
+    let span = document.createElement("span");
+    span.innerHTML = `${item.name} × ${item.menge}`;
+    li.appendChild(span);
+    span = document.createElement("span");
+    span.innerHTML = `${gesamt.toFixed(2)} €`;
+    li.appendChild(span);
+    const button = document.createElement("button");
+    button.className = "btn btn-cancel btn-danger artikel-rm";
+    button.innerHTML = "x";
+
+    // Item entfernen
+    button.addEventListener("click", () => {
+	    const index = bestellung.find(b => b.artikelId === item.artikelId);
+	    bestellung.splice(index, 1);
+
+	    renderBestellung();
+    });
+    li.appendChild(button)
+            
     list.appendChild(li);
   });
 
