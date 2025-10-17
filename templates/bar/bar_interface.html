@@ -35,7 +35,7 @@ async function loadMembers(search = "") {
     col.className = "col-6 col-md-3 col-lg-2 d-flex";
 
     const div = document.createElement("div");
-    div.className = "text-white rounded member-card flex-fill d-flex flex-column justify-content-center align-items-center text-center";
+    div.className = "text-white rounded member-card d-flex flex-column justify-content-center align-items-center text-center";
     div.style.cursor = "pointer";
     div.style.fontSize = "1.3rem";
     div.style.padding = "0.5rem";
@@ -75,6 +75,7 @@ loadMembers();
 .member-card {
   width: 100%;
   min-height: 140px;
+  max-height: 200px
 }
 </style>
 {% endblock %}
