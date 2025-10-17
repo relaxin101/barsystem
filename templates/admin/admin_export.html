@@ -12,12 +12,18 @@
 {% endblock %}
 {% block content %}
 <div class="container-fluid mt-4">
-  <h2 class="mb-4">Daten-Export</h2>
+  <h2 class="mb-4">📊 Bericht-Verwaltung</h2>
 
-  <div class="row g-3">
+  <div class="row">
+    <div class="col-12">
+  <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+          <strong>Gespeicherte Berichte</strong>
+        </div>
 
+  <div class="row row-cols-auto m-4">
 	{% for bericht in berichte %}
-	    <div class="col-md-6 mb-4">
+	    <div class="mb-4 col">
 		  
 		  <a href="{{ url_for('admin.admin_export', id=bericht.id) }}" class="btn btn-success">
 			  <i class="bi bi-clipboard"></i> {{bericht.name}}
@@ -26,12 +32,15 @@
 	{% endfor %}
 
   </div>
+  </div>
+  </div>
+  </div>
 
   <!-- Eigene SQL-Query -->
   <div class="row">
     <div class="col-12">
       <div class="card">
-        <div class="card-header bg-secondary text-white">
+        <div class="card-header bg-primary text-white">
           <strong>Eigene SQL-Query</strong>
         </div>
         <div class="card-body">
