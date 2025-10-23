@@ -18,10 +18,6 @@
     <div class="col-md-8">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <h5>Produkte</h5>
-        <div>
-          Menge:
-          <input id="menge" type="number" min="1" value="1" class="form-control d-inline-block" style="width: 80px;">
-        </div>
       </div>
 
       <div class="row g-3">
@@ -48,7 +44,7 @@
       <ul class="list-group mb-3">
         {% for b in buchungen %}
         <li class="list-group-item d-flex justify-content-between">
-          <span>{{ b.artikel_obj.name }} × {{ b.menge }}</span>
+          <span>{{ b.menge }} × {{ b.artikel_obj.name }}</span>
           <span>{{ "%.2f"|format(b.gesamtpreis) }} €</span>
         </li>
         {% else %}
@@ -73,7 +69,7 @@ document.querySelectorAll(".artikel-btn").forEach(btn => {
     const artikelId = btn.dataset.artikelId;
     const name = btn.dataset.artikelName;
     const preis = parseFloat(btn.dataset.artikelPreis);
-    const menge = parseInt(document.getElementById("menge").value);
+    const menge = 1
 
     const bestehend = bestellung.find(b => b.artikelId === artikelId);
     if (bestehend) bestehend.menge += menge;
@@ -84,6 +80,7 @@ document.querySelectorAll(".artikel-btn").forEach(btn => {
 });
 
 
+
 function renderBestellung() {
   const list = document.getElementById("bestellung-list");
   list.innerHTML = "";
@@ -92,30 +89,107 @@ function renderBestellung() {
   bestellung.forEach(item => {
     const gesamt = item.preis * item.menge;
     summe += gesamt;
+
     const li = document.createElement("li");
     li.className = "list-group-item d-flex justify-content-between align-items-center";
-    let span = document.createElement("span");
-    span.innerHTML = `${item.name} × ${item.menge}`;
-    li.appendChild(span);
-    span = document.createElement("span");
-    span.innerHTML = `${gesamt.toFixed(2)} €`;
-    li.appendChild(span);
-    const button = document.createElement("button");
-    button.className = "btn btn-cancel btn-danger artikel-rm";
-    button.innerHTML = "x";
 
-    // Item entfernen
-    button.addEventListener("click", () => {
-	    const index = bestellung.find(b => b.artikelId === item.artikelId);
-	    bestellung.splice(index, 1);
+    // --- Linke Seite: Menge + Name ---
+    const leftDiv = document.createElement("div");
+    leftDiv.className = "d-flex align-items-center flex-grow-1";
+    leftDiv.style.minWidth = "0"; // Wichtig für ellipsis!
 
-	    renderBestellung();
+    // Helper für runde Buttons
+    const createRoundButton = (text, colorClass, onClick) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = `btn ${colorClass} btn-sm rounded-circle d-flex align-items-center justify-content-center`;
+      btn.style.width = "32px";
+      btn.style.height = "32px";
+      btn.style.minWidth = "32px";
+      btn.style.minHeight = "32px";
+      btn.style.flexShrink = "0"; // Nie verkleinern
+      btn.textContent = text;
+      btn.addEventListener("click", onClick);
+      return btn;
+    };
+
+    // Minus-Button (rot)
+    const minusBtn = createRoundButton("−", "btn-danger", () => {
+      if (item.menge > 1) {
+        item.menge--;
+      } else {
+        bestellung = bestellung.filter(b => b.artikelId !== item.artikelId);
+      }
+      renderBestellung();
     });
-    li.appendChild(button)
-            
+    leftDiv.appendChild(minusBtn);
+
+    // Mengen-Eingabe
+    const qtyInput = document.createElement("input");
+    qtyInput.type = "number";
+    qtyInput.min = 1;
+    qtyInput.value = item.menge;
+    qtyInput.className = "form-control form-control-sm text-center mx-2";
+    qtyInput.style.width = "50px";
+    qtyInput.style.padding = "0";
+    qtyInput.style.margin = "0";
+    qtyInput.style.height = "32px";
+    qtyInput.style.lineHeight = "32px";
+    qtyInput.style.textAlign = "center";
+    qtyInput.style.flexShrink = "0"; // auch fix
+    qtyInput.addEventListener("change", () => {
+      const neueMenge = parseInt(qtyInput.value);
+      if (isNaN(neueMenge) || neueMenge < 1) return;
+      item.menge = neueMenge;
+      renderBestellung();
+    });
+    leftDiv.appendChild(qtyInput);
+
+    // Plus-Button (grün)
+    const plusBtn = createRoundButton("+", "btn-success", () => {
+      item.menge++;
+      renderBestellung();
+    });
+    leftDiv.appendChild(plusBtn);
+
+    // Artikelname
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "ms-3 flex-grow-1 text-truncate";
+    nameSpan.textContent = item.name;
+    nameSpan.style.overflow = "hidden";
+    nameSpan.style.whiteSpace = "nowrap";
+    nameSpan.style.textOverflow = "ellipsis";
+    nameSpan.style.minWidth = "0"; // zwingend nötig für ellipsis
+    leftDiv.appendChild(nameSpan);
+
+    li.appendChild(leftDiv);
+
+    // --- Rechte Seite: Preis + Entfernen ---
+    const rightDiv = document.createElement("div");
+    rightDiv.className = "d-flex align-items-center";
+    rightDiv.style.flexShrink = "0"; // niemals verkleinern
+
+    const preisSpan = document.createElement("span");
+    preisSpan.className = "me-3";
+    preisSpan.innerHTML = `${gesamt.toFixed(2)} €`;
+    preisSpan.style.flexShrink = "0";
+    rightDiv.appendChild(preisSpan);
+
+    const removeBtn = document.createElement("button");
+    removeBtn.className = "btn btn-danger btn-sm d-flex align-items-center justify-content-center";
+    removeBtn.style.flexShrink = "0";
+    removeBtn.innerHTML = "×";
+    removeBtn.addEventListener("click", () => {
+      bestellung = bestellung.filter(b => b.artikelId !== item.artikelId);
+      renderBestellung();
+    });
+    rightDiv.appendChild(removeBtn);
+
+    li.appendChild(rightDiv);
     list.appendChild(li);
   });
 
+  // Gesamt-Summe unten
   if (bestellung.length > 0) {
     const sumLi = document.createElement("li");
     sumLi.className = "list-group-item d-flex justify-content-between fw-bold";
