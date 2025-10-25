@@ -180,7 +180,8 @@ function renderBestellung() {
     removeBtn.style.flexShrink = "0";
     removeBtn.innerHTML = "×";
     removeBtn.addEventListener("click", () => {
-      bestellung = bestellung.filter(b => b.artikelId !== item.artikelId);
+      id = bestellung.find(b => b.artikelId === item.artikelId);
+      bestellung.splice(id,1)
       renderBestellung();
     });
     rightDiv.appendChild(removeBtn);
