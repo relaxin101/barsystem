@@ -363,8 +363,8 @@ def guthaben_import():
                     mitglied_id=mitglied.id,
                     artikel_id=None,  # oder Dummy
                     menge=1,
-                    preis_pro_einheit=betrag,
-                    gesamtpreis=betrag,
+                    preis_pro_einheit=-betrag,
+                    gesamtpreis=-betrag,
                     zeitstempel=datetime.now(),
                     storniert=None,
                 )
