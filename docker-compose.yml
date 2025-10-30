@@ -61,7 +61,7 @@ services:
     restart: "no"
     working_dir: /app
     command: >
-       sh -c "(flask db init || true) && flask db migrate && flask db upgrade"
+       sh -c "flask db upgrade"
 
     environment:
       FLASK_SECRET_KEY: ${FLASK_SECRET_KEY}
