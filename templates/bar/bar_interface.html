@@ -50,7 +50,7 @@ async function loadMembers(search = "") {
     if (displayName.length > 12) displayName = displayName.slice(0, 12) + "…";
 
     div.innerHTML = `
-      <strong>${displayName}</strong> <small>${member.nickname || ""}</small>
+      <strong>${displayName}</strong> <small>${member.nickname.split(",")[0] || ""}</small>
       <div class="text-white-50 mt-1" style="font-size:0.9rem;">${member.guthaben.toFixed(2)} €</div>
     `;
 

@@ -8,9 +8,9 @@ db = SQLAlchemy()
 
 class Mitglied(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.Text(), unique=True, nullable=False)
-    nickname = db.Column(db.String(10), nullable=True)
-    email = db.Column(db.Text(), nullable=True)
+    name = db.Column(db.Text(), unique=False, nullable=False)
+    nickname = db.Column(db.Text(), nullable=True)
+    email = db.Column(db.Text(), nullable=True, unique=True)
     guthaben = db.Column(db.Float, default=0.0)
     blacklist = db.Column(db.Boolean, default=False)
 
