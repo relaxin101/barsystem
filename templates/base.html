@@ -12,10 +12,16 @@
     {% block head_content %}{% endblock %} {# Für seiten-spezifische Head-Inhalte #}
 </head>
 <body>
-    <header>
+    <header class="pt-4 pb-6 px-4 main-color">
+      <div style="height: 50px;">
+      <div class="d-flex align-items-center justify-content-center">
+        
+        <img style="height: 50px; width: auto; object-fit: contain; margin-right: 10px;" src="{{ url_for('static', filename='img/logo.png') }}"/>
         <h1>Ergo Bibamus</h1> 
+      </div>
+      </div>
     </header>
-    <nav>
+    <nav class="pt-6">
         <a href="{{ url_for('bar.bar_interface') }}">Barliste</a>
         {% if current_user.is_authenticated %}
             | <a href="{{ url_for('admin.guthaben_management') }}">Guthaben Management</a>

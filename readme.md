@@ -21,8 +21,8 @@ Unter static/css/style.css können die Hauptfarben der Website angepasst werden,
 ```css
 :root {
     --primary-light: #8DB8FF; /* Hintergrundfarbe */
-    --primary-main: #FF864D;   /* Akzentfarbe Rot */
-    --primary-secondary: #8DB8FF;  /* Akzentfarbe Gold */
+    --primary-main: #FF864D;   /* Hauptfarbe */
+    --primary-secondary: #E2FFE6;  /* Sekundäre Farbe */
     --text-dark: #303030;        /* Dunkler Text für gute Lesbarkeit */
     --text-light: #e8e9eb;    /* Heller Text auf dunklem Hintergrund */
 }

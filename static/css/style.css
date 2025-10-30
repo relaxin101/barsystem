@@ -1,8 +1,8 @@
 /* Grundlegende Farben */
 :root {
     --primary-light: #8DB8FF; /* Hintergrundfarbe */
-    --primary-main: #FF864D;   /* Akzentfarbe Rot */
-    --primary-secondary: #8DB8FF;  /* Akzentfarbe Gold */
+    --primary-main: #FF864D;   /* Hauptfarbe */
+    --primary-secondary: #E2FFE6;  /* Sekundäre Farbe */
     --text-dark: #303030;        /* Dunkler Text für gute Lesbarkeit */
     --text-light: #e8e9eb;    /* Heller Text auf dunklem Hintergrund */
 }
@@ -16,19 +16,22 @@ body {
     line-height: 1.6;
 }
 
-header h1 {
+.main-color {
     background-color: var(--primary-main); /* Dunkelrot als Header-Hintergrund */
-    color: var(--text-light); /* Weißer Text auf rotem Header */
-    padding: 1rem 0;
-    text-align: center;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.secondary-color {
+    background-color: var(--primary-secondary); /* Dunkelrot als Header-Hintergrund */
+}
+
+.light-color {
+    background-color: var(--primary-light); /* Dunkelrot als Header-Hintergrund */
 }
 
 nav {
     background-color: var(--primary-main); /* Navigationsleiste ebenfalls rot */
     padding: 0.7rem 0;
     text-align: center;
-    border-bottom: 2px solid var(--primary-secondary); /* Goldene Linie als Trenner */
 }
 
 nav a {
@@ -196,3 +199,6 @@ footer {
     color: #777;
 }
 
+.logo  {
+    height: 30rem;
+}
