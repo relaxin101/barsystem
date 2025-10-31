@@ -16,7 +16,7 @@ Nachdem du das geschafft hast, dupliziere das File `.env.example` und speichere 
 Jetzt kannst du die Website starten! Wenn du ein Terminal in dem Folder öffnest und `docker compose up -d` (+ ENTER) eintippst, beginnt docker mit der Installation der nötigen Komponenten und startet die Website automatisch. (Je nach Internet und Rechenleistung dauert das 5-15 min) Nun kannst du in dem lokalen Netzwerk unter der IP-Adresse des Computers mit dem Port 5000 die Website abrufen. Auf dem Computer wo das Ganze läuft, funktioniert auch [localhost:5000](http://localhost:5000).
 
 #### Optional
-Unter static/css/style.css können die Hauptfarben der Website angepasst werden, siehe
+Unter `static/css/style.css` können die Hauptfarben der Website angepasst werden, siehe
 
 ```css
 :root {
@@ -28,18 +28,20 @@ Unter static/css/style.css können die Hauptfarben der Website angepasst werden,
 }
 ```
 
+Falls `static/img/logo.png` existiert, wird es neben der Überschrift "Ergo Bibamus" angezeigt.
+
 ### ToDo
 #### Quality of Life
 - [x] Remove parts of an order
-- [ ] Checkin alembic migrations
-- [ ] Hide products
-- [ ] Logo
+- [x] Checkin alembic migrations
+- [ ] Hide/softdelete products and members
+- [x] Logo
 
 
 
 #### Features
 - [ ] Getränkespende
-- [ ] Emails
+- [ ] Emails (mit IBAN?)
 - [ ] Bestand-Tracking
 
 
@@ -48,6 +50,14 @@ Unter static/css/style.css können die Hauptfarben der Website angepasst werden,
 ### Helpful Queries
 Für die Bericht-Verwaltung sind hier mal ein paar Queries, die prbly häufiger gebraucht werden.
 Falls du einen weiteren Bericht brauchst und keine Ahnung von SQL hast, ist darunter noch ein Prompt um eine KI deiner Wahl zu befragen
+
+#### 
+
+```sql
+SELECT id, name, nickname, '' as betrag
+FROM mitglied
+ORDER BY name, nickname
+```
 
 #### Buchungen letzer Woche
 ```sql
