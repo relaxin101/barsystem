@@ -21,7 +21,7 @@ guthaben_bp = Blueprint("guthaben", __name__, url_prefix="/guthaben")
 # --------------------------------
 # 💶 Guthaben Management
 # --------------------------------
-@guthaben_bp.route("/guthaben", methods=["GET"])
+@guthaben_bp.route("/", methods=["GET"])
 @login_required
 def guthaben_management():
     mitglieder = Mitglied.query.order_by(Mitglied.name).all()

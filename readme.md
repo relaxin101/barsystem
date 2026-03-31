@@ -185,7 +185,7 @@ class Buchung(db.Model):
     menge = db.Column(db.Integer, nullable=False)
     preis_pro_einheit = db.Column(db.Float, nullable=False)
     gesamtpreis = db.Column(db.Float, nullable=False)
-    zeitstempel = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    zeitstempel = db.Column(db.DateTime, default=datetime.now, nullable=False)
     storniert = db.Column(
         db.DateTime, default=None, nullable=True
     )  # Wichtig für die Statistiken

@@ -56,7 +56,7 @@ def toggle(buchung_id):
         buchung.mitglied_obj.guthaben -= buchung.gesamtpreis
         flash(f"Buchung i.d.H.v. {buchung.gesamtpreis} storniert", "info")
     else:
-        buchung.storniert = datetime.utcnow()
+        buchung.storniert = datetime.now()
         buchung.mitglied_obj.guthaben += buchung.gesamtpreis
         flash(f"Storno i.d.H.v. {buchung.gesamtpreis} rückgängig gemacht", "info")
     db.session.commit()

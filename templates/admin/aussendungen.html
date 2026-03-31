@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid mt-4">
+  <h2 class="mb-4">📬 Aussendung</h2>
+
+  <div class="card">
+    <div class="card-header bg-primary text-white">
+      <strong>Info-Mail an aktive Mitglieder</strong>
+    </div>
+    <div class="card-body">
+      <form method="post" action="{{ url_for('admin.aussendungen.create_aussendung') }}">
+        
+        <div class="mb-3">
+          <label class="form-label">Betreff</label>
+          <input type="text" name="subject" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Nachricht</label>
+          <textarea name="message" class="form-control" rows="5" required></textarea>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Frequenz</label>
+
+            <input 
+              list="frequenz-options"
+              name="frequenz"
+              class="form-control"
+              value="weekly"
+            >
+
+            <datalist id="frequenz-options">
+              <option value="weekly">
+              <option value="monthly">
+              <option value="1">
+              <option value="14">
+            </datalist>
+
+          <small class="text-muted">
+            z. B. "daily", "weekly" oder Anzahl Tage (z. B. 10)
+          </small>
+        </div>
+  <div class="row">
+    <div class="mb-3">
+      <label class="form-label w-100">An Mitglieder, die in den letzten x Tagen etwas gebucht haben, aussenden (0 bedeutet nur blacklist)</label>
+      <input type="number" name="days" class="form-control" value="7" min="0">
+    </div>
+  <div class="mb-3">
+    <label class="form-label w-100">Test Email - nur an folgende Mail adresse schicken</label>
+    <input type="text" name="test-receiver" class="form-control">
+  </div>
+  <div class="mt-3 d-flex gap-2">
+    <!-- 🔥 NUR SENDEN -->
+    <button 
+      type="submit"
+      formaction="{{ url_for('admin.aussendungen.send_aussendung') }}"
+      class="btn btn-success">
+      📤 Jetzt senden
+    </button>
+
+    <!-- 💾 SPEICHERN -->
+    <button 
+      type="submit"
+      formaction="{{ url_for('admin.aussendungen.create_aussendung') }}"
+      class="btn btn-primary">
+      💾 Speichern
+    </button>
+      </form>
+    </div>
+  </div>
+</div>
+<hr>
+<h4>Geplante Aussendungen</h4>
+
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Subject</th>
+      <th>Frequenz</th>
+      <th>Aktives Interval Mitglieder der letzten x Tage</th>
+      <th>Aktiv</th>
+      <th>Letzte Ausführung</th>
+      <th>Aktionen</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for a in aussendungen %}
+    <tr>
+      <form method="post" action="{{ url_for('admin.aussendungen.update_aussendung', id=a.id) }}">
+        <td>
+          <input class="form-control" name="subject" value="{{ a.subject }}">
+        </td>
+
+        <td>
+          <input 
+            list="frequenz-options"
+            name="frequenz"
+            class="form-control"
+            value="{{ a.frequenz }}"
+          >
+        </td>
+        <td>
+          <input type="number" name="days" class="form-control" value="{{a.member_days}}" min="0">
+        </td>
+        <td>
+          <span 
+            class="badge {% if a.aktiv %}bg-success{% else %}bg-secondary{% endif %} toggle-aussendung"
+            data-id="{{ a.id }}"
+            style="cursor:pointer;"
+          >
+            {{ "Aktiv" if a.aktiv else "Inaktiv" }}
+          </span>
+        </td>
+          <td>
+            {% if a.last_run %}
+              {{ a.last_run.strftime('%d.%m.%Y %H:%M') }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+        <td class="gap-1">
+        <!-- Speichern -->
+        <button class="btn btn-sm btn-primary">Speichern 💾</button>
+        </form>
+
+
+          <form class="d-inline p-0" method="post" action="{{ url_for('admin.aussendungen.run_aussendung', id=a.id) }}">
+            <button class="btn btn-sm btn-success">Sofort Aussenden 📤</button>
+          </form>
+          <!-- Löschen -->
+          <form class="d-inline p-0" method="post" action="{{ url_for('admin.aussendungen.delete_aussendung', id=a.id) }}">
+            <button class="btn btn-sm btn-danger">Löschen 🗑</button>
+          </form>
+
+
+          <!-- Jetzt senden -->
+
+        </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<script>
+document.querySelectorAll('.toggle-aussendung').forEach(el => {
+  el.addEventListener('click', async () => {
+    const id = el.dataset.id;
+
+    const res = await fetch(`/admin/aussendungen/toggle/${id}`, {
+      method: "POST"
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      if (data.aktiv) {
+        el.classList.remove("bg-secondary");
+        el.classList.add("bg-success");
+        el.textContent = "Aktiv";
+      } else {
+        el.classList.remove("bg-success");
+        el.classList.add("bg-secondary");
+        el.textContent = "Inaktiv";
+      }
+    }
+  });
+});
+</script>
+{% endblock %}

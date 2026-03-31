@@ -29,3 +29,10 @@ ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "password!")
 # NEU: Schwellenwert für niedrigen Bestand definieren
 BESTAND_WARN_SCHWELLENWERT = 5  # Du kannst diesen Wert anpassen, wie du möchtest
 MINDEST_GUTHABEN = float(os.environ.get("MINDEST_GUTHABEN", -50.0))
+
+
+# Aussendungen specials
+BREVO_SECRET = os.environ.get("BREVO_SECRET")
+BREVO_SENDER_MAIL = os.environ.get("BREVO_SENDER_MAIL")
+BREVO_SENDER_NAME = os.environ.get("BREVO_SENDER_NAME")
+BREVO_TEMPLATE = int(os.environ.get("BREVO_TEMPLATE",0))

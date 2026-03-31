@@ -171,7 +171,7 @@ def buchen():
             menge=menge,
             preis_pro_einheit=artikel.preis,
             gesamtpreis=gesamtpreis,
-            zeitstempel=datetime.utcnow(),
+            zeitstempel=datetime.now(),
         )
         db.session.add(neue_buchung)
         db.session.commit()

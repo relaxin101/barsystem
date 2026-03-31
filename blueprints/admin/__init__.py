@@ -19,11 +19,13 @@ from utils.admin import *
 from blueprints.admin.berichte import export_bp
 from blueprints.admin.guthaben import guthaben_bp
 from blueprints.admin.buchungen import buchungen_bp
+from blueprints.admin.aussendungen import aussendungen_bp
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 admin_bp.register_blueprint(export_bp)
 admin_bp.register_blueprint(guthaben_bp)
 admin_bp.register_blueprint(buchungen_bp)
+admin_bp.register_blueprint(aussendungen_bp)
 
 
 @admin_bp.route("/")

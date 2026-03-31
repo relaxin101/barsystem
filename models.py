@@ -1,6 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from datetime import datetime
+from numpy import positive
 from werkzeug.security import generate_password_hash, check_password_hash
 
 db = SQLAlchemy()
@@ -88,7 +89,7 @@ class Buchung(db.Model):
     menge = db.Column(db.Integer, nullable=False)
     preis_pro_einheit = db.Column(db.Float, nullable=False)
     gesamtpreis = db.Column(db.Float, nullable=False)
-    zeitstempel = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    zeitstempel = db.Column(db.DateTime, default=datetime.now, nullable=False)
     storniert = db.Column(
         db.DateTime, default=None, nullable=True
     )  # Wichtig für die Statistiken
@@ -105,3 +106,21 @@ class Bericht(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.Text, nullable=False)
     sql = db.Column(db.Text, nullable=False)
+
+class Aussendung(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    subject = db.Column(db.Text, nullable=False)
+    message = db.Column(db.Text, nullable=False)
+
+    frequenz = db.Column(db.String(50), nullable=False, default="1d")
+    # Beispiele: "weekly", "monthly" or num days
+
+    member_days = db.Column(db.Integer, nullable=False, default="0")
+
+    aktiv = db.Column(db.Boolean, default=True)
+
+    last_run = db.Column(db.DateTime, nullable=True)  # wichtig für scheduler
+
+    def __repr__(self):
+        return f"<Aussendung {self.subject} ({self.frequenz})>"
