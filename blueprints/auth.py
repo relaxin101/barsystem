@@ -17,7 +17,7 @@ def login():
         if user and user.check_password(password):
             login_user(user)
             flash("Erfolgreich angemeldet!", "success")
-            return redirect(url_for("admin.buchungshistorie"))
+            return redirect(url_for("admin.buchungen.history"))
         else:
             flash("Ungültige Anmeldedaten!", "error")
 

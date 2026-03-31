@@ -25,7 +25,7 @@
 	{% for bericht in berichte %}
 	    <div class="mb-4 col">
 		  
-		  <a href="{{ url_for('admin.admin_export', id=bericht.id) }}" class="btn btn-success">
+		  <a href="{{ url_for('admin.export.admin_export', id=bericht.id) }}" class="btn btn-success">
 			  <i class="bi bi-clipboard"></i> {{bericht.name}}
 		  </a>
 	    </div>
@@ -48,7 +48,7 @@
             <div class="alert alert-danger">{{ error }}</div>
           {% endif %}
 
-          <form method="post" action="{{ url_for('admin.admin_export') }}" class="mb-3">
+          <form method="post" action="{{ url_for('admin.export.admin_export') }}" class="mb-3">
 
 <label for="query" class="form-label">SQL Query</label>
 <textarea class="form-control mb-2" id="query" name="query" rows="5">{{ query }}</textarea>
@@ -60,7 +60,7 @@
             <div class="mt-2">
               <button type="submit" class="btn btn-primary me-2">Ausführen</button>
               {% if results %}
-                <button formaction="{{ url_for('admin.sql_export_download') }}" formmethod="post" class="btn btn-success">
+                <button formaction="{{ url_for('admin.export.download') }}" formmethod="post" class="btn btn-success">
                   <i class="bi bi-download"></i> Excel herunterladen
                 </button>
               {% endif %}
@@ -71,7 +71,7 @@
 		      <input type="text" class="form-control" id="name" name="name" ">
 		    </div>
 		
-                <button formaction="{{ url_for('admin.create_berichte') }}" formmethod="POST" class="btn btn-success">
+                <button formaction="{{ url_for('admin.export.create_berichte') }}" formmethod="POST" class="btn btn-success">
                   <i class="bi bi-bookmark"></i> Bericht speichern
                 </button>
               {% endif %}

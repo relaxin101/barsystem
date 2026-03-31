@@ -53,7 +53,7 @@
       <strong>Guthaben per Excel aufbuchen / belasten</strong>
     </div>
     <div class="card-body">
-      <form method="post" enctype="multipart/form-data" action="{{ url_for('admin.guthaben_import') }}">
+      <form method="post" enctype="multipart/form-data" action="{{ url_for('admin.guthaben.guthaben_import') }}">
         <div class="mb-3">
           <label for="file" class="form-label">Excel-Datei auswählen</label>
           <input class="form-control" type="file" id="file" name="file" accept=".xls,.xlsx" required>

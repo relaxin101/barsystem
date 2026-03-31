@@ -20,7 +20,7 @@
     </div>
     <div class="col-md-3 align-self-end">
       <button type="submit" class="btn btn-primary me-2">Filtern</button>
-      <a href="{{ url_for('admin.export_buchungen', start=start_date, end=end_date) }}" class="btn btn-success">
+      <a href="{{ url_for('admin.buchungen.download', start=start_date, end=end_date) }}" class="btn btn-success">
         <i class="bi bi-download"></i> Exportieren
       </a>
     </div>
@@ -97,7 +97,7 @@ document.querySelectorAll('.status-badge').forEach(badge => {
     const buchungId = row.dataset.buchungId;
 
     try {
-      const res = await fetch(`/admin/buchung_toggle/${buchungId}`, {
+      const res = await fetch(`/admin/buchungen/toggle/${buchungId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
