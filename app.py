@@ -5,6 +5,7 @@ from flask_migrate import Migrate
 from flask_login import LoginManager
 from blueprints.auth import auth_bp
 from blueprints.admin import admin_bp
+from blueprints.admin.aussendungen import cronjob
 from blueprints.bar import bar_bp
 from logging.config import dictConfig
 from flask_apscheduler import APScheduler, scheduler
@@ -76,4 +77,5 @@ if __name__ == "__main__":
             print("Admin-Benutzer erfolgreich erstellt!")
         scheduler.init_app(app)
         scheduler.start()
+        scheduler.task('interval', id='aussendungen', seconds=60)(cronjob)
         app.run(host="0.0.0.0", debug=True)
