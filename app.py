@@ -6,8 +6,26 @@ from flask_login import LoginManager
 from blueprints.auth import auth_bp
 from blueprints.admin import admin_bp
 from blueprints.bar import bar_bp
+from logging.config import dictConfig
+from flask_apscheduler import APScheduler, scheduler
 
+dictConfig({
+    'version': 1,
+    'formatters': {'default': {
+        'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
+    }},
+    'handlers': {'wsgi': {
+        'class': 'logging.StreamHandler',
+        'stream': 'ext://flask.logging.wsgi_errors_stream',
+        'formatter': 'default'
+    }},
+    'root': {
+        'level': 'INFO',
+        'handlers': ['wsgi']
+    }
+})
 app = Flask(__name__)
+scheduler = APScheduler()
 
 # Lade die Konfiguration aus config.py
 app.config.from_object(config)
@@ -56,5 +74,6 @@ if __name__ == "__main__":
             db.session.add(admin_user)
             db.session.commit()
             print("Admin-Benutzer erfolgreich erstellt!")
-
+        scheduler.init_app(app)
+        scheduler.start()
         app.run(host="0.0.0.0", debug=True)
