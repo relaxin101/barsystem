@@ -12,7 +12,7 @@ class Mitglied(db.Model):
     name = db.Column(db.Text(), unique=False, nullable=False)
     nickname = db.Column(db.Text(), nullable=True)
     email = db.Column(db.Text(), nullable=True, unique=True)
-    guthaben = db.Column(db.Float, default=0.0)
+    guthaben = db.Column(db.Integer, default=0.0)
     blacklist = db.Column(db.Boolean, default=False)
 
     buchungen_von_mitglied = db.relationship(
@@ -32,7 +32,7 @@ class Artikel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     order = db.Column(db.Integer, nullable=True)
     name = db.Column(db.String(100), unique=True, nullable=False)
-    preis = db.Column(db.Float, nullable=False)
+    preis = db.Column(db.Integer, nullable=False)
     bestand = db.Column(db.Integer, nullable=False, default=0)
     mindestbestand = db.Column(db.Integer, default=5, nullable=False)  # Standardwert 5
     buchungen = db.relationship(
@@ -87,8 +87,8 @@ class Buchung(db.Model):
     mitglied_id = db.Column(db.Integer, db.ForeignKey("mitglied.id"), nullable=False)
     artikel_id = db.Column(db.Integer, db.ForeignKey("artikel.id"), nullable=True)
     menge = db.Column(db.Integer, nullable=False)
-    preis_pro_einheit = db.Column(db.Float, nullable=False)
-    gesamtpreis = db.Column(db.Float, nullable=False)
+    preis_pro_einheit = db.Column(db.Integer, nullable=False)
+    gesamtpreis = db.Column(db.Integer, nullable=False)
     zeitstempel = db.Column(db.DateTime, default=datetime.now, nullable=False)
     storniert = db.Column(
         db.DateTime, default=None, nullable=True

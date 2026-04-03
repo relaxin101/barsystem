@@ -81,15 +81,15 @@ def guthaben_import():
     for _, row in df.iterrows():
         try:
             mitglied_id = int(row[mitglied_col])
-            betrag = float(row[aufbuchung_col])
+            betrag = int(float(row[aufbuchung_col])*100)
             mitglied = Mitglied.query.get(mitglied_id)
             print(row)
             if mitglied:
                 mitglied.guthaben += betrag
 
-                if mitglied.guthaben < MINDEST_GUTHABEN:
+                if mitglied.guthaben < MINDEST_GUTHABEN*100:
                     mitglied.blacklist = True
-                elif mitglied.guthaben > MINDEST_GUTHABEN:
+                elif mitglied.guthaben > MINDEST_GUTHABEN*100:
                     mitglied.blacklist = False
 
                 buchung = Buchung(

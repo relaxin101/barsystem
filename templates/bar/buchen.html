@@ -6,7 +6,7 @@
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h3 class="mb-0 text-center flex-grow-1">
       {{ mitglied.name }}{% if mitglied.nickname %} ({{ mitglied.nickname }}){% endif %}:
-      <span id="guthaben" class="fw-bold">{{ "%.2f"|format(mitglied.guthaben) }} €</span>
+      <span id="guthaben" class="fw-bold">{{mitglied.guthaben/100}} €</span>
     </h3>
     <a href="{{ url_for('bar.bar_interface') }}" class="btn btn-secondary ms-3">
       &larr; Zurück
@@ -31,7 +31,7 @@
             data-artikel-preis="{{ artikel.preis }}"
           >
             {{ artikel.name }}<br>
-            <small>{{ "%.2f"|format(artikel.preis) }} €</small>
+            <small>{{artikel.preis/100}} €</small>
           </button>
         </div>
         {% endfor %}
@@ -44,8 +44,9 @@
       <ul class="list-group mb-3">
         {% for b in buchungen %}
         <li class="list-group-item d-flex justify-content-between">
+          <span> {{ b.zeitstempel.strftime('%d.%m.%Y %H:%M') }}</span>
           <span>{{ b.menge }} × {{ b.artikel_obj.name }}</span>
-          <span>{{ "%.2f"|format(b.gesamtpreis) }} €</span>
+          <span>{{b.gesamtpreis/100}} €</span>
         </li>
         {% else %}
         <li class="list-group-item text-muted">Keine Buchungen vorhanden.</li>
@@ -87,7 +88,7 @@ function renderBestellung() {
   let summe = 0;
 
   bestellung.forEach(item => {
-    const gesamt = item.preis * item.menge;
+    const gesamt = item.preis/100 * item.menge;
     summe += gesamt;
 
     const li = document.createElement("li");
@@ -171,7 +172,7 @@ function renderBestellung() {
 
     const preisSpan = document.createElement("span");
     preisSpan.className = "me-3";
-    preisSpan.innerHTML = `${gesamt.toFixed(2)} €`;
+    preisSpan.innerHTML = `${gesamt} €`;
     preisSpan.style.flexShrink = "0";
     rightDiv.appendChild(preisSpan);
 

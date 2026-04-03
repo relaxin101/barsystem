@@ -148,7 +148,7 @@ def buchen():
         menge = int(menge)
 
         gesamtpreis = artikel.preis * menge
-        if not mitglied.blacklist and mitglied.guthaben < MINDEST_GUTHABEN:
+        if not mitglied.blacklist and mitglied.guthaben < MINDEST_GUTHABEN*100:
             pass  # User ist manuell entschwärzt worden
         elif mitglied.blacklist:
             message = "Kein Geld 🗿"
@@ -157,7 +157,7 @@ def buchen():
                 jsonify({"success": False, "message": message}),
                 400,
             )
-        elif mitglied.guthaben - gesamtpreis < MINDEST_GUTHABEN:
+        elif mitglied.guthaben - gesamtpreis < MINDEST_GUTHABEN*100:
             mitglied.blacklist = True
         else:
             mitglied.blacklist = False

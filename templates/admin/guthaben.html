@@ -32,7 +32,7 @@
           <td>{{ m.id }}</td>
           <td>{{ m.name }}</td>
           <td>{{ m.nickname }}</td>
-          <td>{{ "%.2f"|format(m.guthaben) }}</td>
+          <td>{{ "%.2f"|format(m.guthaben/100) }}</td>
           <td>
             <div class="form-check form-switch">
               <input class="form-check-input blacklist-toggle" type="checkbox" {% if m.blacklist %}checked{% endif %}>

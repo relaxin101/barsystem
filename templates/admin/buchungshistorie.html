@@ -46,8 +46,8 @@
         <td>{{ b.mitglied_obj.name }}</td>
         <td>{{ b.artikel_obj.name }}</td>
         <td>{{ b.menge }}</td>
-        <td>{{ "%.2f"|format(b.preis_pro_einheit) }}</td>
-        <td>{{ "%.2f"|format(b.gesamtpreis) }}</td>
+        <td>{{ "%.2f"|format(b.preis_pro_einheit/100) }}</td>
+        <td>{{ "%.2f"|format(b.gesamtpreis/100) }}</td>
         <td>
           {% if b.storniert %}
             <span class="badge bg-danger status-badge" style="cursor:pointer;">Storno</span>
