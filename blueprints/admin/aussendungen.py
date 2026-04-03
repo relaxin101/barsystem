@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 
 from models import db, Mitglied, Buchung, Aussendung
 from utils.brevo import aussendungen, bulk_mail, single_mail, bulk_mail
-#from app import scheduler
 
 aussendungen_bp = Blueprint(
     "aussendungen",
@@ -146,26 +145,26 @@ def run_aussendung(id):
 
 
 
-#@scheduler.task('interval', id='aussendungen', seconds=3600)
-def cronjob():
-    aussendungen = Aussendung.query.filter_by(aktiv=True).all()
+def cronjob(app):
+    with app.app_context():
+        aussendungen = Aussendung.query.filter_by(aktiv=True).all()
 
-    for a in aussendungen:
-        # Zeitraum basierend auf Frequenz
-        days_map = {
-            "daily": 1,
-            "weekly": 7,
-            "monthly": 30,
-            "yearly": 365
-        }
-        if not a.frequenz.isdigit and not a.frequenz in days_map.keys():
-            continue
+        for a in aussendungen:
+            # Zeitraum basierend auf Frequenz
+            days_map = {
+                "daily": 1,
+                "weekly": 7,
+                "monthly": 30,
+                "yearly": 365
+            }
+            if not a.frequenz.isdigit and not a.frequenz in days_map.keys():
+                continue
 
-        days = days_map.get(a.frequenz, 7) if not a.frequenz.isdigit() else int(a.frequenz)
-        if a.last_run + timedelta(days=days) <= datetime.now():
-            run_aussendung(a.id)
+            days = days_map.get(a.frequenz, 7) if not a.frequenz.isdigit() else int(a.frequenz)
+            if a.last_run + timedelta(days=days) <= datetime.now():
+                run_aussendung(a.id)
 
-    db.session.commit()
+        db.session.commit()
 
 
 

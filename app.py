@@ -77,5 +77,5 @@ if __name__ == "__main__":
             print("Admin-Benutzer erfolgreich erstellt!")
         scheduler.init_app(app)
         scheduler.start()
-        scheduler.task('interval', id='aussendungen', seconds=60)(cronjob)
+        scheduler.task('interval', id='aussendungen', seconds=60)(lambda: cronjob(app))
         app.run(host="0.0.0.0", debug=True)
