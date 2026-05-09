@@ -1,7 +1,16 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container-fluid mt-4">
-  <h2 class="mb-4">💶 Guthaben-Management</h2>
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="mb-0">💶 Guthaben-Management</h2>
+
+  <button
+    class="btn btn-success"
+    id="open-new-buchung"
+  >
+    ＋ Buchung
+  </button>
+</div>
 
   <div class="card">
     <div class="card-header bg-primary text-white">
@@ -45,6 +54,134 @@
   </div>
   </div>
 
+<!-- 💸 Guthaben Modal -->
+<div class="modal fade" id="guthabenModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <form id="guthaben-form">
+
+        <div class="modal-header">
+          <h5 class="modal-title">
+            Guthaben anpassen
+          </h5>
+
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="modal"
+          ></button>
+        </div>
+
+        <div class="modal-body">
+
+        <div class="mb-3">
+          <label class="form-label">Mitglied</label>
+
+          <select
+            id="modal-mitglied-id"
+            class="form-select"
+            required
+          >
+
+            {% for m in mitglieder %}
+              <option value="{{ m.id }}">
+                {{ m.name }}
+                {% if m.nickname %}
+                  ({{ m.nickname }})
+                {% endif %}
+              </option>
+            {% endfor %}
+
+          </select>
+        </div>
+
+          <!-- Typ -->
+          <div class="mb-3">
+            <label class="form-label">Art</label>
+            <div class="row">
+            <div class="float-left col pl-4">
+              <input
+                class="form-check-input ml-0"
+                type="radio"
+                name="buchung_typ"
+                id="typ_guthaben"
+                value="guthaben"
+                checked
+              >
+
+              <label class="form-check-label text-success" for="typ_guthaben">
+                Guthaben
+              </label>
+            </div>
+
+            <div class="form-check col">
+              <input
+                class="form-check-input"
+                type="radio"
+                name="buchung_typ"
+                id="typ_belastung"
+                value="belastung"
+              >
+
+              <label class="form-check-label text-danger" for="typ_belastung">
+                Belastung
+              </label>
+            </div>
+          </div>
+          </div>
+
+          <!-- Betrag -->
+          <div class="mb-3">
+            <label class="form-label">Betrag (€)</label>
+
+            <input
+              type="number"
+              step="0.01"
+              min="0.00"
+              id="modal-betrag"
+              class="form-control"
+              required
+            >
+          </div>
+
+          <!-- Beschreibung -->
+          <div class="mb-3">
+            <label class="form-label">Beschreibung (optional)</label>
+
+            <textarea
+              id="modal-beschreibung"
+              class="form-control"
+              rows="3"
+            ></textarea>
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+          >
+            Abbrechen
+          </button>
+
+          <button
+            type="submit"
+            class="btn btn-success"
+          >
+            Speichern
+          </button>
+
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+</div>
   <hr class="my-4">
 
   <!-- 📥 Excel Import -->
@@ -116,5 +253,108 @@ document.querySelectorAll('.blacklist-toggle').forEach(toggle => {
     }
   });
 });
+
+document.addEventListener("DOMContentLoaded", () => {
+// --------------------------------------------------
+// Modal
+// --------------------------------------------------
+const guthabenModal = new window.bootstrap.Modal(
+  document.getElementById("guthabenModal")
+);
+
+
+// --------------------------------------------------
+// Tabellenzeile klickbar
+// --------------------------------------------------
+document.querySelectorAll("#mitglieder-tabelle tbody tr").forEach(row => {
+
+  row.addEventListener("click", (e) => {
+
+    // Toggle soll Modal NICHT öffnen
+    if (e.target.classList.contains("blacklist-toggle")) {
+      return;
+    }
+
+    const id = row.dataset.id;
+    document.getElementById("modal-mitglied-id").value = id;
+
+    document.getElementById("modal-betrag").value = "";
+
+    document.getElementById("modal-beschreibung").value = "";
+
+    document.getElementById("typ_guthaben").checked = true;
+
+    guthabenModal.show();
+
+  });
+
+});
+
+
+  // --------------------------------------------------
+  // Speichern
+  // --------------------------------------------------
+  document.getElementById("guthaben-form").addEventListener("submit", async (e) => {
+
+    e.preventDefault();
+
+    const id = document.getElementById("modal-mitglied-id").value;
+
+    let betrag = parseFloat(
+      document.getElementById("modal-betrag").value
+    );
+
+    const beschreibung = document.getElementById("modal-beschreibung").beschreibung;
+
+    const typ = document.querySelector(
+      'input[name="buchung_typ"]:checked'
+    ).value;
+
+    // Belastung negativ machen
+    if (typ === "belastung") {
+      betrag *= -1;
+    }
+
+    const res = await fetch( `/admin/guthaben/aufbuchung/${id}`, {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ 'betrag': betrag, 'beschreibung': beschreibung })
+      });
+
+    const data = await res.json();
+
+    if (data.success) {
+      location.reload();
+    } else {
+      alert(data.message || "Fehler");
+    }
+
+  });
+  // --------------------------------------------------
+  // Neue Aufbuchung
+  // --------------------------------------------------
+  document.getElementById("open-new-buchung").addEventListener("click", () => {
+
+      document.getElementById("modal-betrag").value = "";
+
+      document.getElementById("modal-beschreibung").value = "";
+
+      document.getElementById("typ_guthaben").checked = true;
+
+      // erstes Mitglied vorauswählen
+      const select = document.getElementById("modal-mitglied-id");
+
+      if (select.options.length > 0) {
+        select.selectedIndex = 0;
+      }
+
+      guthabenModal.show();
+
+    });
+
+})
 </script>
 {% endblock %}

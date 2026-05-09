@@ -2,7 +2,6 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from sqlalchemy import or_, func, text, desc
 from models import db, Mitglied, Artikel, Buchung
 from datetime import datetime
-from config import MINDEST_GUTHABEN
 from utils.admin import calc_blacklist
 
 bar_bp = Blueprint("bar", __name__)
@@ -25,6 +24,7 @@ def hotlist():
     # Berechne für diese Mitglieder die Gesamtmenge aller Käufe
     mitglieder_mit_mengen = (
         db.session.query(Mitglied, func.sum(Buchung.menge).label("gesamtmenge"))
+        .where(Mitglied.aktiv)
         .join(Mitglied.buchungen_von_mitglied)
         .filter(Buchung.mitglied_id.in_(mitglied_ids))
         .group_by(Mitglied.id)
@@ -69,9 +69,12 @@ def get_members_api():
         members_query = Mitglied.query.filter(
             text(
                 """
-                to_tsvector( name || ' ' || nickname)  @@  to_tsquery(:search_term) 
-                or name iLike '%' || :search_term || '%' 
-                or nickname iLike '%' || :search_term || '%'"""
+                aktiv = true and (
+                    to_tsvector( name || ' ' || nickname)  @@  to_tsquery(:search_term) 
+                    or name iLike '%' || :search_term || '%' 
+                    or nickname iLike '%' || :search_term || '%'
+                )
+                """
             )
         ).params(search_term=search_term)
         members = members_query.order_by(Mitglied.name).all()
@@ -211,7 +214,7 @@ def buchen():
         # -------------------------
         # Blacklist / Guthaben
         # -------------------------
-        if not mitglied.blacklist and mitglied.guthaben < MINDEST_GUTHABEN * 100:
+        if mitglied.schwaerzungs_grenze is None or (not mitglied.blacklist and mitglied.guthaben < mitglied.schwaerzungs_grenze):
             pass  # manuell entschwärzt
         elif mitglied.blacklist:
             message = "Kein Geld 🗿"

@@ -66,25 +66,3 @@ def export_produkte():
     )
 
 
-# Mitglieder
-@admin_bp.route("/mitglieder", methods=["GET", "POST"])
-@login_required
-def admin_mitglieder():
-    db_fields = ["id", "name", "nickname", "email"]
-
-    if request.method == "POST":
-        return handle_excel_import(
-            db_fields=db_fields,
-            model=Mitglied,
-            redirect_url=url_for("admin.admin_mitglieder"),
-            unique_field="id",
-        )
-
-    return render_template(
-        "admin/admin_mitglieder.html",
-        title="Mitglieder-Import",
-        action_url=url_for("admin.admin_mitglieder"),
-        db_fields=db_fields,
-    )
-
-

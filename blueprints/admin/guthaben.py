@@ -14,7 +14,6 @@ import pandas as pd
 
 from models import db, Buchung, Mitglied
 from utils.admin import *
-from config import MINDEST_GUTHABEN
 
 guthaben_bp = Blueprint("guthaben", __name__, url_prefix="/guthaben")
 
@@ -57,7 +56,7 @@ def guthaben_import():
     df = pd.read_excel(file)
 
     # Prüfen, ob die Spalten existieren
-    if mitglied_col not in df.columns or aufbuchung_col not in df.columns:
+    if mitglied_col not in df.columns or aufbuchung_col not in df.columns or beschreibung_col not in df.columns:
         flash("Spaltennamen nicht gefunden. Bitte überprüfe die Zuordnung.", "error")
         return redirect(url_for("admin.guthaben.guthaben_management"))
 
@@ -84,15 +83,13 @@ def guthaben_import():
         try:
             mitglied_id = int(row[mitglied_col])
             betrag = int(float(row[aufbuchung_col])*100)
+            kommentar = row[beschreibung_col]
             mitglied = Mitglied.query.get(mitglied_id)
             print(row)
             if mitglied:
                 mitglied.guthaben += betrag
 
-                if mitglied.guthaben < MINDEST_GUTHABEN*100:
-                    mitglied.blacklist = True
-                elif mitglied.guthaben > MINDEST_GUTHABEN*100:
-                    mitglied.blacklist = False
+                mitglied.blacklist = calc_blacklist(mitglied, betrag)
 
                 buchung = Buchung(
                     mitglied_id=mitglied.id,
@@ -111,3 +108,53 @@ def guthaben_import():
     db.session.commit()
     flash(f"{count} Guthabenänderungen durchgeführt.", "success")
     return redirect(url_for("admin.guthaben.guthaben_management"))
+
+@guthaben_bp.route("/aufbuchung/<int:mitglied_id>", methods=["POST"])
+@login_required
+def aufbuchung(mitglied_id):
+
+    data = request.get_json()
+
+    betrag = data.get("betrag")
+    beschreibung = data.get("beschreibung")
+
+    if betrag is None:
+        return jsonify({
+            "success": False,
+            "message": "Betrag fehlt"
+        }), 400
+
+    mitglied = Mitglied.query.get_or_404(mitglied_id)
+
+    try:
+
+        betrag_cent = int(round(float(betrag) * 100))
+
+        mitglied.guthaben += betrag_cent
+
+        buchung = Buchung(
+            mitglied_id=mitglied.id,
+            artikel_id=None,  # Sonderartikel
+            menge=1,
+            preis_pro_einheit=betrag_cent,
+            gesamtpreis=betrag_cent,
+            kommentar=beschreibung,
+            zeitstempel=datetime.now()
+        )
+
+        db.session.add(buchung)
+
+        db.session.commit()
+
+        return jsonify({
+            "success": True
+        })
+
+    except Exception as e:
+
+        db.session.rollback()
+
+        return jsonify({
+            "success": False,
+            "message": str(e)
+        }), 500

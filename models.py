@@ -3,6 +3,7 @@ from flask_login import UserMixin
 from datetime import datetime
 from numpy import positive
 from werkzeug.security import generate_password_hash, check_password_hash
+from config import MINDEST_GUTHABEN
 
 db = SQLAlchemy()
 
@@ -14,6 +15,10 @@ class Mitglied(db.Model):
     email = db.Column(db.Text(), nullable=True)
     guthaben = db.Column(db.Integer, default=0.0)
     blacklist = db.Column(db.Boolean, default=False)
+    aktiv = db.Column(db.Boolean, nullable=False, default=True)
+    verborgen = db.Column(db.Boolean, nullable=False, default=False)
+    schwaerzungs_grenze = db.Column(db.Integer, nullable=True, default=MINDEST_GUTHABEN)
+
 
     buchungen_von_mitglied = db.relationship(
         "Buchung", back_populates="mitglied_obj", lazy=True

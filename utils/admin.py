@@ -8,7 +8,6 @@ import pandas as pd
 import numpy as np
 
 from models import db, Mitglied
-from config import MINDEST_GUTHABEN
 
 
 # -------------------------
@@ -108,13 +107,14 @@ def import_excel_to_db(file_stream, model, field_mapping, unique_field=None):
             )
 
         price_mapper = lambda value: value if "preis" not in key and value is not None else int(value*100)
+        aktiv_mapper = lambda value: (True if '1' == value else False) if key in ["aktiv", "verborgen"] else value
         if existing:
             # Update
             for key, value in entry_data.items():
-                setattr(existing, key, price_mapper(value))
+                setattr(existing, key, aktiv_mapper(price_mapper(value)))
         else:
             # Neu
-            db.session.add(model(**{key: price_mapper(value) for key, value in entry_data.items()}))
+            db.session.add(model(**{key: aktiv_mapper(price_mapper(value)) for key, value in entry_data.items()}))
 
     db.session.commit()
 
@@ -145,14 +145,18 @@ def calc_blacklist(mitglied: Mitglied, betrag: int) -> bool:
     - param mitglied: Das zu ändernde Mitglied
     - param betrag: Änderung des guthabens. Sollte bei einer abbuchung `< 0`  sein (und `> 0` bei einer Aufbuchung)
     """
+    # Mitglied soll gar nicht geschwärzt werden
+    if mitglied.schwaerzungs_grenze is None:
+        return False
+    
     # Wenn das Mitglied bereits geschwärzt ist, kann es durch eine Aufbuchung entschwärzt werden
     if mitglied.blacklist:
-        return mitglied.guthaben + betrag < MINDEST_GUTHABEN * 100
+        return mitglied.guthaben + betrag < mitglied.schwaerzungs_grenze
 
     # Wenn das Mitglied noch nicht geschwärzt ist, wurde es evt manuell entschwärzt (und ist schon im Minus). Dann bleibt es entschwärzt.
     # Sonst wird es geschwärzt wenn es vorher im plus war und danach im Minus ist.
     else:
-        return mitglied.guthaben < MINDEST_GUTHABEN * 100 and mitglied.guthaben + betrag < MINDEST_GUTHABEN * 100
+        return mitglied.guthaben < mitglied.schwaerzungs_grenze and mitglied.guthaben + betrag < mitglied.schwaerzungs_grenze 
             
     
 

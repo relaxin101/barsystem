@@ -10,7 +10,7 @@ artikel_bp = Blueprint(
     url_prefix="/artikel",
     template_folder="../../templates/admin/artikel",
 )
-DB_FIELDS = ["id", "reihenfolge", "name", "preis"]
+DB_FIELDS = ["id", "reihenfolge", "name", "preis", "aktiv"]
 
 
 @artikel_bp.route("/", methods=["GET"])

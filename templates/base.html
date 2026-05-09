@@ -33,7 +33,7 @@
             | <a href="{{ url_for('admin.artikel.index') }}">Artikel Verwaltung</a>
         {% endif %}
         {% if current_user.is_authenticated %}
-            | <a href="{{ url_for('admin.admin_mitglieder') }}">Mitglieder Import</a>
+            | <a href="{{ url_for('admin.mitglied.index') }}">Mitglieder Verwaltung</a>
         {% endif %}
         {% if current_user.is_authenticated %}
             | <a href="{{ url_for('admin.aussendungen.index') }}">Aussendungen</a>

@@ -3,11 +3,13 @@ from flask import (
     render_template,
     jsonify,
     request,
+    url_for,
 )
 
 from flask_login import login_required
 
 from models import db, Mitglied
+from utils.admin import handle_excel_import
 
 mitglied_bp = Blueprint(
     "mitglied",
@@ -15,8 +17,8 @@ mitglied_bp = Blueprint(
     url_prefix="/mitglied",
     template_folder="../../templates/admin/mitglied",
 )
-DB_FIELDS = ["id", "reihenfolge", "name", "preis"]
 
+DB_FIELDS = ["id", "name", "nickname", "email", "aktiv","schwaerzungs_grenze"]
 
 # --------------------------------------------------
 # Übersicht
@@ -35,6 +37,7 @@ def index():
     return render_template(
         "admin/mitglied/index.html",
         mitglieder=mitglieder,
+        db_fields=DB_FIELDS
     )
 
 
@@ -180,3 +183,17 @@ def create():
         "success": True,
         "mitglied_id": m.id,
     })
+
+
+
+# Mitglieder
+@mitglied_bp.route("/bulk-import", methods=["POST"])
+@login_required
+def bulk_import():
+
+    return handle_excel_import(
+        db_fields=DB_FIELDS,
+        model=Mitglied,
+        redirect_url=url_for("admin.mitglied.index"),
+        unique_field="id",
+    )
