@@ -214,9 +214,7 @@ def buchen():
         # -------------------------
         # Blacklist / Guthaben
         # -------------------------
-        if mitglied.schwaerzungs_grenze is None or (not mitglied.blacklist and mitglied.guthaben < mitglied.schwaerzungs_grenze):
-            pass  # manuell entschwärzt
-        elif mitglied.blacklist:
+        if mitglied.blacklist:
             message = "Kein Geld 🗿"
             flash(message, "error")
 
@@ -225,7 +223,7 @@ def buchen():
                 "message": message
             }), 400
         else:
-            mitglied.blacklist = calc_blacklist(mitglied, -1*gesamtpreis)
+            setattr(mitglied, "blacklist", calc_blacklist(mitglied, -1*gesamtpreis))
 
         # -------------------------
         # Guthaben aktualisieren
@@ -240,8 +238,6 @@ def buchen():
             artikel = eintrag["artikel"]
             menge = eintrag["menge"]
 
-            artikel.bestand -= menge
-
             neue_buchung = Buchung(
                 mitglied_id=mitglied.id,
                 artikel_id=artikel.id,
@@ -252,6 +248,7 @@ def buchen():
             )
 
             db.session.add(neue_buchung)
+            db.session.add(mitglied)
 
         db.session.commit()
 
@@ -266,6 +263,7 @@ def buchen():
         })
 
     except Exception as e:
+        flash(str(e))
 
         db.session.rollback()
 

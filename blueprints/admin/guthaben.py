@@ -83,7 +83,7 @@ def guthaben_import():
         try:
             mitglied_id = int(row[mitglied_col])
             betrag = int(float(row[aufbuchung_col])*100)
-            kommentar = row[beschreibung_col]
+            beschreibung = row[beschreibung_col]
             mitglied = Mitglied.query.get(mitglied_id)
             print(row)
             if mitglied:
@@ -130,6 +130,8 @@ def aufbuchung(mitglied_id):
 
         betrag_cent = int(round(float(betrag) * 100))
 
+        setattr(mitglied, "blacklist", calc_blacklist(mitglied, betrag_cent))
+
         mitglied.guthaben += betrag_cent
 
         buchung = Buchung(
@@ -138,11 +140,12 @@ def aufbuchung(mitglied_id):
             menge=1,
             preis_pro_einheit=betrag_cent,
             gesamtpreis=betrag_cent,
-            kommentar=beschreibung,
+            beschreibung=beschreibung,
             zeitstempel=datetime.now()
         )
 
         db.session.add(buchung)
+        db.session.add(mitglied)
 
         db.session.commit()
 
@@ -151,6 +154,7 @@ def aufbuchung(mitglied_id):
         })
 
     except Exception as e:
+        flash(str(e))
 
         db.session.rollback()
 

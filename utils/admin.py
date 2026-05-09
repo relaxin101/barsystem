@@ -152,11 +152,10 @@ def calc_blacklist(mitglied: Mitglied, betrag: int) -> bool:
     # Wenn das Mitglied bereits geschwärzt ist, kann es durch eine Aufbuchung entschwärzt werden
     if mitglied.blacklist:
         return mitglied.guthaben + betrag < mitglied.schwaerzungs_grenze
-
     # Wenn das Mitglied noch nicht geschwärzt ist, wurde es evt manuell entschwärzt (und ist schon im Minus). Dann bleibt es entschwärzt.
     # Sonst wird es geschwärzt wenn es vorher im plus war und danach im Minus ist.
     else:
-        return mitglied.guthaben < mitglied.schwaerzungs_grenze and mitglied.guthaben + betrag < mitglied.schwaerzungs_grenze 
+        return mitglied.guthaben >= mitglied.schwaerzungs_grenze and mitglied.guthaben + betrag < mitglied.schwaerzungs_grenze 
             
     
 

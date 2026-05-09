@@ -30,8 +30,8 @@
         <tr>
           <th>ID</th>
           <th>Name</th>
-          <th>Nickname</th>
-          <th>Guthaben (€)</th>
+          <th>Guthaben</th>
+          <th>Schwärzungslimit</th>
           <th>Blacklist</th>
         </tr>
       </thead>
@@ -39,9 +39,9 @@
         {% for m in mitglieder %}
         <tr data-id="{{ m.id }}">
           <td>{{ m.id }}</td>
-          <td>{{ m.name }}</td>
-          <td>{{ m.nickname }}</td>
-          <td>{{ "%.2f"|format(m.guthaben/100) }}</td>
+          <td>{{ m.name }}  {% if m.nickname is not none and  m.nickname != ''  %} ({{ m.nickname }}) {% endif %}</td>
+          <td>€ {{ "%.2f"|format(m.guthaben/100) }}</td>
+          <td> {{ "€ %.2f"|format(m.schwaerzungs_grenze/100) if m.schwaerzungs_grenze is not none else 'Kein Limit'}}</td>
           <td>
             <div class="form-check form-switch">
               <input class="form-check-input blacklist-toggle" type="checkbox" {% if m.blacklist %}checked{% endif %}>

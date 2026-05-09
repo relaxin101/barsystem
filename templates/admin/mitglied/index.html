@@ -56,7 +56,6 @@
             <th>Name</th>
             <th>Nickname</th>
             <th>Email</th>
-            <th>Guthaben</th>
             <th>Aktiv</th>
           </tr>
 
@@ -79,10 +78,6 @@
             <td>{{ m.nickname or "" }}</td>
 
             <td>{{ m.email or "" }}</td>
-
-            <td>
-              {{ "%.2f"|format(m.guthaben / 100) }} €
-            </td>
 
             <td>
 
