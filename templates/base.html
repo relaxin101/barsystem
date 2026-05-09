@@ -49,15 +49,41 @@
     <hr>
 
     <main> {# Hier beginnt der Content-Block #}
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <ul class="flashes">
-                {% for category, message in messages %}
-                    <li class="{{ category }}">{{ message }}</li>
-                {% endfor %}
-                </ul>
-            {% endif %}
-        {% endwith %}
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 2000;">
+
+            {% for category, message in messages %}
+              <div
+                class="toast fade show align-items-center text-white border-0 mb-2
+                {% if category == 'success' %}
+                  bg-success
+                {% elif category == 'error' %}
+                  bg-danger
+                {% elif category == 'warning' %}
+                  bg-warning text-dark
+                {% else %}
+                  bg-primary
+                {% endif %}"
+                role="alert"
+                aria-live="assertive"
+                aria-atomic="true"
+                data-bs-delay="4000"
+              >
+
+                <div class="d-flex">
+                  <div class="toast-body">
+                    {{ message }}
+                  </div>
+
+                </div>
+
+              </div>
+            {% endfor %}
+
+          </div>
+        {% endif %}
+      {% endwith %}
 
         {% block content %}{% endblock %} {# Das ist der Platzhalter für den Inhalt jeder Seite #}
     </main>
@@ -67,5 +93,19 @@
     </footer>
 
     {% block scripts %}{% endblock %} {# Optional: Für seiten-spezifische JavaScripts #}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  document.querySelectorAll('.toast').forEach((toastEl, index) => {
+    // Leicht versetzt ausblenden
+    setTimeout(() => {
+      toastEl.classList.add("fade");
+      toastEl.classList.remove("show");
+    }, 5000 + index * 400);
+
+  });
+
+});
+</script>
 </body>
 </html>
