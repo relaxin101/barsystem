@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0">🍺 Artikelverwaltung</h2>
+
+  <button
+    id="new-artikel-btn"
+    class="btn btn-success"
+  >
+    + Neuer Artikel
+  </button>
+</div>
+
+  <div class="card">
+
+    <div class="card-header bg-primary text-white">
+      <strong>Artikelübersicht</strong>
+    </div>
+
+    <!-- Suche -->
+    <div class="row p-3">
+      <div class="col-md-6">
+        <input
+          type="text"
+          id="search"
+          class="form-control"
+          placeholder="Artikel suchen..."
+        >
+      </div>
+    </div>
+
+    <!-- Tabelle -->
+    <div class="table-responsive" style="max-height:70vh; overflow:auto;">
+
+      <table class="table table-striped table-hover align-middle" id="artikel-tabelle">
+
+        <thead class="table-light sticky-top">
+          <tr>
+            <th>Reihenfolge</th>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Preis</th>
+            <th>Aktiv</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          {% for a in artikel %}
+
+          <tr
+            data-id="{{ a.id }}"
+            class="artikel-row"
+            style="cursor:pointer;"
+          >
+
+            <td>{{ a.reihenfolge }}</td>
+            <td>{{ a.id }}</td>
+
+            <td>{{ a.name }}</td>
+
+            <td>{{ "%.2f"|format(a.preis / 100) }} €</td>
+
+
+
+            <td>
+
+              <div class="form-check form-switch">
+
+                <input
+                  class="form-check-input aktiv-toggle"
+                  type="checkbox"
+                  {% if a.aktiv %}checked{% endif %}
+                >
+
+              </div>
+
+            </td>
+
+          </tr>
+
+          {% endfor %}
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+</div>
+<div class="container-fluid mt-4">
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+      <strong>Produkte-Excel importieren</strong>
+    </div>
+    <div class="card-body">
+      <form method="post" enctype="multipart/form-data" action="{{ action_url }}">
+        <div class="mb-3">
+          <label for="file" class="form-label">Excel-Datei auswählen:</label>
+          <input class="form-control" type="file" id="file" name="file" accept=".xls,.xlsx" required>
+        </div>
+
+        <hr>
+        <h5 class="mt-3">Spaltenzuordnung</h5>
+        <p class="text-muted">Ordne die Spalten aus deiner Excel-Datei den Datenbankfeldern zu. <br> 
+            Das Feld id wird nur für Updates benötigt. Bei neuen Artikeln wird die id automatisch angelegt
+        </p>
+
+        {% for field in db_fields %}
+        <div class="mb-3">
+          <label class="form-label">{{ field }}:</label>
+          <input type="text" class="form-control" name="{{ field }}" value="{{ field }}" required>
+        </div>
+        {% endfor %}
+
+        <button type="submit" class="btn btn-success mt-3">Import starten</button>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+{% include "admin/artikel/modal.html" %}
+
+<script>
+
+// --------------------------------------------------
+// Suche
+// --------------------------------------------------
+document.getElementById("search").addEventListener("input", (e) => {
+
+  const value = e.target.value.toLowerCase();
+
+  document.querySelectorAll("#artikel-tabelle tbody tr").forEach(row => {
+
+    const text = row.innerText.toLowerCase();
+
+    row.style.display = text.includes(value)
+      ? ""
+      : "none";
+
+  });
+
+});
+
+// Wait for bootstrap to load
+document.querySelectorAll(".aktiv-toggle").forEach(toggle => {
+
+// --------------------------------------------------
+// Toggle
+// --------------------------------------------------
+  toggle.addEventListener("click", async (e) => {
+
+    e.stopPropagation();
+
+    const row = e.target.closest("tr");
+
+    const artikelId = row.dataset.id;
+
+    const res = await fetch(
+      `/admin/artikel/toggle/${artikelId}`,
+      {
+        method: "POST"
+      }
+    );
+
+    const data = await res.json();
+
+    if (!data.success) {
+      alert("Fehler");
+    }
+
+  });
+
+});
+
+
+  // --------------------------------------------------
+  // Modal öffnen
+  // --------------------------------------------------
+  document.addEventListener("DOMContentLoaded", () => {
+
+    const modalEl = document.getElementById("artikelModal");
+
+    const modal = new window.bootstrap.Modal(modalEl);
+
+    document.querySelectorAll(".artikel-row").forEach(row => {
+
+      row.addEventListener("click", async () => {
+
+        const artikelId = row.dataset.id;
+
+        const res = await fetch(`/admin/artikel/${artikelId}`);
+        const data = await res.json();
+
+        if (!data.success) return;
+
+        const artikel = data.artikel;
+
+        document.getElementById("modal-id").value = artikel.id;
+        document.getElementById("modal-name").value = artikel.name;
+        document.getElementById("modal-preis").value =
+          (artikel.preis / 100).toFixed(2);
+
+        document.getElementById("modal-reihenfolge").value =
+          artikel.reihenfolge;
+
+        document.getElementById("modal-aktiv").checked =
+          artikel.aktiv;
+
+        document.getElementById("artikelModalLabel").textContent = "Artikel bearbeiten";
+        modal.show();
+
+      });
+
+    });
+
+
+  // --------------------------------------------------
+  // Neuen Artikel anlegen
+  // --------------------------------------------------
+  document.getElementById("new-artikel-btn")
+    .addEventListener("click", () => {
+
+      document.getElementById("artikelModalLabel")
+        .textContent = "Neuen Artikel anlegen";
+
+      document.getElementById("modal-id").value = "";
+      document.getElementById("modal-name").value = "";
+      document.getElementById("modal-preis").value = "0.00";
+      document.getElementById("modal-reihenfolge").value = "0";
+      document.getElementById("modal-aktiv").checked = true;
+
+      modal.show();
+
+  });
+});
+
+
+// --------------------------------------------------
+// Speichern
+// --------------------------------------------------
+document.getElementById("artikel-form").addEventListener("submit", async (e) => {
+
+  e.preventDefault();
+
+  const artikelId = document.getElementById("modal-id").value;
+  const url = artikelId
+    ? `/admin/artikel/${artikelId}`
+    : `/admin/artikel/create`;
+
+  const method = artikelId
+    ? "POST"
+    : "PUT";
+
+  const payload = {
+
+    name: document.getElementById("modal-name").value,
+
+    preis: document.getElementById("modal-preis").value,
+
+    order: document.getElementById("modal-reihenfolge").value,
+
+    aktiv: document.getElementById("modal-aktiv").checked,
+
+  };
+
+  const res = await fetch(
+    url,
+    {
+      method: method,
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    }
+  );
+
+  const data = await res.json();
+
+  if (data.success) {
+    location.reload();
+  }
+
+});
+
+</script>
+
+{% endblock %}

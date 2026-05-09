@@ -46,6 +46,8 @@ def guthaben_import():
     file = request.files.get("file")
     mitglied_col = request.form.get("mitglied_id_col")
     aufbuchung_col = request.form.get("aufbuchung_col")
+    beschreibung_col = request.form.get("beschreibung_col")
+
 
     if not file:
         flash("Keine Datei hochgeladen!", "error")

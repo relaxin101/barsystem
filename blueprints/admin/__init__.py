@@ -7,25 +7,25 @@ Blueprint,
 render_template,
 request,
 url_for,
-flash,
-jsonify,
 )
 from flask_login import login_required
-from sqlalchemy import desc, text
-import pandas as pd
 
-from models import db, Artikel, Buchung, Mitglied
+from models import Artikel, Mitglied
 from utils.admin import *
 from blueprints.admin.berichte import export_bp
 from blueprints.admin.guthaben import guthaben_bp
 from blueprints.admin.buchungen import buchungen_bp
 from blueprints.admin.aussendungen import aussendungen_bp
+from blueprints.admin.artikel import artikel_bp
+from blueprints.admin.mitglied import mitglied_bp
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 admin_bp.register_blueprint(export_bp)
 admin_bp.register_blueprint(guthaben_bp)
 admin_bp.register_blueprint(buchungen_bp)
 admin_bp.register_blueprint(aussendungen_bp)
+admin_bp.register_blueprint(artikel_bp)
+admin_bp.register_blueprint(mitglied_bp)
 
 
 @admin_bp.route("/")
@@ -84,29 +84,6 @@ def admin_mitglieder():
         "admin/admin_mitglieder.html",
         title="Mitglieder-Import",
         action_url=url_for("admin.admin_mitglieder"),
-        db_fields=db_fields,
-    )
-
-
-# Produkte
-@admin_bp.route("/produkte", methods=["GET", "POST"])
-@login_required
-def admin_produkte():
-    """Endpoint um Artikel zu importieren oder aktualisieren"""
-    db_fields = ["id", "name", "preis", "bestand", "mindestbestand", "bestand", "order"]
-
-    if request.method == "POST":
-        return handle_excel_import(
-            db_fields=db_fields,
-            model=Artikel,
-            redirect_url=url_for("admin.admin_produkte"),
-            unique_field="id",
-        )
-
-    return render_template(
-        "admin/admin_produkte.html",
-        title="Produkt-Import",
-        action_url=url_for("admin.admin_produkte"),
         db_fields=db_fields,
     )
 

@@ -111,7 +111,7 @@ def buchen():
             flash("Mitglied nicht gefunden!", "error")
             return redirect(url_for("bar.bar_interface"))
 
-        artikel_liste = Artikel.query.order_by(Artikel.order).all()
+        artikel_liste = Artikel.query.where(Artikel.aktiv).order_by(Artikel.reihenfolge, Artikel.name).all()
         buchungen = (
             Buchung.query.filter_by(mitglied_id=mitglied.id)
             .order_by(Buchung.zeitstempel.desc())

@@ -1,0 +1,105 @@
+<div class="modal fade" id="artikelModal" tabindex="-1">
+
+  <div class="modal-dialog">
+
+    <div class="modal-content">
+
+      <form id="artikel-form">
+
+        <div class="modal-header">
+
+          <h5 class="modal-title" id="artikelModalLabel">
+            Artikel bearbeiten
+          </h5>
+
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="modal"
+          ></button>
+
+        </div>
+
+        <div class="modal-body">
+
+          <input type="hidden" id="modal-id">
+
+          <div class="mb-3">
+
+            <label class="form-label">Name</label>
+
+            <input
+              type="text"
+              class="form-control"
+              id="modal-name"
+            >
+
+          </div>
+
+          <div class="mb-3">
+
+            <label class="form-label">Preis (€)</label>
+
+            <input
+              type="number"
+              step="0.01"
+              class="form-control"
+              id="modal-preis"
+            >
+
+          </div>
+
+          <div class="mb-3">
+
+            <label class="form-label">Reihenfolge</label>
+
+            <input
+              type="number"
+              class="form-control"
+              id="modal-reihenfolge"
+            >
+
+          </div>
+
+          <div class="form-check form-switch">
+
+            <input
+              class="form-check-input"
+              type="checkbox"
+              id="modal-aktiv"
+            >
+
+            <label class="form-check-label">
+              Aktiv
+            </label>
+
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+          >
+            Abbrechen
+          </button>
+
+          <button
+            type="submit"
+            class="btn btn-primary"
+          >
+            Speichern
+          </button>
+
+        </div>
+
+      </form>
+
+    </div>
+
+  </div>
+
+</div>

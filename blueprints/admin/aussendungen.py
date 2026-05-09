@@ -146,7 +146,7 @@ def run_aussendung(id):
 
 
 def cronjob(app):
-    with app.app_context():
+    with app.test_request_context():
         aussendungen = Aussendung.query.filter_by(aktiv=True).all()
 
         for a in aussendungen:
