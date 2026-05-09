@@ -98,7 +98,7 @@ document.querySelectorAll('.blacklist-toggle').forEach(toggle => {
     const checked = e.target.checked;
 
     try {
-      const res = await fetch(`/admin/mitglied_blacklist_toggle/${id}`, {
+      const res = await fetch(`/admin/guthaben/mitglied_blacklist_toggle/${id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ blacklist: checked })
