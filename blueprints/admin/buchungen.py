@@ -54,10 +54,12 @@ def toggle(buchung_id):
     if buchung.storniert:
         buchung.storniert = None
         buchung.mitglied_obj.guthaben -= buchung.gesamtpreis
+        buchung.mitglied_obj.blacklist =  calc_blacklist(buchung.mitglied_obj,-1*buchung.gesamtpreis)
         flash(f"Buchung i.d.H.v. {buchung.gesamtpreis} storniert", "info")
     else:
         buchung.storniert = datetime.now()
         buchung.mitglied_obj.guthaben += buchung.gesamtpreis
+        buchung.mitglied_obj.blacklist =  calc_blacklist(buchung.mitglied_obj,buchung.gesamtpreis)
         flash(f"Storno i.d.H.v. {buchung.gesamtpreis} rückgängig gemacht", "info")
     db.session.commit()
     return jsonify({"success": True, "storniert": bool(buchung.storniert)})

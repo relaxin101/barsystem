@@ -7,7 +7,8 @@ from flask import request, send_file, flash, redirect
 import pandas as pd
 import numpy as np
 
-from models import db
+from models import db, Mitglied
+from config import MINDEST_GUTHABEN
 
 
 # -------------------------
@@ -106,13 +107,14 @@ def import_excel_to_db(file_stream, model, field_mapping, unique_field=None):
                 else False
             )
 
+        price_mapper = lambda value: value if "preis" not in key and value is not None else int(value*100)
         if existing:
             # Update
             for key, value in entry_data.items():
-                setattr(existing, key, value)
+                setattr(existing, key, price_mapper(value))
         else:
             # Neu
-            db.session.add(model(**entry_data))
+            db.session.add(model(**{key: price_mapper(value) for key, value in entry_data.items()}))
 
     db.session.commit()
 
@@ -121,6 +123,7 @@ def handle_excel_import(db_fields, model, redirect_url, unique_field=None):
     """Zentrale Logik für den Excel-Import ohne Datei auf der Festplatte."""
     file = request.files.get("file")
     mapping = {f: request.form.get(f) for f in db_fields}
+
 
     if not file or file.filename == "":
         flash("Bitte wähle eine Datei aus.", "error")
@@ -135,3 +138,21 @@ def handle_excel_import(db_fields, model, redirect_url, unique_field=None):
         flash(f"Fehler beim Import: {e}", "error")
 
     return redirect(redirect_url)
+
+def calc_blacklist(mitglied: Mitglied, betrag: int) -> bool:
+    """
+    # Funktion zum Berechnen ob das Mitglied geschwärzt werden soll oder nicht
+    - param mitglied: Das zu ändernde Mitglied
+    - param betrag: Änderung des guthabens. Sollte bei einer abbuchung `< 0`  sein (und `> 0` bei einer Aufbuchung)
+    """
+    # Wenn das Mitglied bereits geschwärzt ist, kann es durch eine Aufbuchung entschwärzt werden
+    if mitglied.blacklist:
+        return mitglied.guthaben + betrag < MINDEST_GUTHABEN * 100
+
+    # Wenn das Mitglied noch nicht geschwärzt ist, wurde es evt manuell entschwärzt (und ist schon im Minus). Dann bleibt es entschwärzt.
+    # Sonst wird es geschwärzt wenn es vorher im plus war und danach im Minus ist.
+    else:
+        return mitglied.guthaben < MINDEST_GUTHABEN * 100 and mitglied.guthaben + betrag < MINDEST_GUTHABEN * 100
+            
+    
+

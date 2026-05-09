@@ -3,6 +3,7 @@ from sqlalchemy import or_, func, text, desc
 from models import db, Mitglied, Artikel, Buchung
 from datetime import datetime
 from config import MINDEST_GUTHABEN
+from utils.admin import calc_blacklist
 
 bar_bp = Blueprint("bar", __name__)
 
@@ -125,70 +126,147 @@ def buchen():
             buchungen=buchungen,
         )
 
-    # POST → Buchung
+    # POST → Buchung(en)
     data = request.get_json()
-    mitglied_id = data.get("mitglied_id")
-    artikel_id = data.get("artikel_id")
-    menge = data.get("menge")
 
-    if not all([mitglied_id, artikel_id, menge]):
-        return jsonify({"success": False, "message": "Fehlende Daten."}), 400
+    mitglied_id = data.get("mitglied_id")
+
+    # Unterstützt:
+    # { artikel_id, menge }
+    # ODER
+    # { artikel: [ {artikel_id, menge}, ... ] }
+
+    artikel_liste = data.get("artikel")
+
+    if artikel_liste is None:
+        # Fallback für alte Einzelbuchung
+        artikel_id = data.get("artikel_id")
+        menge = data.get("menge")
+
+        artikel_liste = [
+            {
+                "artikel_id": artikel_id,
+                "menge": menge,
+            }
+        ]
+
+    if not mitglied_id or not artikel_liste:
+        return jsonify({
+            "success": False,
+            "message": "Fehlende Daten."
+        }), 400
 
     mitglied = Mitglied.query.get(mitglied_id)
-    artikel = Artikel.query.get(artikel_id)
-    if not mitglied or not artikel:
-        return (
-            jsonify(
-                {"success": False, "message": "Mitglied oder Artikel nicht gefunden."}
-            ),
-            404,
-        )
+
+    if not mitglied:
+        return jsonify({
+            "success": False,
+            "message": "Mitglied nicht gefunden."
+        }), 404
 
     try:
-        menge = int(menge)
 
-        gesamtpreis = artikel.preis * menge
-        if not mitglied.blacklist and mitglied.guthaben < MINDEST_GUTHABEN*100:
-            pass  # User ist manuell entschwärzt worden
+        gesamte_buchungen = []
+        gesamtpreis = 0
+
+        # -------------------------
+        # Validierung
+        # -------------------------
+        for item in artikel_liste:
+
+            artikel_id = item.get("artikel_id")
+            menge = int(item.get("menge", 0))
+            if menge < 0:
+                return jsonify({
+                    "success": False,
+                    "message": "Menge darf nicht negativ sein"
+                }), 400
+
+            if not artikel_id or menge <= 0:
+                continue
+
+            artikel = Artikel.query.get(artikel_id)
+
+            if not artikel:
+                return jsonify({
+                    "success": False,
+                    "message": f"Artikel {artikel_id} nicht gefunden."
+                }), 404
+
+            preis = artikel.preis * menge
+            gesamtpreis += preis
+
+            gesamte_buchungen.append({
+                "artikel": artikel,
+                "menge": menge,
+                "gesamtpreis": preis,
+            })
+
+        if len(gesamte_buchungen) == 0:
+            return jsonify({
+                "success": False,
+                "message": "Keine gültigen Artikel."
+            }), 400
+
+        # -------------------------
+        # Blacklist / Guthaben
+        # -------------------------
+        if not mitglied.blacklist and mitglied.guthaben < MINDEST_GUTHABEN * 100:
+            pass  # manuell entschwärzt
         elif mitglied.blacklist:
             message = "Kein Geld 🗿"
             flash(message, "error")
-            return (
-                jsonify({"success": False, "message": message}),
-                400,
-            )
-        elif mitglied.guthaben - gesamtpreis < MINDEST_GUTHABEN*100:
-            mitglied.blacklist = True
+
+            return jsonify({
+                "success": False,
+                "message": message
+            }), 400
         else:
-            mitglied.blacklist = False
+            mitglied.blacklist = calc_blacklist(mitglied, -1*gesamtpreis)
 
+        # -------------------------
+        # Guthaben aktualisieren
+        # -------------------------
         mitglied.guthaben -= gesamtpreis
-        artikel.bestand -= menge
 
-        neue_buchung = Buchung(
-            mitglied_id=mitglied.id,
-            artikel_id=artikel.id,
-            menge=menge,
-            preis_pro_einheit=artikel.preis,
-            gesamtpreis=gesamtpreis,
-            zeitstempel=datetime.now(),
-        )
-        db.session.add(neue_buchung)
+        # -------------------------
+        # Buchungen anlegen
+        # -------------------------
+        for eintrag in gesamte_buchungen:
+
+            artikel = eintrag["artikel"]
+            menge = eintrag["menge"]
+
+            artikel.bestand -= menge
+
+            neue_buchung = Buchung(
+                mitglied_id=mitglied.id,
+                artikel_id=artikel.id,
+                menge=menge,
+                preis_pro_einheit=artikel.preis,
+                gesamtpreis=eintrag["gesamtpreis"],
+                zeitstempel=datetime.now(),
+            )
+
+            db.session.add(neue_buchung)
+
         db.session.commit()
 
-        # Flask flash und redirect
         flash(
-            f"Buchung für {mitglied.name} erfolgreich: {menge}× {artikel.name} ({gesamtpreis:.2f}€)",
+            f"Buchung erfolgreich: {gesamtpreis / 100:.2f}€",
             "success",
         )
-        return jsonify({"success": True, "redirect_url": url_for("bar.bar_interface")})
+
+        return jsonify({
+            "success": True,
+            "redirect_url": url_for("bar.bar_interface")
+        })
 
     except Exception as e:
+
         db.session.rollback()
-        print(f"Fehler bei der Buchung: {e}")
-        return (
-            jsonify(
-                {"success": False, "message": "Interner Serverfehler bei der Buchung."}
-            ),
-            500,
-        )
+
+        return jsonify({
+            "success": False,
+            "message": "Interner Serverfehler bei der Buchung."
+        }), 500
