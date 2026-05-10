@@ -57,12 +57,12 @@ def toggle(buchung_id):
             if a.zeitstempel > buchung.storniert:
                 return jsonify({"success": False, "message": f'Du musst zuerst Abrechnung {a.id} "{a.name}" löschen'})
         buchung.storniert = None
-        buchung.mitglied_obj.guthaben -= buchung.gesamtpreis
         buchung.mitglied_obj.blacklist =  calc_blacklist(buchung.mitglied_obj,-1*buchung.gesamtpreis)
+        buchung.mitglied_obj.guthaben -= buchung.gesamtpreis
     else:
         buchung.storniert = datetime.now()
-        buchung.mitglied_obj.guthaben += buchung.gesamtpreis
         buchung.mitglied_obj.blacklist =  calc_blacklist(buchung.mitglied_obj,buchung.gesamtpreis)
+        buchung.mitglied_obj.guthaben += buchung.gesamtpreis
     db.session.commit()
     
     return jsonify({

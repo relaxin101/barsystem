@@ -22,7 +22,16 @@ def index():
 
     with db.engine.connect() as connection:
         sql = """
-        SELECT * FROM abrechnung a,
+        SELECT a.id, 
+        a.name, 
+        a.zeitstempel,
+        general.num_buchungen,
+        general.veraendert,
+        general.von_datum,
+        general.bis_datum,
+        COALESCE(summe_eingaenge.summe_eingaenge, 0) as summe_eingaenge,
+        COALESCE(summe_ausgaenge.summe_ausgaenge, 0) as summe_ausgaenge
+    FROM abrechnung a,
             LATERAL (
                     SELECT abrechnungs_id as id, 
                     count(b.id) as num_buchungen, 
@@ -33,21 +42,20 @@ def index():
                     WHERE a.id = abrechnungs_id
                     GROUP BY abrechnungs_id)
             general
-            NATURAL JOIN (
-                    SELECT abrechnungs_id as id, sum(gesamtpreis) as summe_eingaenge 
-                    FROM buchung
-                    WHERE gesamtpreis > 0.0
-                    AND storniert is NULL
-                    GROUP BY abrechnungs_id)
-            summe_eingaenge
-            NATURAL JOIN (
-                    SELECT abrechnungs_id as id, -1*sum(gesamtpreis) as summe_ausgaenge 
+            NATURAL LEFT JOIN (
+                    SELECT abrechnungs_id as id, -1*sum(gesamtpreis) as summe_eingaenge 
                     FROM buchung
                     WHERE gesamtpreis < 0.0
                     AND storniert is NULL
                     GROUP BY abrechnungs_id)
+            summe_eingaenge
+            NATURAL LEFT JOIN (
+                    SELECT abrechnungs_id as id, sum(gesamtpreis) as summe_ausgaenge 
+                    FROM buchung
+                    WHERE gesamtpreis > 0.0
+                    AND storniert is NULL
+                    GROUP BY abrechnungs_id)
             summe_ausgaenge
-            WHERE a.id = general.id
         """
         abrechnungen = connection.execute(text(sql))
     return render_template(
@@ -59,6 +67,7 @@ def index():
 @abrechnung_bp.route("/create", methods=["POST"])
 @login_required
 def create():
+    flash("reached")
 
     data = request.get_json()
 
@@ -94,10 +103,10 @@ def create():
     buchungen = query.all()
 
     for b in buchungen:
-
         b.abrechnung_obj = abrechnung
 
     db.session.commit()
+    flash("reached")
 
     return jsonify({
         "success": True
@@ -194,7 +203,7 @@ def update(abrechnung_id):
     for b in buchungen:
         b.abrechnungs_id = abrechnung.id
 
-    abrechnung.zeitstempel = datetime.utcnow()
+    abrechnung.zeitstempel = datetime.now()
 
     db.session.commit()
 
