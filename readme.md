@@ -1,11 +1,11 @@
 # Barsystem
 Dieses Projekt beherbergt eine einfache Python-Flask-Website zum Managen eines Barsystems mit Personenkonten.
-Es umfasst:
-- Konto-Blacklisting mit Schwärzung von Konten unter einem bestimmten Limit
-- Berichterstellung: Mittels SQL können eigene Berichte geschrieben, gespeichert und als Excel exportiert werden. Siehe "Helpful Queries" weiter unten.
-- Produkt- & Mitglieds-Import: Excellisten mit entsprechenden Daten können zum Anlegen und Updaten von Produkten und Mitglieds-Konten benutzt werden. **Für Updates ist die Angabe der entsprechenden ID notwendig.**
-- Hotlist von Mitgliedern: Auf der Homepage werden die Mitglieds-Konten, die in letzter Zeit viel gebucht haben absteigend sortiert
-- Suche: Eine Schnelle Postgres-Volltextsuche hilft beim schnellen Finden durch Namen und optionale Spitznamen
+Es umfasst u.a.:
+- Konto-Blacklisting mit Schwärzung von Konten unter einem bestimmten Guthaben-Limit.
+- Berichterstellung: Mittels SQL können eigene Berichte geschrieben, gespeichert und als Excel exportiert werden. Siehe [Nützliche Berichte](https://github.com/relaxin101/barsystem/edit/master/readme.md) für mehr Infox.
+- Produkte & Mitglieder Bulk-Import: Excellisten mit entsprechenden Daten können zum Anlegen und Updaten von Produkten und Mitglieds-Konten benutzt werden. **Für Updates ist die Angabe der entsprechenden ID notwendig.**
+- Hotlist von Mitgliedern: Auf der Homepage werden die Mitglieds-Konten, die in letzter Zeit viel gebucht haben, absteigend sortiert
+- Suche: Eine Postgres-Volltextsuche hilft beim schnellen Finden durch Namen und optionale Spitznamen
 
 
 ## Installation
@@ -25,7 +25,7 @@ Dann empfiehlt es sich (semi-)regelmäßig in einem terminal den folgenden befeh
 
 docker compose down # Stoppe die App
 git fetch # Checke nach updates
-git stash # Um die customizations etc. zu speichern und für git zu clearen
+git add . && git stash # Um die customizations etc. zu speichern und für git zu clearen
 git reset --hard origin/master # Wendet die updates an
 docker compose up -d # Startet die App neu und führt ggf. Datenbank-Migrationen durch
 git stash pop # Um die customizations wiederherzustellen
@@ -49,12 +49,19 @@ Unter `static/css/style.css` können die Hauptfarben der Website angepasst werde
 
 Falls `static/img/logo.png` existiert, wird es im Header neben der Überschrift der Barliste angezeigt.
 
-## Geplante Features
-- [x] Email Aussendungen
-- [x] Abrechnungen über einen bestimmten Zeitraum
-- [ ] Runden schmeißen
-- [ ] Email Postfach prüfen für Bankeinzahlungen
+## Features
+### Email Aussendungen
+Mittels [Brevo](https://www.brevo.com/de/) können regelmäßige Aussendungen angelegt und verschickt werden.
+Hierfür muss ein Brevo-Mail-Template angelegt werden, dass die parameter params.subject, params.recipient_name, params.amount (aktuelles guthaben) und params.message injected bekommt.
 
+### Abrechnungen über einen bestimmten Zeitraum
+Buchungen können zu Abrechnungen gruppiert werden um einen Überblick zu bekommen wie viel in einem bestimmten Zeitraum eingenommen wurde.
+
+### (Geplant) Runden schmeißen
+Falls jemand eine Runde schmeißen möchte.
+
+### (Geplant) Automatische Einzahlungen
+Regelmäßiges prüfen eines Email Postfachs um Einzahlungen automatisch zu erkennen.
 
 ## Nützliche Berichte
 Für die Bericht-Verwaltung sind hier mal ein paar Queries, die prbly häufiger gebraucht werden.
