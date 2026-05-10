@@ -41,7 +41,7 @@
     <div class="col-12">
       <div class="card">
         <div class="card-header bg-primary text-white">
-          <strong>Eigene SQL-Query</strong>
+          <strong>Eigene SQL-Abfrage</strong>
         </div>
         <div class="card-body">
           {% if error %}
@@ -50,7 +50,7 @@
 
           <form method="post" action="{{ url_for('admin.export.admin_export') }}" class="mb-3">
 
-<label for="query" class="form-label">SQL Query</label>
+<label for="query" class="form-label">SQL Abfrage</label>
 <textarea class="form-control mb-2" id="query" name="query" rows="5">{{ query }}</textarea>
 
 {% if query %}
