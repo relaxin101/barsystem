@@ -4,7 +4,7 @@ from flask import Blueprint, flash, render_template, request, jsonify, url_for
 from flask_login import login_required
 from datetime import datetime
 
-from sqlalchemy import text
+from sqlalchemy import func, text
 
 from models import db, Abrechnung, Buchung
 
@@ -43,19 +43,20 @@ def index():
                     GROUP BY abrechnungs_id)
             general
             NATURAL LEFT JOIN (
-                    SELECT abrechnungs_id as id, -1*sum(gesamtpreis) as summe_eingaenge 
-                    FROM buchung
-                    WHERE gesamtpreis < 0.0
-                    AND storniert is NULL
-                    GROUP BY abrechnungs_id)
-            summe_eingaenge
-            NATURAL LEFT JOIN (
-                    SELECT abrechnungs_id as id, sum(gesamtpreis) as summe_ausgaenge 
+                    SELECT abrechnungs_id as id, sum(gesamtpreis) as summe_eingaenge 
                     FROM buchung
                     WHERE gesamtpreis > 0.0
                     AND storniert is NULL
                     GROUP BY abrechnungs_id)
+            summe_eingaenge
+            NATURAL LEFT JOIN (
+                    SELECT abrechnungs_id as id, -1*sum(gesamtpreis) as summe_ausgaenge 
+                    FROM buchung
+                    WHERE gesamtpreis < 0.0
+                    AND storniert is NULL
+                    GROUP BY abrechnungs_id)
             summe_ausgaenge
+    ORDER BY zeitstempel DESC
         """
         abrechnungen = connection.execute(text(sql))
     return render_template(
@@ -140,6 +141,16 @@ def detail(abrechnung_id):
         .order_by(Buchung.storniert.desc())
         .all()
     )
+    with db.engine.connect() as connection:
+        sql = f"""
+                    SELECT MIN(b.zeitstempel) as von_datum, 
+                    MAX(b.zeitstempel) as bis_datum
+                    FROM buchung b
+                    WHERE b.abrechnungs_id = {abrechnung_id}
+                    GROUP BY abrechnungs_id
+        """
+        results = list(connection.execute(text(sql)))
+
 
     # -----------------------------------------
     # Kontoübersicht
@@ -165,7 +176,9 @@ def detail(abrechnung_id):
         abrechnung=abrechnung,
         buchungen=buchungen,
         stornierte=stornierte,
-        konten=konten
+        konten=konten,
+        von_datum=results[0][0],
+        bis_datum=results[0][1]
     )
 
 
