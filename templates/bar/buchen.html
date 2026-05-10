@@ -45,7 +45,7 @@
         {% for b in buchungen %}
         <li class="list-group-item d-flex justify-content-between">
           <span> {{ b.zeitstempel.strftime('%d.%m.%Y %H:%M') }}</span>
-          <span>{{ b.menge }} × {{ b.artikel_obj.name }}</span>
+          <span>{% if b.beschreibung is not none %} {{b.beschreibung}} {%else%} {{ b.menge }} × {{ b.artikel_obj.name }} {% endif %}</span>
           <span>{{ '%0.2f'|format(b.gesamtpreis/100|float) }} €</span>
         </li>
         {% else %}

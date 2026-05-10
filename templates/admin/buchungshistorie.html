@@ -14,7 +14,7 @@
       <label for="start" class="form-label">Startdatum</label>
       <input type="date" class="form-control" id="start" name="start" value="{{ start_date }}">
     </div>
-    <div class="col-md-3">
+    <div class="col-md-3 mb-4">
       <label for="end" class="form-label">Enddatum</label>
       <input type="date" class="form-control" id="end" name="end" value="{{ end_date }}">
     </div>
@@ -26,13 +26,13 @@
     </div>
   </form>
 
-<div class="table-responsive" style="">
+<div class="table-responsive" style="overflow: auto;">
   <table class="table table-striped table-hover table-bordered align-middle">
-    <thead class="table-dark">
+    <thead class="table-light stick-top">
       <tr>
         <th>Datum</th>
         <th>Mitglied</th>
-        <th>Artikel</th>
+        <th>Beschreibung</th>
         <th>Menge</th>
         <th>Preis/Einheit (€)</th>
         <th>Gesamtpreis (€)</th>
@@ -44,7 +44,8 @@
       <tr data-buchung-id="{{ b.id }}" class="{% if b.storniert %}table-danger{% endif %}">
         <td>{{ b.zeitstempel.strftime('%d.%m.%Y %H:%M') }}</td>
         <td>{{ b.mitglied_obj.name }}</td>
-        <td>{{ b.artikel_obj.name }}</td>
+          
+        <td>{% if b.beschreibung is not none and b.beschreibung != '' %} {{b.beschreibung}} {% else %} {{ b.artikel_obj.name }} {% endif %}</td>
         <td>{{ b.menge }}</td>
         <td>{{ "%.2f"|format(b.preis_pro_einheit/100) }}</td>
         <td>{{ "%.2f"|format(b.gesamtpreis/100) }}</td>
