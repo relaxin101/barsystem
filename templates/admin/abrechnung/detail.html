@@ -67,7 +67,7 @@
           id="refresh-btn"
           class="btn btn-primary"
         >
-          Refresh Timestamp
+          Abrechnung aktualisieren
         </button>
 
         <button
@@ -83,6 +83,7 @@
 
   </div>
 
+  {% if stornierte %}
   <!-- Nachträglich stornierte -->
   <div class="card mb-4">
 
@@ -140,6 +141,7 @@
     </div>
 
   </div>
+  {% endif %}
 
 
 
