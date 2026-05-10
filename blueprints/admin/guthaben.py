@@ -82,7 +82,7 @@ def guthaben_import():
     for _, row in df.iterrows():
         try:
             mitglied_id = int(row[mitglied_col])
-            betrag = int(float(row[aufbuchung_col])*100)
+            betrag = int(round(float(row[aufbuchung_col])*100,0))
             beschreibung = row[beschreibung_col]
             mitglied = Mitglied.query.get(mitglied_id)
             print(row)
@@ -129,7 +129,7 @@ def aufbuchung(mitglied_id):
 
     try:
 
-        betrag_cent = int(round(float(betrag) * 100))
+        betrag_cent = int(round(float(betrag) * 100, 0))
 
         setattr(mitglied, "blacklist", calc_blacklist(mitglied, betrag_cent))
 
