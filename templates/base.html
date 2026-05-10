@@ -3,110 +3,413 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>{% block title %}Bierliste{% endblock %}</title>
-	<!-- Bootstrap 5 style css-->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" 
-	integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" 
-	crossorigin="anonymous">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    {% block head_content %}{% endblock %} {# Für seiten-spezifische Head-Inhalte #}
+
+    <!-- Bootstrap -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    >
+
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    >
+
+    {% block head_content %}{% endblock %}
+
+<style>
+
+/* ---------------------------------- */
+/* Sidebar */
+/* ---------------------------------- */
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: -280px;
+
+  width: 280px;
+  height: 100vh;
+
+  background: var(--primary-main);
+  color: white;
+
+  transition: left 0.25s ease;
+
+  z-index: 2000;
+
+  overflow-y: auto;
+
+  box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+}
+
+.sidebar.open {
+  left: 0;
+}
+
+.sidebar-header {
+  padding: 1rem;
+  background: var(--primary-secondary)
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.sidebar-logo {
+  height: 50px;
+  width: auto;
+  object-fit: contain;
+}
+
+.sidebar a {
+  display: block;
+
+  color: rgba(255,255,255,0.9);
+
+  text-decoration: none;
+
+  padding: 0.9rem 1.2rem;
+
+  transition: background 0.15s ease;
+}
+
+.sidebar a:hover {
+  background: var(--primary-light);;
+  color: white;
+}
+
+
+/* ---------------------------------- */
+/* Overlay */
+/* ---------------------------------- */
+
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+
+  background: rgba(0,0,0,0.35);
+
+  opacity: 0;
+  pointer-events: none;
+
+  transition: opacity 0.2s ease;
+
+  z-index: 1990;
+}
+
+.sidebar-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+
+/* ---------------------------------- */
+/* Main content */
+/* ---------------------------------- */
+
+.main-wrapper {
+  min-height: 100vh;
+}
+
+
+/* ---------------------------------- */
+/* Topbar */
+/* ---------------------------------- */
+
+.topbar {
+  background: var(--primary-main);
+  color: white;
+
+  padding: 1rem;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.menu-btn {
+  border: none;
+  background: transparent;
+  color: white;
+
+  font-size: 1.8rem;
+
+  line-height: 1;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+}
+
+.brand img {
+  height: 45px;
+  margin-right: 10px;
+}
+
+.brand h2 {
+  margin: 0;
+}
+
+</style>
+
 </head>
+
 <body>
-    <header class="pt-4 pb-6 px-4 main-color">
-      <div style="height: 50px;">
-      <div class="d-flex align-items-center justify-content-center">
-        
-        <img style="height: 50px; width: auto; object-fit: contain; margin-right: 10px;" src="{{ url_for('static', filename='img/logo.png') }}" onerror="this.style.display='none'"/>
-        <h1>Ergo Bibamus</h1> 
-      </div>
-      </div>
-    </header>
-    <nav class="pt-6">
-        <a href="{{ url_for('bar.bar_interface') }}">Barliste</a>
-        {% if current_user.is_authenticated %}
-            | <a href="{{ url_for('admin.guthaben.guthaben_management') }}">Guthaben</a>
-        {% endif %}
-        {% if current_user.is_authenticated %}
-            | <a href="{{ url_for('admin.buchungen.history') }}">Buchungen</a>
-        {% endif %}
-        {% if current_user.is_authenticated %}
-            | <a href="{{ url_for('admin.export.admin_export') }}">Berichte</a>
-        {% endif %}
-        {% if current_user.is_authenticated %}
-            | <a href="{{ url_for('admin.artikel.index') }}">Artikel</a>
-        {% endif %}
-        {% if current_user.is_authenticated %}
-            | <a href="{{ url_for('admin.mitglied.index') }}">Mitglieder</a>
-        {% endif %}
-        {% if current_user.is_authenticated %}
-            | <a href="{{ url_for('admin.aussendungen.index') }}">Aussendungen</a>
-            {# Der Top Verkäufer Link bleibt im Admin-Bereich laut deiner Präferenz #}
-            | <a href="{{ url_for('auth.logout') }}">Logout ({{ current_user.username }})</a>
-        {% else %}
-            | <a href="{{ url_for('auth.login') }}">Admin Login</a>
-        {% endif %}
-    </nav>
-    <hr>
 
-    <main> {# Hier beginnt der Content-Block #}
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 2000;">
+<!-- ===================================== -->
+<!-- Sidebar -->
+<!-- ===================================== -->
 
-            {% for category, message in messages %}
-              <div
-                class="toast fade show align-items-center text-white border-0 mb-2
-                {% if category == 'success' %}
-                  bg-success
-                {% elif category == 'error' %}
-                  bg-danger
-                {% elif category == 'warning' %}
-                  bg-warning text-dark
-                {% else %}
-                  bg-primary
-                {% endif %}"
-                role="alert"
-                aria-live="assertive"
-                aria-atomic="true"
-                data-bs-delay="4000"
-              >
+<div
+  id="sidebar"
+  class="sidebar"
+>
 
-                <div class="d-flex">
-                  <div class="toast-body">
-                    {{ message }}
-                  </div>
+  <div class="sidebar-header">
 
-                </div>
+    <div class="d-flex align-items-center">
 
-              </div>
-            {% endfor %}
+      <img
+        src="{{ url_for('static', filename='img/logo.png') }}"
+        class="sidebar-logo me-2"
+        onerror="this.style.display='none'"
+      >
+
+      <h4 class="mb-0">
+        Ergo Bibamus
+      </h4>
+
+    </div>
+
+  </div>
+
+
+  <!-- Navigation -->
+
+  <a href="{{ url_for('bar.bar_interface') }}">
+    🍺 Barliste
+  </a>
+
+  {% if current_user.is_authenticated %}
+
+    <a href="{{ url_for('admin.guthaben.guthaben_management') }}">
+      💶 Guthaben
+    </a>
+
+    <a href="{{ url_for('admin.abrechnung.index') }}">
+      📦 Abrechnungen
+    </a>
+
+    <a href="{{ url_for('admin.buchungen.history') }}">
+      📜 Buchungen
+    </a>
+
+    <a href="{{ url_for('admin.export.admin_export') }}">
+      📊 Berichte
+    </a>
+
+    <a href="{{ url_for('admin.artikel.index') }}">
+      🍺 Artikel
+    </a>
+
+    <a href="{{ url_for('admin.mitglied.index') }}">
+      👤 Mitglieder
+    </a>
+
+    <a href="{{ url_for('admin.aussendungen.index') }}">
+      ✉️ Aussendungen
+    </a>
+
+    <a href="{{ url_for('auth.logout') }}">
+      🚪 Logout ({{ current_user.username }})
+    </a>
+
+  {% else %}
+
+    <a href="{{ url_for('auth.login') }}">
+      🔑 Admin Login
+    </a>
+
+  {% endif %}
+
+</div>
+
+
+<!-- Overlay -->
+<div
+  id="sidebar-overlay"
+  class="sidebar-overlay"
+></div>
+
+
+
+<!-- ===================================== -->
+<!-- Main -->
+<!-- ===================================== -->
+
+<div class="main-wrapper">
+
+  <!-- Topbar -->
+  <header class="topbar">
+
+    <button
+      id="menu-btn"
+      class="menu-btn"
+    >
+      ☰
+    </button>
+
+<a
+  href="{{ url_for('bar.bar_interface') }}"
+  class="brand text-decoration-none text-reset"
+>
+
+  <img
+    src="{{ url_for('static', filename='img/logo.png') }}"
+    onerror="this.style.display='none'"
+  >
+
+  <h2>
+    Ergo Bibamus
+  </h2>
+
+</a>
+    <div style="width:40px;"></div>
+
+  </header>
+
+
+  <!-- Toasts -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+
+      <div
+        class="toast-container position-fixed bottom-0 end-0 p-3"
+        style="z-index:3000;"
+      >
+
+        {% for category, message in messages %}
+
+          <div
+            class="toast show text-white border-0 mb-2
+
+            {% if category == 'success' %}
+              bg-success
+
+            {% elif category == 'error' %}
+              bg-danger
+
+            {% elif category == 'warning' %}
+              bg-warning text-dark
+
+            {% else %}
+              bg-primary
+
+            {% endif %}
+            "
+          >
+
+            <div class="toast-body">
+              {{ message }}
+            </div>
 
           </div>
-        {% endif %}
-      {% endwith %}
 
-        {% block content %}{% endblock %} {# Das ist der Platzhalter für den Inhalt jeder Seite #}
-    </main>
+        {% endfor %}
 
-    <footer>
-        <p>&copy; 2025 Alexander Rinsche & Felix Trappmaier</p>
-    </footer>
+      </div>
 
-    {% block scripts %}{% endblock %} {# Optional: Für seiten-spezifische JavaScripts #}
+    {% endif %}
+  {% endwith %}
+
+
+  <!-- Content -->
+  <main class="p-3">
+
+    {% block content %}{% endblock %}
+
+  </main>
+
+
+  <!-- Footer -->
+  <footer class="text-center py-4 text-muted">
+
+    &copy; 2025 Alexander Rinsche & Felix Trappmaier
+
+  </footer>
+
+</div>
+
+
+
+<!-- ===================================== -->
+<!-- Scripts -->
+<!-- ===================================== -->
+
+{% block scripts %}{% endblock %}
+
 <script>
+
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("sidebar-overlay");
+
+
+// ------------------------------------
+// Sidebar toggle
+// ------------------------------------
+
+document.getElementById("menu-btn").addEventListener("click", () => {
+
+  sidebar.classList.toggle("open");
+  overlay.classList.toggle("show");
+
+});
+
+
+// ------------------------------------
+// Overlay click
+// ------------------------------------
+
+overlay.addEventListener("click", () => {
+
+  sidebar.classList.remove("open");
+  overlay.classList.remove("show");
+
+});
+
+
+// ------------------------------------
+// Toast fadeout
+// ------------------------------------
+
 document.addEventListener("DOMContentLoaded", () => {
 
   document.querySelectorAll('.toast').forEach((toastEl, index) => {
-    // Leicht versetzt ausblenden
+
     setTimeout(() => {
-      toastEl.classList.add("fade");
-      toastEl.classList.remove("show");
+
+      toastEl.style.transition =
+        "opacity 1s ease";
+
+      toastEl.style.opacity = "0";
+
+      setTimeout(() => {
+        toastEl.remove();
+      }, 1000);
+
     }, 5000 + index * 400);
 
   });
 
 });
+
 </script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+
+
+<script
+  src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+></script>
+
 </body>
 </html>
