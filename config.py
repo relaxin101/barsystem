@@ -9,7 +9,7 @@ DATABASE_HOST = os.environ.get("DATABASE_HOST", "localhost")
 DATABASE_PORT = os.environ.get("DATABASE_PORT", "5432")
 
 # PostgreSQL Database URI
-SQLALCHEMY_DATABASE_URI = (
+SQLALCHEMY_DATABASE_URI = os.environ.get("SQLALCHEMY_DATABASE_URI", 
     f"postgresql://{DATABASE_USERNAME}:{DATABASE_PASSWORD}@"
     f"{DATABASE_HOST}:{DATABASE_PORT}/{DATABASE_NAME}"
 )
@@ -26,8 +26,6 @@ ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "password!")
 
 
-# NEU: Schwellenwert für niedrigen Bestand definieren
-BESTAND_WARN_SCHWELLENWERT = 5  # Du kannst diesen Wert anpassen, wie du möchtest
 _guthaben = os.environ.get("MINDEST_GUTHABEN", None)
 MINDEST_GUTHABEN = int(100*float(_guthaben)) if _guthaben else None
 
