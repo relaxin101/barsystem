@@ -1,4 +1,4 @@
-## Barsystem
+# Barsystem
 Dieses Projekt beherbergt eine einfache Python-Flask-Website zum Managen eines Barsystems mit Personenkonten.
 Es umfasst:
 - Konto-Blacklisting mit Schwärzung von Konten unter einem bestimmten Limit
@@ -8,14 +8,35 @@ Es umfasst:
 - Suche: Eine Schnelle Postgres-Volltextsuche hilft beim schnellen Finden durch Namen und optionale Spitznamen
 
 
-### Installation
+## Installation
 Zur Installation benötigst du [Docker](https://docs.docker.com/engine/install/) bzw. [Docker Desktop](https://docs.docker.com/desktop/setup/install/windows-install/)
 
-Nachdem du das geschafft hast, dupliziere das File `.env.example` und speichere es als `.env`. Das File beinhält die Konfiguration der Website. Ändere am besten zunächst den Wert `SECRET_KEY` auf einen zufälligen string (du brauchst ihn nachher nicht, das soll nur ein Geheimschlüssel sein den die App für diverse Hintergrunddinge benutzt). Mit `ADMIN_USERNAME`, `ADMIN_PASSWORD` konfigurierst du die Login-Daten für das Admin Panel, mit `MINDEST_GUTHABEN` setzt du das Limit, wie weit Personenkonten ins Minus gehen dürfen.
+Nachdem du das geschafft hast, dupliziere das File `.env.example` und speichere es als `.env`. Das File beinhält die Konfiguration der Website. Ändere am besten zunächst den Wert `SECRET_KEY` auf einen zufälligen string (du brauchst ihn nachher nicht, das soll nur ein Geheimschlüssel sein den die App für diverse Hintergrunddinge benutzt). Mit `ADMIN_USERNAME`, `ADMIN_PASSWORD` konfigurierst du die Login-Daten für das Admin Panel, mit `MINDEST_GUTHABEN` setzt du das Limit, wie weit Personenkonten ins Minus gehen dürfen. _admin daten können nachträglich nicht einfach geändert werden, da sie in die datenbank geschrieben werden._
 
-Jetzt kannst du die Website starten! Wenn du ein Terminal in dem Folder öffnest und `docker compose up -d` (+ ENTER) eintippst, beginnt docker mit der Installation der nötigen Komponenten und startet die Website automatisch. (Je nach Internet und Rechenleistung dauert das 5-15 min) Nun kannst du in dem lokalen Netzwerk unter der IP-Adresse des Computers mit dem Port 5000 die Website abrufen. Auf dem Computer wo das Ganze läuft, funktioniert auch [localhost:5000](http://localhost:5000).
+Jetzt kannst du die Website starten! Wenn du ein Terminal in dem Folder öffnest und `docker compose up -d` (+ ENTER) eintippst, beginnt docker mit der Installation der nötigen Komponenten und startet die Website automatisch. (Je nach Internet und Rechenleistung dauert das 5-15 min) Nun kannst du in dem lokalen Netzwerk unter der IP-Adresse des Computers die Website abrufen. Auf dem Computer wo das Ganze läuft, funktioniert auch [localhost](http://localhost). 
 
-#### Optional
+Ich empfehle beim Router eine statische IP mittels DHCP zu setzen - in einigen Routern kann man auch Namen vergeben sodass man dann im ganzen Netz unter __http://name-des-geraets__ die Barliste findet.
+
+### Updates
+Um Updates zu bekommen musst du das repo mit [git](https://git-scm.com/) gecloned haben und nicht einfach nur runtergeladen haben. 
+Dann empfiehlt es sich (semi-)regelmäßig in einem terminal den folgenden befehl auszuführen:
+
+```bash
+
+docker compose down 
+git fetch # Checke nach updates
+git stash # Um die customizations etc. zu speichern und für git zu clearen
+git reset --hard origin/master # Wendet die updates an
+docker compose up -d # Startet die Applikation neu und führt ggf. Datenbank-Migrationen durch
+git stash pop # Um die customizations wiederherzustellen
+```
+
+**Caveat:** Auch wenn ich versuche alle Datenbank-Migrationen sauber durchzuführen empfiehlt es sich vor jedem Update zumindest die Mitglieder samt Guthabenstände und die Artikel zu sichern (in der Bericht Verwaltung). 
+Um das System gänzlich neu aufzusetzen, starte mit `docker compose down -v` - das löscht auch die gesamte Datenbank, führe dann die restlichen Schritte durch und zum Schluss kannst du dann entsprechende Daten importieren.
+
+
+
+### Optionale Customization
 Unter `static/css/style.css` können die Hauptfarben der Website angepasst werden, siehe
 
 ```css
@@ -23,35 +44,24 @@ Unter `static/css/style.css` können die Hauptfarben der Website angepasst werde
     --primary-light: #8DB8FF; /* Hintergrundfarbe */
     --primary-main: #FF864D;   /* Hauptfarbe */
     --primary-secondary: #E2FFE6;  /* Sekundäre Farbe */
-    --text-dark: #303030;        /* Dunkler Text für gute Lesbarkeit */
-    --text-light: #e8e9eb;    /* Heller Text auf dunklem Hintergrund */
 }
 ```
 
-Falls `static/img/logo.png` existiert, wird es neben der Überschrift "Ergo Bibamus" angezeigt.
+Falls `static/img/logo.png` existiert, wird es im Header neben der Überschrift der Barliste angezeigt.
 
-### ToDo
-#### Quality of Life
-- [x] Remove parts of an order
-- [x] Checkin alembic migrations
-- [ ] Hide/softdelete products and members
-- [x] Logo
-
+## Geplante Features
+- [x] Email Aussendungen
+- [x] Abrechnungen über einen bestimmten Zeitraum
+- [ ] Runden schmeißen
+- [ ] Email Postfach prüfen für Bankeinzahlungen
 
 
-#### Features
-- [ ] Getränkespende
-- [ ] Emails (mit IBAN?)
-- [ ] Bestand-Tracking
-
-
-
-
-### Helpful Queries
+## Nützliche Berichte
 Für die Bericht-Verwaltung sind hier mal ein paar Queries, die prbly häufiger gebraucht werden.
 Falls du einen weiteren Bericht brauchst und keine Ahnung von SQL hast, ist darunter noch ein Prompt um eine KI deiner Wahl zu befragen
 
-#### 
+### Guthabenformular
+Generiert eine Excel die du direkt benutzen kannst um Guthaben einzutragen und aufzubuchen.
 
 ```sql
 SELECT id, name, nickname, '' as betrag
@@ -73,6 +83,8 @@ ORDER BY DATUM DESC, UHRZEIT DESC
 ```
 
 #### Kürzlich storniert
+Zeigt die letzten 20 stornierten Buchungen an
+
 ```sql
 SELECT mitglied_id, mitglied.name as Name, 
 artikel_id, artikel.name as Artikel, menge, preis_pro_einheit, gesamtpreis, 
@@ -102,15 +114,18 @@ ORDER BY mitglied.id
  
 #### KI Prompt (keine SQL query, nicht in Bericht-Verwaltung kopieren!)
 ```
-Ich habe ein Python-Flask-Projekt für ein Barsystem mit folgenden Database-Models:
+Ich habe eine Python-Flask-App mit einer PostgreSQL Datenbank für ein Barsystem mit den folgenden SQLAlchemy Models: 
+
 class Mitglied(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.Text(), unique=True, nullable=False)
-    nickname = db.Column(db.String(10), nullable=True)
+    name = db.Column(db.Text(), unique=False, nullable=False)
+    nickname = db.Column(db.Text(), nullable=True)
     email = db.Column(db.Text(), nullable=True)
-    guthaben = db.Column(db.Float, default=0.0)
+    guthaben = db.Column(db.Integer, default=0.0)
     blacklist = db.Column(db.Boolean, default=False)
-
+    aktiv = db.Column(db.Boolean, nullable=False, default=True)
+    verborgen = db.Column(db.Boolean, nullable=False, default=False)
+    schwaerzungs_grenze = db.Column(db.Integer, nullable=True, default=MINDEST_GUTHABEN)
     buchungen_von_mitglied = db.relationship(
         "Buchung", back_populates="mitglied_obj", lazy=True
     )
@@ -126,11 +141,10 @@ class Artikel(db.Model):
     """
 
     id = db.Column(db.Integer, primary_key=True)
-    order = db.Column(db.Integer, nullable=True)
-    name = db.Column(db.String(100), unique=True, nullable=False)
-    preis = db.Column(db.Float, nullable=False)
-    bestand = db.Column(db.Integer, nullable=False, default=0)
-    mindestbestand = db.Column(db.Integer, default=5, nullable=False)  # Standardwert 5
+    reihenfolge = db.Column(db.Integer, nullable=True)
+    aktiv = db.Column(db.Boolean, nullable=False, default=True)
+    name = db.Column(db.Text, unique=True, nullable=False)
+    preis = db.Column(db.Integer, nullable=False)
     buchungen = db.relationship(
         "Buchung", lazy=True
     )  # Stelle sicher, dass diese auch hier ist
@@ -140,7 +154,7 @@ class Artikel(db.Model):
     )
 
     def __repr__(self):
-        return f"<Artikel {self.name} ({self.preis:.2f}€) - Bestand: {self.bestand}>"
+        return f"<Artikel {self.name} ({self.preis:.2f}€)>"
 
 
 class User(db.Model, UserMixin):
@@ -182,9 +196,16 @@ class Buchung(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     mitglied_id = db.Column(db.Integer, db.ForeignKey("mitglied.id"), nullable=False)
     artikel_id = db.Column(db.Integer, db.ForeignKey("artikel.id"), nullable=True)
+    abrechnungs_id = db.Column(
+        db.Integer,
+        db.ForeignKey("abrechnung.id"),
+        nullable=True
+    )
+
+    beschreibung = db.Column(db.Text, nullable=True)
     menge = db.Column(db.Integer, nullable=False)
-    preis_pro_einheit = db.Column(db.Float, nullable=False)
-    gesamtpreis = db.Column(db.Float, nullable=False)
+    preis_pro_einheit = db.Column(db.Integer, nullable=False)
+    gesamtpreis = db.Column(db.Integer, nullable=False)
     zeitstempel = db.Column(db.DateTime, default=datetime.now, nullable=False)
     storniert = db.Column(
         db.DateTime, default=None, nullable=True
@@ -193,9 +214,35 @@ class Buchung(db.Model):
     # Beziehungen zu anderen Modellen
     mitglied_obj = db.relationship("Mitglied", back_populates="buchungen_von_mitglied")
     artikel_obj = db.relationship("Artikel", back_populates="buchungen_von_artikel")
+    abrechnung_obj = db.relationship(
+        "Abrechnung",
+        back_populates="buchungen"
+    )
 
     def __repr__(self):
-        return f"<Buchung {self.id}: {self.menge}x {self.artikel.name} für {self.mitglied.name}>"
+        return f"<Buchung {self.id} - {self.beschreibung}: {self.menge}x {self.artikel_obj.name if self.artikel_obj is not None else None} für {self.mitglied_obj.name}>"
+
+class Abrechnung(db.Model):
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    name = db.Column(db.Text, nullable=False)
+
+    zeitstempel = db.Column(
+        db.DateTime,
+        default=datetime.now,
+        nullable=False
+    )
+
+    buchungen = db.relationship(
+        "Buchung",
+        back_populates="abrechnung_obj",
+        lazy=True
+    )
+
+    def __repr__(self):
+        return f"<Abrechnung {self.id} {self.name}>"
+
 
 Bitte schreibe mir eine SQL query die mir folgendes zurückgibt:
 '''
