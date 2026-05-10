@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, jsonify, url_for
+from flask import Blueprint, flash, render_template, request, jsonify, url_for
 from flask_login import login_required
 
 from models import db, Artikel
@@ -78,7 +78,7 @@ def update_artikel(artikel_id):
     data = request.get_json()
 
     artikel.name = data.get("name", artikel.name)
-    artikel.preis = int(float(data.get("preis", artikel.preis / 100)) * 100)
+    artikel.preis = int(round(float(data.get("preis",artikel.preis/100.0))*100,0))
     artikel.reihenfolge = int(data.get("reihenfolge", artikel.reihenfolge))
     artikel.aktiv = bool(data.get("aktiv"))
 
