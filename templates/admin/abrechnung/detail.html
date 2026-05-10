@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+
+      <h2 class="mb-1">
+        📦 Abrechnung am {{ abrechnung.zeitstempel.strftime('%d.%m.%Y, um %H:%M') }} - {{ abrechnung.name }}
+      </h2>
+
+    <a
+      href="{{ url_for('admin.abrechnung.index') }}"
+      class="btn btn-secondary"
+    >
+      Zurück
+    </a>
+
+  </div>
+
+  <!-- Einstellungen -->
+  <div class="card mb-4">
+
+    <div class="card-header bg-primary text-white">
+      Einstellungen
+    </div>
+
+    <div class="card-body">
+
+      <div class="row g-3">
+
+        <div class="col-md-4">
+          <label class="form-label">Von</label>
+          <input
+            type="datetime-local"
+            id="start"
+            class="form-control"
+            step="60"
+          >
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Bis</label>
+          <input
+            type="datetime-local"
+            id="ende"
+            class="form-control"
+            step="60"
+          >
+        </div>
+
+      </div>
+
+      <div class="mt-4 d-flex gap-2">
+
+        <button
+          id="save-btn"
+          class="btn btn-success"
+        >
+          Zeitraum speichern
+        </button>
+
+        <button
+          id="refresh-btn"
+          class="btn btn-primary"
+        >
+          Refresh Timestamp
+        </button>
+
+        <button
+          id="delete-btn"
+          class="btn btn-danger"
+        >
+          Abrechnung löschen
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Nachträglich stornierte -->
+  <div class="card mb-4">
+
+    <div class="card-header bg-warning">
+      Nachträglich stornierte Buchungen
+    </div>
+
+    <div class="table-responsive">
+
+      <table class="table table-striped table-hover mb-0">
+
+        <thead>
+          <tr>
+            <th>Buchungs-Zeitstempel</th>
+            <th>Storno-Zeitstempel</th>
+            <th>Mitglied</th>
+            <th>Beschreibung</th>
+            <th>Preis</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          {% for b in stornierte %}
+
+          <tr>
+            <td>
+              {{ b.zeitstempel.strftime('%d.%m.%Y %H:%M') }}
+            </td>
+
+            <td>
+              {{ b.storniert.strftime('%d.%m.%Y %H:%M') }}
+            </td>
+
+            <td>
+              {{ b.mitglied_obj.name }}
+            </td>
+
+            <td>
+              {% if b.beschreibung is not none and b.beschreibung != "" %} {{b.beschreibung}} {% endif %} {{ b.artikel_obj.name }}
+            </td>
+
+            <td>
+              {{ "%.2f"|format(b.gesamtpreis / 100) }} €
+            </td>
+
+          </tr>
+
+          {% endfor %}
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- Kontoübersicht -->
+  <div class="card mb-4">
+
+    <div class="card-header bg-success text-white">
+      Kontoübersicht
+    </div>
+
+    <div class="table-responsive">
+
+      <table class="table table-striped table-hover mb-0">
+
+        <thead>
+          <tr>
+            <th>Mitglied</th>
+            <th>Einzahlungen</th>
+            <th>Konsum</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          {% for konto in konten.values() %}
+
+          <tr>
+
+            <td>
+              {{ konto.mitglied.name }}
+            </td>
+
+            <td class="text-success">
+              {{ "%.2f"|format(konto.einzahlungen / 100) }} €
+            </td>
+
+            <td class="text-danger">
+              {{ "%.2f"|format(konto.konsum / 100) }} €
+            </td>
+
+          </tr>
+
+          {% endfor %}
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- Buchungen -->
+  <div class="card">
+
+    <div class="card-header bg-dark text-white">
+      Buchungen
+    </div>
+
+    <div
+      class="table-responsive"
+      style="max-height:70vh; overflow:auto;"
+    >
+
+      <table class="table table-striped table-hover mb-0">
+
+        <thead class="sticky-top table-light">
+          <tr>
+            <th>Zeit</th>
+            <th>Mitglied</th>
+            <th>Artikel</th>
+            <th>Menge</th>
+            <th>Preis</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          {% for b in buchungen %}
+
+          <tr>
+
+            <td>
+              {{ b.zeitstempel.strftime('%d.%m.%Y %H:%M') }}
+            </td>
+
+            <td>
+              {{ b.mitglied_obj.name }}
+            </td>
+
+            <td>
+              {{ b.artikel_obj.name }}
+            </td>
+
+            <td>
+              {{ b.menge }}
+            </td>
+
+            <td>
+              {{ "%.2f"|format(b.gesamtpreis / 100) }} €
+            </td>
+
+          </tr>
+
+          {% endfor %}
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<script>
+
+document.getElementById("save-btn").addEventListener("click", async () => {
+
+  const start = document.getElementById("start").value;
+  const ende = document.getElementById("ende").value;
+
+  const res = await fetch(
+    "{{ url_for('admin.abrechnung.update', abrechnung_id=abrechnung.id) }}",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        start,
+        ende
+      })
+    }
+  );
+
+  const data = await res.json();
+
+  if (data.success) {
+    location.reload();
+  }
+
+});
+
+
+document.getElementById("refresh-btn").addEventListener("click", async () => {
+
+  const res = await fetch(
+    "{{ url_for('admin.abrechnung.refresh', abrechnung_id=abrechnung.id) }}",
+    {
+      method: "POST"
+    }
+  );
+
+  const data = await res.json();
+
+  if (data.success) {
+    location.reload();
+  }
+
+});
+
+
+document.getElementById("delete-btn").addEventListener("click", async () => {
+
+  if (!confirm("Abrechnung wirklich löschen?")) {
+    return;
+  }
+
+  const res = await fetch(
+    "{{ url_for('admin.abrechnung.delete', abrechnung_id=abrechnung.id) }}",
+    {
+      method: "POST"
+    }
+  );
+
+  const data = await res.json();
+
+  if (data.success) {
+    window.location.href = data.redirect;
+  }
+
+});
+
+</script>
+
+{% endblock %}

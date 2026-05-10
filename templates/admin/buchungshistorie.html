@@ -51,9 +51,9 @@
         <td>{{ "%.2f"|format(b.gesamtpreis/100) }}</td>
         <td>
           {% if b.storniert %}
-            <span class="badge bg-danger status-badge" style="cursor:pointer;">Storno</span>
+          <span class="badge bg-danger status-badge" style="cursor:pointer;">Storno retour</span>
           {% else %}
-            <span class="badge bg-success status-badge" style="cursor:pointer;">Aktiv</span>
+            <span class="badge bg-success status-badge" style="cursor:pointer;">Stornieren</span>
           {% endif %}
         </td>
       </tr>
@@ -94,6 +94,7 @@
 // Stornieren / Aktivieren per Klick
 document.querySelectorAll('.status-badge').forEach(badge => {
   badge.addEventListener('click', async (e) => {
+    console.log('reached')
     const row = e.target.closest('tr');
     const buchungId = row.dataset.buchungId;
 
@@ -110,12 +111,15 @@ document.querySelectorAll('.status-badge').forEach(badge => {
       if (data.success) {
         // Badge aktualisieren
         if (data.storniert) {
-          badge.textContent = "Storno";
+          badge.textContent = "Storno retour";
           badge.classList.remove("bg-success");
           badge.classList.add("bg-danger");
           row.classList.add("table-danger");
+          if (data.message) {
+            alert(data.message);
+          }
         } else {
-          badge.textContent = "Aktiv";
+          badge.textContent = "Stornieren";
           badge.classList.remove("bg-danger");
           badge.classList.add("bg-success");
           row.classList.remove("table-danger");

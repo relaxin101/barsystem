@@ -78,7 +78,7 @@
             </div>
           </form>
           {% if id %}
-		<form method="post" action="{{ url_for('admin.delete_berichte', bericht_id=id) }}">
+		<form method="post" action="{{ url_for('admin.export.delete_berichte', bericht_id=id) }}">
 		  <input type="hidden" name="_method" value="DELETE">
 		  <button type="submit" class="btn btn-danger">
 		    <i class="bi bi-bookmark-fill"></i> Bericht löschen

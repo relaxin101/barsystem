@@ -18,8 +18,6 @@ class Mitglied(db.Model):
     aktiv = db.Column(db.Boolean, nullable=False, default=True)
     verborgen = db.Column(db.Boolean, nullable=False, default=False)
     schwaerzungs_grenze = db.Column(db.Integer, nullable=True, default=MINDEST_GUTHABEN)
-
-
     buchungen_von_mitglied = db.relationship(
         "Buchung", back_populates="mitglied_obj", lazy=True
     )
@@ -90,6 +88,12 @@ class Buchung(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     mitglied_id = db.Column(db.Integer, db.ForeignKey("mitglied.id"), nullable=False)
     artikel_id = db.Column(db.Integer, db.ForeignKey("artikel.id"), nullable=True)
+    abrechnungs_id = db.Column(
+        db.Integer,
+        db.ForeignKey("abrechnung.id"),
+        nullable=True
+    )
+
     beschreibung = db.Column(db.Text, nullable=True)
     menge = db.Column(db.Integer, nullable=False)
     preis_pro_einheit = db.Column(db.Integer, nullable=False)
@@ -102,9 +106,34 @@ class Buchung(db.Model):
     # Beziehungen zu anderen Modellen
     mitglied_obj = db.relationship("Mitglied", back_populates="buchungen_von_mitglied")
     artikel_obj = db.relationship("Artikel", back_populates="buchungen_von_artikel")
+    abrechnung_obj = db.relationship(
+        "Abrechnung",
+        back_populates="buchungen"
+    )
 
     def __repr__(self):
-        return f"<Buchung {self.id}: {self.menge}x {self.artikel.name} für {self.mitglied.name}>"
+        return f"<Buchung {self.id} - {self.beschreibung}: {self.menge}x {self.artikel_obj.name if self.artikel_obj is not None else None} für {self.mitglied_obj.name}>"
+
+class Abrechnung(db.Model):
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    name = db.Column(db.Text, nullable=False)
+
+    zeitstempel = db.Column(
+        db.DateTime,
+        default=datetime.now,
+        nullable=False
+    )
+
+    buchungen = db.relationship(
+        "Buchung",
+        back_populates="abrechnung_obj",
+        lazy=True
+    )
+
+    def __repr__(self):
+        return f"<Abrechnung {self.id} {self.name}>"
 
 
 class Bericht(db.Model):
