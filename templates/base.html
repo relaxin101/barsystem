@@ -24,22 +24,22 @@
     <nav class="pt-6">
         <a href="{{ url_for('bar.bar_interface') }}">Barliste</a>
         {% if current_user.is_authenticated %}
-            | <a href="{{ url_for('admin.guthaben.guthaben_management') }}">Guthaben Management</a>
+            | <a href="{{ url_for('admin.guthaben.guthaben_management') }}">Guthaben</a>
         {% endif %}
         {% if current_user.is_authenticated %}
-            | <a href="{{ url_for('admin.export.admin_export') }}">Bericht Verwaltung</a>
+            | <a href="{{ url_for('admin.buchungen.history') }}">Buchungen</a>
         {% endif %}
         {% if current_user.is_authenticated %}
-            | <a href="{{ url_for('admin.artikel.index') }}">Artikel Verwaltung</a>
+            | <a href="{{ url_for('admin.export.admin_export') }}">Berichte</a>
         {% endif %}
         {% if current_user.is_authenticated %}
-            | <a href="{{ url_for('admin.mitglied.index') }}">Mitglieder Verwaltung</a>
+            | <a href="{{ url_for('admin.artikel.index') }}">Artikel</a>
+        {% endif %}
+        {% if current_user.is_authenticated %}
+            | <a href="{{ url_for('admin.mitglied.index') }}">Mitglieder</a>
         {% endif %}
         {% if current_user.is_authenticated %}
             | <a href="{{ url_for('admin.aussendungen.index') }}">Aussendungen</a>
-        {% endif %}
-        {% if current_user.is_authenticated %}
-            | <a href="{{ url_for('admin.buchungen.history') }}">Buchungshistorie</a>
             {# Der Top Verkäufer Link bleibt im Admin-Bereich laut deiner Präferenz #}
             | <a href="{{ url_for('auth.logout') }}">Logout ({{ current_user.username }})</a>
         {% else %}
