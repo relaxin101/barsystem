@@ -23,16 +23,16 @@ Dann empfiehlt es sich (semi-)regelmäßig in einem terminal den folgenden befeh
 
 ```bash
 
-docker compose down 
+docker compose down # Stoppe die App
 git fetch # Checke nach updates
 git stash # Um die customizations etc. zu speichern und für git zu clearen
 git reset --hard origin/master # Wendet die updates an
-docker compose up -d # Startet die Applikation neu und führt ggf. Datenbank-Migrationen durch
+docker compose up -d # Startet die App neu und führt ggf. Datenbank-Migrationen durch
 git stash pop # Um die customizations wiederherzustellen
 ```
 
 **Caveat:** Auch wenn ich versuche alle Datenbank-Migrationen sauber durchzuführen empfiehlt es sich vor jedem Update zumindest die Mitglieder samt Guthabenstände und die Artikel zu sichern (in der Bericht Verwaltung). 
-Um das System gänzlich neu aufzusetzen, starte mit `docker compose down -v` - das löscht auch die gesamte Datenbank, führe dann die restlichen Schritte durch und zum Schluss kannst du dann entsprechende Daten importieren.
+Um das System gänzlich neu aufzusetzen, starte mit `docker compose down -v` - das stoppt die App und löscht auch die gesamte Datenbank - führe dann die restlichen Schritte durch und zum Schluss kannst du dann entsprechende Daten in den jeweiligen Admin-Panels importieren.
 
 
 
