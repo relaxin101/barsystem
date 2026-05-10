@@ -106,15 +106,15 @@ def import_excel_to_db(file_stream, model, field_mapping, unique_field=None):
                 else False
             )
 
-        price_mapper = lambda value: value if "preis" not in key and value is not None else int(value*100)
-        aktiv_mapper = lambda value: (True if '1' == value else False) if key in ["aktiv", "verborgen"] else value
+        price_mapper = lambda key, value: value if "preis" not in key and value is not None else int(value*100)
+        aktiv_mapper = lambda key, value: (True if '1' == value else False) if key in ["aktiv", "verborgen"] else value
         if existing:
             # Update
             for key, value in entry_data.items():
-                setattr(existing, key, aktiv_mapper(price_mapper(value)))
+                setattr(existing, key, aktiv_mapper(key, price_mapper(key, value)))
         else:
             # Neu
-            db.session.add(model(**{key: aktiv_mapper(price_mapper(value)) for key, value in entry_data.items()}))
+            db.session.add(model(**{key: aktiv_mapper(key, price_mapper(key, value)) for key, value in entry_data.items()}))
 
     db.session.commit()
 

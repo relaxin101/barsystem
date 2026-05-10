@@ -37,7 +37,8 @@ def index():
     return render_template(
         "admin/mitglied/index.html",
         mitglieder=mitglieder,
-        db_fields=DB_FIELDS
+        db_fields=DB_FIELDS,
+        action_url= url_for('admin.mitglied.bulk_import')
     )
 
 

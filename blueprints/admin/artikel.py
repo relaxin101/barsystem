@@ -24,6 +24,7 @@ def index():
         "admin/artikel/index.html",
         artikel=artikel,
         db_fields=DB_FIELDS,
+        action_url= url_for('admin.artikel.bulk_import')
     )
 
 
