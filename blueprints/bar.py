@@ -197,12 +197,12 @@ def buchen():
                 }), 404
 
             preis = artikel.preis * menge
-            gesamtpreis += preis
+            gesamtpreis -= preis
 
             gesamte_buchungen.append({
                 "artikel": artikel,
                 "menge": menge,
-                "gesamtpreis": preis,
+                "gesamtpreis": -1*preis,
             })
 
         if len(gesamte_buchungen) == 0:
@@ -223,12 +223,12 @@ def buchen():
                 "message": message
             }), 400
         else:
-            setattr(mitglied, "blacklist", calc_blacklist(mitglied, -1*gesamtpreis))
+            setattr(mitglied, "blacklist", calc_blacklist(mitglied, gesamtpreis))
 
         # -------------------------
         # Guthaben aktualisieren
         # -------------------------
-        mitglied.guthaben -= gesamtpreis
+        mitglied.guthaben += gesamtpreis
 
         # -------------------------
         # Buchungen anlegen
