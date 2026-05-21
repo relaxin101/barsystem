@@ -1,7 +1,6 @@
 """Hilfsfunktionen für die admin pages"""
 
 import io
-
 from datetime import datetime, timedelta
 from flask import request, send_file, flash, redirect
 import pandas as pd
@@ -40,27 +39,16 @@ def parse_daterange():
 # 🧠 Hilfsfunktion für den Export
 # --------------------------------
 def export_model_to_excel(model, columns, filename):
-    """
-    Exportiert Daten eines Modells als Excel-Datei (In-Memory).
-    columns: Liste der Spalten, die exportiert werden sollen.
-    filename: Dateiname für den Download.
-    """
-    # Hole alle Einträge aus der DB
     data = model.query.all()
-
-    # Wandle in Pandas DataFrame um
     rows = [{col: getattr(d, col) for col in columns} for d in data]
     df = pd.DataFrame(rows)
-
     return export_df_to_excel(df, filename)
 
 
 def export_df_to_excel(df, filename):
-    # Schreibe in Bytes-Buffer als Excel
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
         df.to_excel(writer, index=False, sheet_name="Daten")
-
     output.seek(0)
     return send_file(
         output,
@@ -72,19 +60,26 @@ def export_df_to_excel(df, filename):
 
 def import_excel_to_db(file_stream, model, field_mapping, unique_field=None):
     """
-    Liest eine Excel-Datei aus einem Stream (BytesIO oder FileStorage) ein
-    und erstellt oder aktualisiert DB-Einträge.
+    Liest eine Excel-Datei aus einem Stream ein und erstellt oder aktualisiert DB-Einträge.
 
     Args:
-        file_stream: FileStorage (request.files['file']) oder BytesIO
-        model: SQLAlchemy-Modell (z.B. Mitglied oder Artikel)
+        file_stream: FileStorage oder BytesIO
+        model: SQLAlchemy-Modell
         field_mapping: dict {db_field: excel_column_name}
-        unique_field: optional, eindeutiges Feld für Updates
+        unique_field: optional, DB-Feldname für Updates (z.B. "id")
     """
-    # Direkt aus Stream einlesen
     df = pd.read_excel(file_stream)
     df = df.replace({np.nan: None})
-    print(field_mapping)
+
+    def price_mapper(key, value):
+        if "preis" in key and value is not None:
+            return int(round(value * 100, 0))
+        return value
+
+    def aktiv_mapper(key, value):
+        if key in ("aktiv", "verborgen") and value is not None:
+            return value == 1 or value == "1" or value is True
+        return value
 
     for _, row in df.iterrows():
         entry_data = {
@@ -92,45 +87,45 @@ def import_excel_to_db(file_stream, model, field_mapping, unique_field=None):
             for db_field, excel_col in field_mapping.items()
             if excel_col in df.columns
         }
-        print(entry_data)
 
-        if not any(entry_data.values()):
+        if not any(v is not None for v in entry_data.values()):
             continue  # leere Zeile überspringen
 
-        # Prüfen auf bestehende Einträge
-        existing = None
-        if unique_field and unique_field in entry_data:
-            existing = (
-                model.query.filter_by(id=entry_data[field_mapping["id"]]).first()
-                if field_mapping["id"] and field_mapping["id"] in entry_data
-                else False
-            )
+        # Werte transformieren
+        entry_data = {
+            k: aktiv_mapper(k, price_mapper(k, v))
+            for k, v in entry_data.items()
+        }
 
-        price_mapper = lambda key, value: value if "preis" not in key and value is not None else int(round(value*100,0))
-        aktiv_mapper = lambda key, value: (True if '1' == value else False) if key in ["aktiv", "verborgen"] else value
+        # Prüfen auf bestehende Einträge anhand unique_field
+        existing = None
+        if unique_field and unique_field in entry_data and entry_data[unique_field] is not None:
+            existing = model.query.filter_by(
+                **{unique_field: entry_data[unique_field]}
+            ).first()
+
         if existing:
-            # Update
             for key, value in entry_data.items():
-                setattr(existing, key, aktiv_mapper(key, price_mapper(key, value)))
+                setattr(existing, key, value)
         else:
-            # Neu
-            db.session.add(model(**{key: aktiv_mapper(key, price_mapper(key, value)) for key, value in entry_data.items()}))
+            # Bei neuen Einträgen die ID weglassen, damit die DB sie auto-generiert
+            new_data = {k: v for k, v in entry_data.items()
+                        if k != unique_field or entry_data.get(unique_field) is not None}
+            db.session.add(model(**new_data))
 
     db.session.commit()
 
 
 def handle_excel_import(db_fields, model, redirect_url, unique_field=None):
-    """Zentrale Logik für den Excel-Import ohne Datei auf der Festplatte."""
+    """Zentrale Logik für den Excel-Import."""
     file = request.files.get("file")
     mapping = {f: request.form.get(f) for f in db_fields}
-
 
     if not file or file.filename == "":
         flash("Bitte wähle eine Datei aus.", "error")
         return redirect(redirect_url)
 
     try:
-        # Datei direkt aus FileStorage übergeben
         import_excel_to_db(file.stream, model, mapping, unique_field=unique_field)
         flash(f"{model.__tablename__.capitalize()} erfolgreich importiert!", "success")
     except Exception as e:
@@ -139,23 +134,22 @@ def handle_excel_import(db_fields, model, redirect_url, unique_field=None):
 
     return redirect(redirect_url)
 
+
 def calc_blacklist(mitglied: Mitglied, betrag: int) -> bool:
     """
-    # Funktion zum Berechnen ob das Mitglied geschwärzt werden soll oder nicht
-    - param mitglied: Das zu ändernde Mitglied
-    - param betrag: Änderung des guthabens. Sollte bei einer abbuchung `< 0`  sein (und `> 0` bei einer Aufbuchung)
+    Berechnet ob das Mitglied geschwärzt werden soll.
+
+    Args:
+        mitglied: Das zu ändernde Mitglied
+        betrag: Änderung des Guthabens (negativ = Abbuchung, positiv = Aufbuchung)
     """
-    # Mitglied soll gar nicht geschwärzt werden
     if mitglied.schwaerzungs_grenze is None:
         return False
-    
-    # Wenn das Mitglied bereits geschwärzt ist, kann es durch eine Aufbuchung entschwärzt werden
+
     if mitglied.blacklist:
         return mitglied.guthaben + betrag < 0
-    # Wenn das Mitglied noch nicht geschwärzt ist, wurde es evt manuell entschwärzt (und ist schon im Minus). Dann bleibt es entschwärzt.
-    # Sonst wird es geschwärzt wenn es vorher im plus war und danach im Minus ist.
     else:
-        return mitglied.guthaben >= mitglied.schwaerzungs_grenze and mitglied.guthaben + betrag < mitglied.schwaerzungs_grenze 
-            
-    
-
+        return (
+            mitglied.guthaben >= mitglied.schwaerzungs_grenze
+            and mitglied.guthaben + betrag < mitglied.schwaerzungs_grenze
+        )
