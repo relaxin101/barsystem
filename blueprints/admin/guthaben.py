@@ -122,6 +122,7 @@ def aufbuchung(mitglied_id):
         db.session.add(mitglied)
         db.session.commit()
 
+        flash(f"Guthaben von {mitglied.name} wurde geändert.", "success")
         return jsonify({"success": True})
 
     except Exception as e:
