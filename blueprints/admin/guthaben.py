@@ -79,7 +79,7 @@ def guthaben_import():
                     gesamtpreis=betrag,
                     zeitstempel=datetime.now(),
                     beschreibung=beschreibung,
-                    storniert=None,
+                    storno=False,
                 )
                 db.session.add(buchung)
                 count += 1

@@ -43,7 +43,7 @@ def _get_verbrauch(mitglied_id, since):
             Buchung.mitglied_id == mitglied_id,
             Buchung.artikel_id.isnot(None),
             Buchung.zeitstempel >= since,
-            Buchung.storniert.is_(None),
+            Buchung.storno == False,
         )
         .group_by(Artikel.name, Buchung.preis_pro_einheit)
         .order_by(Artikel.name)
@@ -105,7 +105,7 @@ def _get_summen(mitglied_id, since):
         .filter(
             Buchung.mitglied_id == mitglied_id,
             Buchung.zeitstempel >= since,
-            Buchung.storniert.is_(None),
+            Buchung.storno == False,
         )
         .one()
     )
@@ -205,7 +205,7 @@ def _get_recipients(aussendung):
             .join(Buchung, Buchung.mitglied_id == Mitglied.id)
             .filter(
                 Buchung.zeitstempel >= since,
-                Buchung.storniert.is_(None),
+                Buchung.storno == False,
                 Mitglied.aktiv == True,
             )
             .distinct()
@@ -227,7 +227,7 @@ def get_member_count(aussendung):
             .join(Buchung, Buchung.mitglied_id == Mitglied.id)
             .filter(
                 Buchung.zeitstempel >= since,
-                Buchung.storniert.is_(None),
+                Buchung.storno == False,
                 Mitglied.aktiv == True,
             )
             .distinct()

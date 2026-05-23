@@ -88,7 +88,7 @@
   <div class="card mb-4">
 
     <div class="card-header bg-warning">
-      Nachträglich stornierte Buchungen
+      Fehler-Luchs: Buchungen, die sich nach der Abrechnung noch verändert haben
     </div>
 
     <div class="table-responsive">
@@ -102,6 +102,7 @@
             <th>Mitglied</th>
             <th>Beschreibung</th>
             <th>Preis</th>
+            <th>Status</th>
           </tr>
         </thead>
 
@@ -109,13 +110,13 @@
 
           {% for b in stornierte %}
 
-          <tr>
+          <tr class="{% if b.storno %}table-danger{% endif %}">
             <td>
               {{ b.zeitstempel.strftime('%d.%m.%Y %H:%M') }}
             </td>
 
             <td>
-              {{ b.storniert.strftime('%d.%m.%Y %H:%M') }}
+              {{ b.storno_updated_at.strftime('%d.%m.%Y %H:%M') if b.storno_updated_at else '—' }}
             </td>
 
             <td>
@@ -123,11 +124,19 @@
             </td>
 
             <td>
-              {% if b.beschreibung is not none and b.beschreibung != "" %} {{b.beschreibung}} {% endif %} {{ b.artikel_obj.name }}
+              {% if b.beschreibung is not none and b.beschreibung != "" %} {{b.beschreibung}} {% endif %} {{ b.artikel_obj.name if b.artikel_obj else '' }}
             </td>
 
             <td>
               {{ "%.2f"|format(b.gesamtpreis / 100) }} €
+            </td>
+
+            <td>
+              {% if b.storno %}
+                <span class="badge bg-danger">Storniert</span>
+              {% else %}
+                <span class="badge bg-success">Aktiv</span>
+              {% endif %}
             </td>
 
           </tr>
@@ -217,6 +226,7 @@
             <th>Artikel</th>
             <th>Menge</th>
             <th>Preis</th>
+            <th>Status</th>
           </tr>
         </thead>
 
@@ -224,7 +234,7 @@
 
           {% for b in buchungen %}
 
-          <tr>
+          <tr class="{% if b.storno %}table-danger{% endif %}">
 
             <td>
               {{ b.zeitstempel.strftime('%d.%m.%Y %H:%M') }}
@@ -235,7 +245,7 @@
             </td>
 
             <td>
-              {{ b.artikel_obj.name }}
+              {{ b.artikel_obj.name if b.artikel_obj else b.beschreibung or '—' }}
             </td>
 
             <td>
@@ -244,6 +254,14 @@
 
             <td>
               {{ "%.2f"|format(b.gesamtpreis / 100) }} €
+            </td>
+
+            <td>
+              {% if b.storno %}
+                <span class="badge bg-danger">Storniert</span>
+              {% else %}
+                <span class="badge bg-success">Aktiv</span>
+              {% endif %}
             </td>
 
           </tr>

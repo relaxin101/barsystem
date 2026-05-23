@@ -76,7 +76,7 @@ def send_aussendung():
             .join(Buchung, Buchung.mitglied_id == Mitglied.id)
             .filter(
                 Buchung.zeitstempel >= since,
-                Buchung.storniert.is_(None),
+                Buchung.storno == False,
                 Mitglied.aktiv == True,
             )
             .distinct()
@@ -225,7 +225,7 @@ def send_preview():
             .join(Buchung, Buchung.mitglied_id == Mitglied.id)
             .filter(
                 Buchung.zeitstempel >= since,
-                Buchung.storniert.is_(None),
+                Buchung.storno == False,
                 Mitglied.aktiv == True,
             )
             .distinct()

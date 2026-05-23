@@ -36,12 +36,13 @@
         <th>Menge</th>
         <th>Preis/Einheit (€)</th>
         <th>Buchungsbetrag (€)</th>
+        <th>Abrechnung</th>
         <th>Status</th>
       </tr>
     </thead>
     <tbody>
       {% for b in buchungen %}
-      <tr data-buchung-id="{{ b.id }}" class="{% if b.storniert %}table-danger{% endif %}">
+      <tr data-buchung-id="{{ b.id }}" class="{% if b.storno %}table-danger{% endif %}">
         <td>{{ b.zeitstempel.strftime('%d.%m.%Y %H:%M') }}</td>
         <td>{{ b.mitglied_obj.name }}</td>
           
@@ -50,7 +51,16 @@
         <td>{{ "%.2f"|format(b.preis_pro_einheit/100) }}</td>
         <td>{{ "%.2f"|format(b.gesamtpreis/100) }}</td>
         <td>
-          {% if b.storniert %}
+          {% if b.abrechnung_obj %}
+            <a href="{{ url_for('admin.abrechnung.detail', abrechnung_id=b.abrechnung_obj.id) }}" class="text-decoration-none">
+              <span class="badge bg-secondary">{{ b.abrechnung_obj.name }}</span>
+            </a>
+          {% else %}
+            <span class="text-muted">—</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if b.storno %}
           <span class="badge bg-danger status-badge" style="cursor:pointer;">Storno retour</span>
           {% else %}
             <span class="badge bg-success status-badge" style="cursor:pointer;">Stornieren</span>
