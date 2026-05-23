@@ -37,13 +37,15 @@ Um das System gänzlich neu aufzusetzen, starte mit `docker compose down -v` - d
 
 
 ### Optionale Customization
-Unter `static/css/style.css` können die Hauptfarben der Website angepasst werden, siehe
+Unter `static/css/style.css` können die Hauptfarben der Website angepasst werden:
 
 ```css
 :root {
-    --primary-light: #8DB8FF; /* Hintergrundfarbe */
-    --primary-main: #FF864D;   /* Hauptfarbe */
-    --primary-secondary: #E2FFE6;  /* Sekundäre Farbe */
+    --primary-light: #F0EDF8;   /* Hintergrundfarbe */
+    --primary-main: #6B5B9E;    /* Hauptfarbe (Barliste) */
+    --primary-secondary: #D8D2EE; /* Sekundäre Farbe */
+
+    --admin-primary: #C8A432;   /* Hauptfarbe Sidebar/Topbar im Admin-Panel */
 }
 ```
 

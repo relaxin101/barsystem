@@ -11,6 +11,9 @@
     --primary-secondary: #D8D2EE;   /* Sekundär */
     --primary-accent: #9B8EC4;      /* Akzent */
 
+    /* Admin-Panel Farbe */
+    --admin-primary: #C8A432;       /* Hauptfarbe Sidebar/Topbar im Admin-Panel */
+
     --text-dark: #2A2737;
     --text-light: #F7F5FC;
     --text-muted: #7A7490;
