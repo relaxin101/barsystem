@@ -15,7 +15,7 @@ class Mitglied(db.Model):
     guthaben = db.Column(db.Integer, default=0)
     blacklist = db.Column(db.Boolean, default=False)
     aktiv = db.Column(db.Boolean, nullable=False, default=True)
-    verborgen = db.Column(db.Boolean, nullable=False, default=False)
+    gepinnt = db.Column(db.Boolean, nullable=False, default=False)
     schwaerzungs_grenze = db.Column(db.Integer, nullable=True, default=MINDEST_GUTHABEN)
     buchungen_von_mitglied = db.relationship(
         "Buchung", back_populates="mitglied_obj", lazy=True

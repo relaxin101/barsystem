@@ -241,8 +241,8 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("modal-aktiv").checked =
           m.aktiv;
 
-        document.getElementById("modal-verborgen").checked =
-          m.verborgen;
+        document.getElementById("modal-gepinnt").checked =
+          m.gepinnt;
 
         document.getElementById("modal-schwaerzungs-grenze").value =
           m.schwaerzungs_grenze != null
@@ -275,7 +275,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       document.getElementById("modal-aktiv").checked = true;
 
-      document.getElementById("modal-verborgen").checked = false;
+      document.getElementById("modal-gepinnt").checked = false;
 
       document.getElementById("modal-schwaerzungs-grenze").value = "";
 
@@ -309,8 +309,8 @@ document.addEventListener("DOMContentLoaded", () => {
         aktiv:
           document.getElementById("modal-aktiv").checked,
 
-        verborgen:
-          document.getElementById("modal-verborgen").checked,
+        gepinnt:
+          document.getElementById("modal-gepinnt").checked,
 
         schwaerzungs_grenze:
           document.getElementById("modal-schwaerzungs-grenze").value,

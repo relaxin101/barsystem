@@ -77,7 +77,7 @@ def import_excel_to_db(file_stream, model, field_mapping, unique_field=None):
         return value
 
     def aktiv_mapper(key, value):
-        if key in ("aktiv", "verborgen") and value is not None:
+        if key in ("aktiv", "gepinnt") and value is not None:
             return value == 1 or value == "1" or value is True
         return value
 
