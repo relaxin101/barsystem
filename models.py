@@ -78,7 +78,8 @@ class Buchung(db.Model):
     preis_pro_einheit = db.Column(db.Integer, nullable=False)
     gesamtpreis = db.Column(db.Integer, nullable=False)
     zeitstempel = db.Column(db.DateTime, default=datetime.now, nullable=False)
-    storniert = db.Column(db.DateTime, default=None, nullable=True)
+    storno = db.Column(db.Boolean, nullable=False, default=False)
+    storno_updated_at = db.Column(db.DateTime, default=None, nullable=True)
 
     mitglied_obj = db.relationship("Mitglied", back_populates="buchungen_von_mitglied")
     artikel_obj = db.relationship("Artikel", back_populates="buchungen_von_artikel")

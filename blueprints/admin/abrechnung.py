@@ -4,7 +4,7 @@ from flask import Blueprint, flash, render_template, request, jsonify, url_for
 from flask_login import login_required
 from datetime import datetime
 
-from sqlalchemy import func, text
+from sqlalchemy import func, text, or_, and_
 
 from models import db, Abrechnung, Buchung
 
@@ -35,7 +35,7 @@ def index():
              LATERAL (
                  SELECT abrechnungs_id                                           AS id,
                         count(b.id)                                              AS num_buchungen,
-                        bool_or(COALESCE(b.storniert > a.zeitstempel, FALSE))   AS veraendert,
+                        bool_or(COALESCE(b.storno_updated_at > a.zeitstempel, FALSE))   AS veraendert,
                         MIN(b.zeitstempel)                                       AS von_datum,
                         MAX(b.zeitstempel)                                       AS bis_datum
                  FROM buchung b
@@ -46,14 +46,14 @@ def index():
                  SELECT abrechnungs_id AS id, sum(gesamtpreis) AS summe_eingaenge
                  FROM buchung
                  WHERE gesamtpreis > 0.0
-                   AND storniert IS NULL
+                   AND storno = false
                  GROUP BY abrechnungs_id
              ) summe_eingaenge
              NATURAL LEFT JOIN (
                  SELECT abrechnungs_id AS id, -1 * sum(gesamtpreis) AS summe_ausgaenge
                  FROM buchung
                  WHERE gesamtpreis < 0.0
-                   AND storniert IS NULL
+                   AND storno = false
                  GROUP BY abrechnungs_id
              ) summe_ausgaenge
         ORDER BY zeitstempel DESC
@@ -108,10 +108,9 @@ def detail(abrechnung_id):
         Buchung.query
         .filter(
             Buchung.abrechnungs_id == abrechnung.id,
-            Buchung.storniert != None,
-            Buchung.storniert > abrechnung.zeitstempel,
+            Buchung.storno_updated_at > abrechnung.zeitstempel,
         )
-        .order_by(Buchung.storniert.desc())
+        .order_by(Buchung.storno_updated_at.desc())
         .all()
     )
 

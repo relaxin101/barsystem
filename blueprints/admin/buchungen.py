@@ -46,30 +46,27 @@ def history():
 @login_required
 def toggle(buchung_id):
     buchung = Buchung.query.get_or_404(buchung_id)
-    if buchung.storniert:
-        if buchung.abrechnungs_id is not None:
-            a = buchung.abrechnung_obj
-            if a.zeitstempel > buchung.storniert:
-                return jsonify({
-                    "success": False,
-                    "message": f'Du musst zuerst Abrechnung {a.id} "{a.name}" löschen'
-                })
-        buchung.storniert = None
+    if buchung.storno:
+        buchung.storno = False
         buchung.mitglied_obj.blacklist = calc_blacklist(buchung.mitglied_obj, buchung.gesamtpreis)
         buchung.mitglied_obj.guthaben += buchung.gesamtpreis
     else:
-        buchung.storniert = datetime.now()
+        buchung.storno = True
         buchung.mitglied_obj.blacklist = calc_blacklist(buchung.mitglied_obj, -buchung.gesamtpreis)
         buchung.mitglied_obj.guthaben -= buchung.gesamtpreis
+    buchung.storno_updated_at = datetime.now()
     db.session.commit()
 
+    is_veraendert = buchung.abrechnungs_id is not None and (
+        buchung.storno_updated_at > buchung.abrechnung_obj.zeitstempel
+    )
     return jsonify({
         "success": True,
-        "storniert": bool(buchung.storniert),
+        "storniert": buchung.storno,
         "message": (
             f'Abrechnung {buchung.abrechnung_obj.id} "{buchung.abrechnung_obj.name}" '
             f'hat sich aufgrund des Stornos geändert'
-        ) if buchung.abrechnungs_id is not None else None,
+        ) if is_veraendert else None,
     })
 
 
@@ -97,7 +94,7 @@ def download():
             "Menge": b.menge,
             "Preis/Einheit (€)": round(b.preis_pro_einheit / 100, 2),
             "Gesamtpreis (€)": round(b.gesamtpreis / 100, 2),
-            "Storniert": "Ja" if b.storniert else "Nein",
+            "Storniert": "Ja" if b.storno else "Nein",
         }
         for b in buchungen
     ]
