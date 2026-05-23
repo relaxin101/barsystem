@@ -19,7 +19,14 @@
 {% if current_user.is_authenticated %}
 <style>
 .sidebar, .topbar {
-  background: linear-gradient(180deg, #7565A8 0%, #9080B8 100%) !important;
+  background: var(--admin-primary) !important;
+}
+.sidebar, .sidebar a, .sidebar h4, .topbar, .topbar h2, .menu-btn, .brand {
+  color: var(--text-dark) !important;
+}
+.sidebar a:hover {
+  background: rgba(0,0,0,0.1) !important;
+  color: var(--text-dark) !important;
 }
 </style>
 {% endif %}
