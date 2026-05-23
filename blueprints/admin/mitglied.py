@@ -90,7 +90,7 @@ def details(id):
 
             "aktiv": m.aktiv,
 
-            "verborgen": m.verborgen,
+            "gepinnt": m.gepinnt,
 
             "blacklist": m.blacklist,
 
@@ -122,7 +122,7 @@ def update(id):
 
     m.aktiv = bool(data["aktiv"])
 
-    m.verborgen = bool(data["verborgen"])
+    m.gepinnt = bool(data["gepinnt"])
 
     grenze = data.get("schwaerzungs_grenze")
 
@@ -162,7 +162,7 @@ def create():
 
         aktiv=bool(data["aktiv"]),
 
-        verborgen=bool(data["verborgen"]),
+        gepinnt=bool(data["gepinnt"]),
 
         schwaerzungs_grenze=(
             int(round(float(grenze) * 100))

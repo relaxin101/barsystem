@@ -1,38 +1,35 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from sqlalchemy import or_, func, text, desc
 from models import db, Mitglied, Artikel, Buchung
-from datetime import datetime
+from datetime import datetime, timedelta
 from utils.admin import calc_blacklist
 
 bar_bp = Blueprint("bar", __name__)
 
 
 def hotlist():
-    """
-    Hole die letzten häufigsten Käufer
-    """
-    # Hole die letzten 20 Buchungen
-    letzte_buchungen = (
-        Buchung.query.order_by(Buchung.id.desc())
-        .limit(50)  # etwas größer, falls einige doppelt sind
+    since = datetime.now() - timedelta(days=14)
+
+    gepinnte = (
+        Mitglied.query
+        .filter(Mitglied.aktiv == True, Mitglied.gepinnt == True)
+        .order_by(Mitglied.name)
         .all()
     )
 
-    # Sammle die Mitglieds-IDs aus diesen Buchungen
-    mitglied_ids = {b.mitglied_id for b in letzte_buchungen}
+    gepinnte_ids = {m.id for m in gepinnte}
 
-    # Berechne für diese Mitglieder die Gesamtmenge aller Käufe
-    mitglieder_mit_mengen = (
-        db.session.query(Mitglied, func.sum(Buchung.menge).label("gesamtmenge"))
-        .where(Mitglied.aktiv)
-        .join(Mitglied.buchungen_von_mitglied)
-        .filter(Buchung.mitglied_id.in_(mitglied_ids))
-        .group_by(Mitglied.id)
-        .order_by(desc("gesamtmenge"), Mitglied.name)
-        .limit(20)
+    aktive = (
+        db.session.query(Mitglied)
+        .filter(Mitglied.aktiv == True, Mitglied.gepinnt == False)
+        .join(Buchung, Buchung.mitglied_id == Mitglied.id)
+        .filter(Buchung.zeitstempel >= since, Buchung.storno == False)
+        .distinct()
+        .order_by(Mitglied.name)
         .all()
     )
-    return [m for m, _ in mitglieder_mit_mengen]
+
+    return gepinnte + aktive
 
 
 @bar_bp.route("/", methods=["GET", "POST"])
