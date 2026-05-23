@@ -1,61 +1,91 @@
-/* Grundlegende Farben */
+/* ============================================
+   Flieder Theme — Zephyr Base — Barsystem
+   ============================================ */
+
+
 :root {
-    --primary-light: #8DB8FF; /* Hintergrundfarbe */
-    --primary-main: #FF864D;   /* Hauptfarbe */
-    --primary-secondary: #E2FFE6;  /* Sekundäre Farbe */
-    --text-dark: #303030;        /* Dunkler Text für gute Lesbarkeit */
-    --text-light: #e8e9eb;    /* Heller Text auf dunklem Hintergrund */
+    /* Flieder Palette */
+    --primary-light: #F0EDF8;       /* Hintergrund: helles Flieder */
+    --primary-main: #6B5B9E;        /* Hauptfarbe: dunkles Flieder */
+    --primary-hover: #574A85;       /* Hover */
+    --primary-secondary: #D8D2EE;   /* Sekundär */
+    --primary-accent: #9B8EC4;      /* Akzent */
+
+    --text-dark: #2A2737;
+    --text-light: #F7F5FC;
+    --text-muted: #7A7490;
+
+    /* Bootstrap Overrides */
+    --bs-primary: #6B5B9E;
+    --bs-primary-rgb: 107, 91, 158;
+    --bs-success: #5E8C6A;
+    --bs-success-rgb: 94, 140, 106;
+    --bs-danger: #B85C5C;
+    --bs-danger-rgb: 184, 92, 92;
+    --bs-warning: #C4A35A;
+    --bs-warning-rgb: 196, 163, 90;
+    --bs-secondary: #9B96AA;
+    --bs-secondary-rgb: 155, 150, 170;
+    --bs-info: #5B8FA8;
+    --bs-info-rgb: 91, 143, 168;
+
+    --bs-body-bg: #F0EDF8;
+    --bs-body-color: #2A2737;
+
+    --bs-border-radius: 0.5rem;
+    --bs-border-color: var(--primary-secondary);
 }
+
+/* ============================================
+   Base
+   ============================================ */
 
 body {
-    font-family: Arial, sans-serif;
     margin: 0;
     padding: 0;
-    background-color: var(--primary-light); /* Hintergrund auf gebrochenes Weiß setzen */
-    color: var(--text-dark); /* Standardtextfarbe */
-    line-height: 1.6;
+    background-color: var(--primary-light);
+    color: var(--text-dark);
+    line-height: 1.65;
+    font-size: 0.95rem;
 }
 
-.main-color {
-    background-color: var(--primary-main); /* Dunkelrot als Header-Hintergrund */
-}
-
-.secondary-color {
-    background-color: var(--primary-secondary); /* Dunkelrot als Header-Hintergrund */
-}
-
-.light-color {
-    background-color: var(--primary-light); /* Dunkelrot als Header-Hintergrund */
-}
-
-nav {
-    background-color: var(--primary-main); /* Navigationsleiste ebenfalls rot */
-    padding: 0.7rem 0;
-    text-align: center;
-}
-
-nav a {
-    color: var(--text-light); /* Links in der Navigationsleiste weiß */
-    text-decoration: none;
-    padding: 0 15px;
-    font-weight: bold;
-    transition: color 0.3s ease;
-}
-
-nav a:hover {
-    color: var(--primary-secondary); /* Goldener Hover-Effekt */
+h1, h2, h3 {
+    color: var(--text-dark);
+    letter-spacing: -0.01em;
 }
 
 hr {
     border: 0;
     height: 1px;
-    background: #ccc;
+    background: var(--primary-secondary);
     margin: 20px 0;
 }
 
-h1, h2, h3 {
-    color: #333;
+/* ============================================
+   Navigation
+   ============================================ */
+
+nav {
+    background-color: var(--primary-main);
+    padding: 0.7rem 0;
+    text-align: center;
 }
+
+nav a {
+    color: var(--text-light);
+    text-decoration: none;
+    padding: 0 15px;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+nav a:hover {
+    color: var(--primary-secondary);
+}
+
+/* ============================================
+   Lists
+   ============================================ */
 
 ul {
     list-style-type: none;
@@ -66,15 +96,19 @@ li {
     background-color: #fff;
     margin-bottom: 5px;
     padding: 8px 15px;
-    border-radius: 4px;
-    border: 1px solid #ddd;
+    border-radius: 8px;
+    border: 1px solid var(--primary-secondary);
 }
+
+/* ============================================
+   Forms
+   ============================================ */
 
 form {
     background-color: #fff;
     padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(107, 91, 158, 0.07);
     margin-bottom: 20px;
 }
 
@@ -82,21 +116,9 @@ form label {
     display: inline-block;
     width: 120px;
     margin-bottom: 10px;
+    font-weight: 500;
 }
 
-/* Allgemeine Container-Styles */
-.container,
-.login-container,
-.form-container { /* Alle Container, die du hast */
-    background-color: #fff; /* Weißer Hintergrund für den Inhalt */
-    padding: 30px;
-    border-radius: 10px; /* Leicht abgerundete Ecken */
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1); /* Sanfter Schatten */
-    margin: 30px auto;
-    max-width: 800px;
-}
-
-/* Formularfelder */
 input[type="text"],
 input[type="number"],
 input[type="password"],
@@ -105,9 +127,12 @@ select {
     width: calc(100% - 22px);
     padding: 10px;
     margin-bottom: 15px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    box-sizing: border-box; /* Wichtig für korrekte Breitenberechnung */
+    border: 1px solid var(--primary-secondary);
+    border-radius: 8px;
+    box-sizing: border-box;
+    background-color: #FAFAFE;
+    color: var(--text-dark);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 input[type="text"]:focus,
@@ -115,90 +140,454 @@ input[type="number"]:focus,
 input[type="password"]:focus,
 input[type="email"]:focus,
 select:focus {
-    border-color: var(--primary-secondary); /* Goldener Rahmen beim Fokus */
+    border-color: var(--primary-main);
     outline: none;
-    box-shadow: 0 0 0 3px rgba(247, 186, 11, 0.3); /* Leichter Goldschimmer */
+    box-shadow: 0 0 0 3px rgba(107, 91, 158, 0.15);
 }
 
-/* Allgemeine Button-Styles */
+.form-control, .form-select {
+    border-color: var(--primary-secondary);
+    background-color: #FAFAFE;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-main);
+    box-shadow: 0 0 0 3px rgba(107, 91, 158, 0.15);
+}
+
+/* ============================================
+   Buttons
+   ============================================ */
+
 button,
 input[type="submit"] {
-    background-color: var(--primary-main); /* Roter Hintergrund für Buttons */
-    color: var(--text-light); /* Weißer Text */
-    padding: 10px 15px;
+    background-color: var(--primary-main);
+    color: var(--text-light);
+    padding: 10px 16px;
     border: none;
-    border-radius: 5px;
+    border-radius: 8px;
     cursor: pointer;
-    font-size: 1em;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-    text-transform: uppercase; /* Optional: Text in Großbuchstaben */
+    font-size: 0.95em;
+    font-weight: 500;
+    transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
 }
 
 button:hover,
 input[type="submit"]:hover {
-    background-color: darken(var(--primary-main), 10%); /* Dunkleres Rot beim Hover */
-    transform: translateY(-1px); /* Leichter Hoch-Effekt */
+    background-color: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(107, 91, 158, 0.2);
 }
 
-/* Spezielle Buttons (falls vorhanden, z.B. für "Hinzufügen" oder "Bestätigen") */
-#addArtikelWithQuantity,
-.confirm-button { /* Beispiel für einen Bestätigungs-Button */
-    background-color: var(--primary-secondary); /* Goldener Button */
-    color: var(--text-dark); /* Dunkler Text auf goldenem Button */
-    border: 1px solid darken(var(--primary-secondary), 10%);
+.btn {
+    font-weight: 500;
+    border-radius: 8px !important;
+    transition: transform 0.15s ease, box-shadow 0.15s ease !important;
 }
 
-#addArtikelWithQuantity:hover,
-.confirm-button:hover {
-    background-color: darken(var(--primary-secondary), 10%);
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12) !important;
 }
 
-/* Löschen-Buttons könnten auch in einem dunkleren Rot sein */
-.remove-btn,
-.delete-button {
-    background-color: #dc3545; /* Standard-Rot für Löschen/Fehler */
-    color: var(--text-light);
+.btn-primary {
+    background-color: var(--primary-main) !important;
+    border-color: var(--primary-main) !important;
+    color: var(--text-light) !important;
 }
-.remove-btn:hover,
-.delete-button:hover {
-    background-color: #c82333;
+.btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+    background-color: var(--primary-hover) !important;
+    border-color: var(--primary-hover) !important;
 }
 
-/* Flashed Messages */
+.btn-success {
+    background-color: #5E8C6A !important;
+    border-color: #5E8C6A !important;
+    color: #fff !important;
+}
+.btn-success:hover, .btn-success:focus, .btn-success:active {
+    background-color: #4D7558 !important;
+    border-color: #4D7558 !important;
+}
+
+.btn-danger {
+    background-color: #B85C5C !important;
+    border-color: #B85C5C !important;
+    color: #fff !important;
+}
+.btn-danger:hover, .btn-danger:focus, .btn-danger:active {
+    background-color: #9E4A4A !important;
+    border-color: #9E4A4A !important;
+}
+
+.btn-secondary {
+    background-color: #9B96AA !important;
+    border-color: #9B96AA !important;
+    color: #fff !important;
+}
+.btn-secondary:hover, .btn-secondary:focus, .btn-secondary:active {
+    background-color: #837E93 !important;
+    border-color: #837E93 !important;
+}
+
+.btn-warning {
+    background-color: #C4A35A !important;
+    border-color: #C4A35A !important;
+    color: #fff !important;
+}
+.btn-warning:hover {
+    background-color: #A88A47 !important;
+    border-color: #A88A47 !important;
+}
+
+/* ============================================
+   Cards
+   ============================================ */
+
+.card {
+    border: 1px solid var(--primary-secondary);
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(107, 91, 158, 0.07);
+    background-color: #fff;
+    overflow: hidden;
+}
+
+.card-header {
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+
+.card-header.bg-primary {
+    background-color: var(--primary-main) !important;
+    color: var(--text-light) !important;
+}
+
+.card-header.bg-success {
+    background-color: #5E8C6A !important;
+    color: #fff !important;
+}
+
+.card-header.bg-warning {
+    background-color: #C4A35A !important;
+    color: #fff !important;
+}
+
+.card-header.bg-dark {
+    background-color: #3A3548 !important;
+    color: #fff !important;
+}
+
+/* ============================================
+   Tables
+   ============================================ */
+
+.table {
+    --bs-table-striped-bg: rgba(107, 91, 158, 0.04);
+    --bs-table-hover-bg: rgba(107, 91, 158, 0.08);
+}
+
+.table-light {
+    background-color: var(--primary-secondary) !important;
+    color: var(--text-dark) !important;
+}
+
+thead.table-light th {
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--primary-main);
+}
+
+.table-dark {
+    --bs-table-bg: #3A3548;
+}
+
+/* ============================================
+   Badges
+   ============================================ */
+
+.badge.bg-primary {
+    background-color: var(--primary-main) !important;
+}
+
+.badge.bg-success {
+    background-color: #5E8C6A !important;
+}
+
+.badge.bg-danger {
+    background-color: #B85C5C !important;
+}
+
+.badge.bg-secondary {
+    background-color: #9B96AA !important;
+}
+
+.badge.bg-warning {
+    background-color: #C4A35A !important;
+    color: #fff !important;
+}
+
+/* ============================================
+   Containers
+   ============================================ */
+
+.container,
+.login-container,
+.form-container {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 14px;
+    box-shadow: 0 4px 18px rgba(107, 91, 158, 0.09);
+    margin: 30px auto;
+    max-width: 800px;
+}
+
+/* ============================================
+   Color Helpers
+   ============================================ */
+
+.main-color {
+    background-color: var(--primary-main);
+}
+
+.secondary-color {
+    background-color: var(--primary-secondary);
+}
+
+.light-color {
+    background-color: var(--primary-light);
+}
+
+/* ============================================
+   Flashed Messages
+   ============================================ */
+
 .flashes li {
     padding: 12px 20px;
     margin-bottom: 15px;
     border-radius: 8px;
-    font-weight: bold;
+    font-weight: 500;
     text-align: center;
-    list-style: none; /* Keine Punkte */
+    list-style: none;
 }
 
 .flashes .success {
-    background-color: #d4edda; /* Helles Grün */
-    color: #155724; /* Dunkles Grün */
-    border: 1px solid #c3e6cb;
+    background-color: #D6EAD9;
+    color: #2D5C35;
+    border: 1px solid #B8D9BC;
 }
 
 .flashes .error {
-    background-color: #f8d7da; /* Helles Rot */
-    color: #721c24; /* Dunkles Rot */
-    border: 1px solid #f5c6cb;
+    background-color: #F2D9D9;
+    color: #6B2626;
+    border: 1px solid #E8BEBE;
 }
 
 .flashes .info {
-    background-color: #d1ecf1; /* Helles Blau */
-    color: #0c5460; /* Dunkles Blau */
-    border: 1px solid #bee5eb;
+    background-color: #DDD9EE;
+    color: #3A2D6B;
+    border: 1px solid #C0B8E0;
+}
+
+/* ============================================
+   Toasts
+   ============================================ */
+
+.toast.bg-success {
+    background-color: #5E8C6A !important;
+}
+
+.toast.bg-danger {
+    background-color: #B85C5C !important;
+}
+
+.toast.bg-primary {
+    background-color: var(--primary-main) !important;
+}
+
+.toast.bg-warning {
+    background-color: #C4A35A !important;
+}
+
+/* ============================================
+   Sidebar
+   ============================================ */
+
+.sidebar {
+    background: linear-gradient(180deg, #574A85 0%, #6B5B9E 100%) !important;
+    box-shadow: 3px 0 15px rgba(107, 91, 158, 0.2) !important;
+}
+
+.sidebar a {
+    font-weight: 500;
+    font-size: 0.95rem;
+    padding: 0.85rem 1.3rem;
+    border-left: 3px solid transparent;
+    transition: background 0.15s ease, border-color 0.15s ease !important;
+}
+
+.sidebar a:hover {
+    background: rgba(255,255,255,0.12) !important;
+    border-left-color: var(--primary-secondary);
+    color: white;
+}
+
+.topbar {
+    background: linear-gradient(90deg, #574A85 0%, #6B5B9E 100%) !important;
+    box-shadow: 0 2px 10px rgba(107, 91, 158, 0.15);
+}
+
+/* ============================================
+   Pagination
+   ============================================ */
+
+.page-link {
+    color: var(--primary-main);
+    border-color: var(--primary-secondary);
+    font-weight: 500;
+}
+
+.page-link:hover {
+    background-color: var(--primary-secondary);
+    color: var(--primary-hover);
+    border-color: var(--primary-secondary);
+}
+
+.page-item.active .page-link {
+    background-color: var(--primary-main);
+    border-color: var(--primary-main);
+    color: #fff;
+}
+
+/* ============================================
+   Accordion
+   ============================================ */
+
+.accordion-button:not(.collapsed) {
+    background-color: var(--primary-secondary);
+    color: var(--primary-main);
+    font-weight: 600;
+    box-shadow: none;
+}
+
+.accordion-button:focus {
+    box-shadow: 0 0 0 3px rgba(107, 91, 158, 0.15);
+}
+
+/* ============================================
+   Form Switch / Checkbox
+   ============================================ */
+
+.form-check-input:checked {
+    background-color: var(--primary-main);
+    border-color: var(--primary-main);
+}
+
+.form-check-input:focus {
+    box-shadow: 0 0 0 3px rgba(107, 91, 158, 0.15);
+    border-color: var(--primary-main);
+}
+
+/* ============================================
+   Artikel Buttons (buchen.html)
+   ============================================ */
+
+.artikel-btn {
+    white-space: normal !important;
+    word-break: break-word;
+    hyphens: auto;
+    min-height: 180px;
+    height: auto !important;
+    padding: 1rem !important;
+    font-size: 1.5rem !important;
+    line-height: 1.3;
+    font-weight: 500 !important;
+}
+
+.artikel-btn small {
+    display: block;
+    margin-top: 0.3rem;
+    font-size: 1rem;
+    opacity: 0.85;
+    font-weight: 400;
+}
+
+/* ============================================
+   Member Cards (bar_interface)
+   ============================================ */
+
+.member-card {
+    width: 100%;
+    min-height: 140px;
+    max-height: 200px;
+    border-radius: 12px !important;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+}
+
+.member-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(107, 91, 158, 0.25) !important;
+}
+
+/* ============================================
+   Modal
+   ============================================ */
+
+.modal-header {
+    background-color: var(--primary-light);
+    border-bottom: 1px solid var(--primary-secondary);
+}
+
+.modal-footer {
+    background-color: var(--primary-light);
+    border-top: 1px solid var(--primary-secondary);
+}
+
+.modal-content {
+    border-radius: 14px;
+    border: 1px solid var(--primary-secondary);
+    box-shadow: 0 8px 30px rgba(107, 91, 158, 0.15);
+}
+
+/* ============================================
+   Alerts
+   ============================================ */
+
+.alert-danger {
+    background-color: #F5DEDE;
+    border-color: #E8BEBE;
+    color: #6B2626;
+}
+
+.alert-success {
+    background-color: #D6EAD9;
+    border-color: #B8D9BC;
+    color: #2D5C35;
+}
+
+/* ============================================
+   Misc
+   ============================================ */
+
+.logo {
+    height: 30rem;
 }
 
 footer {
     text-align: center;
     margin-top: 30px;
     font-size: 0.9em;
-    color: #777;
+    color: var(--text-muted);
 }
 
-.logo  {
-    height: 30rem;
+.sticky-top {
+    z-index: 1;
+}
+
+.btn:focus,
+.form-control:focus,
+.form-select:focus {
+    outline: none;
 }

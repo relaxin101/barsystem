@@ -1,17 +1,10 @@
 """Admin routes"""
 
-from datetime import timedelta
-
-from flask import (
-Blueprint,
-render_template,
-request,
-url_for,
-)
+from flask import Blueprint, render_template, request, url_for, redirect
 from flask_login import login_required
 
 from models import Artikel, Mitglied
-from utils.admin import *
+from utils.admin import export_model_to_excel
 from blueprints.admin.berichte import export_bp
 from blueprints.admin.guthaben import guthaben_bp
 from blueprints.admin.buchungen import buchungen_bp
@@ -33,38 +26,24 @@ admin_bp.register_blueprint(abrechnung_bp)
 @admin_bp.route("/")
 @login_required
 def main_page():
-    redirect(url_for("admin.buchungen.history"))
+    return redirect(url_for("admin.buchungen.history"))  # FIX: fehlte return
 
-# --------------------------------
-# 📋 Mitglieder-Export
-# --------------------------------
+
 @admin_bp.route("/export/mitglieder")
 @login_required
 def export_mitglieder():
     return export_model_to_excel(
         model=Mitglied,
-        columns=["id", "name", "email"],  # Passe an dein Modell an
+        columns=["id", "name", "email"],
         filename="mitglieder_export.xlsx",
     )
 
 
-# --------------------------------
-# 🛒 Produkte-Export
-# --------------------------------
 @admin_bp.route("/export/produkte")
 @login_required
 def export_produkte():
     return export_model_to_excel(
         model=Artikel,
-        columns=[
-            "id",
-            "name",
-            "preis",
-            "bestand",
-            "mindestbestand",
-            "bestand",
-        ],  # Passe an dein Modell an
+        columns=["id", "name", "preis", "bestand", "mindestbestand", "bestand"],
         filename="produkte_export.xlsx",
     )
-
-
