@@ -16,6 +16,14 @@
 
     {% block head_content %}{% endblock %}
 
+{% if current_user.is_authenticated %}
+<style>
+.sidebar, .topbar {
+  background: linear-gradient(180deg, #7565A8 0%, #9080B8 100%) !important;
+}
+</style>
+{% endif %}
+
 <style>
 
 /* ---------------------------------- */
@@ -40,6 +48,14 @@
   overflow-y: auto;
 
   box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+}
+
+.sidebar.pinned + .sidebar-overlay {
+  display: none;
+}
+
+.main-wrapper.sidebar-pinned {
+  margin-left: 280px;
 }
 
 .sidebar.open {
@@ -160,7 +176,7 @@
 
 <div
   id="sidebar"
-  class="sidebar"
+  class="sidebar {% if current_user.is_authenticated %}open pinned{% endif %}"
 >
 
   <div class="sidebar-header">
@@ -184,7 +200,7 @@
 
   <!-- Navigation -->
 
-  <a href="{{ url_for('bar.bar_interface') }}">
+  <a href="{{ url_for('auth.logout') if current_user.is_authenticated else url_for('bar.bar_interface') }}">
     🍺 Barliste
   </a>
 
@@ -245,7 +261,7 @@
 <!-- Main -->
 <!-- ===================================== -->
 
-<div class="main-wrapper">
+<div class="main-wrapper {% if current_user.is_authenticated %}sidebar-pinned{% endif %}">
 
   <!-- Topbar -->
   <header class="topbar">
@@ -253,6 +269,7 @@
     <button
       id="menu-btn"
       class="menu-btn"
+      {% if current_user.is_authenticated %}style="visibility:hidden"{% endif %}
     >
       ☰
     </button>
@@ -262,13 +279,17 @@
   class="brand text-decoration-none text-reset"
 >
 
-  <img
-    src="{{ url_for('static', filename='img/logo.png') }}"
-    onerror="this.style.display='none'"
-  >
+  {% if current_user.is_authenticated %}
+    <span style="font-size:2rem;line-height:1;margin-right:10px;">🍺</span>
+  {% else %}
+    <img
+      src="{{ url_for('static', filename='img/logo.png') }}"
+      onerror="this.style.display='none'"
+    >
+  {% endif %}
 
   <h2>
-    Ergo Bibamus
+    {% if current_user.is_authenticated %}Creotorium{% else %}Ergo Bibamus{% endif %}
   </h2>
 
 </a>
@@ -356,6 +377,8 @@ const overlay = document.getElementById("sidebar-overlay");
 // ------------------------------------
 
 document.getElementById("menu-btn").addEventListener("click", () => {
+
+  if (sidebar.classList.contains("pinned")) return;
 
   sidebar.classList.toggle("open");
   overlay.classList.toggle("show");
