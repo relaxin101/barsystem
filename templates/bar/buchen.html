@@ -53,6 +53,16 @@
 
     <!-- Rechte Seite: Übersicht -->
     <div class="col-md-4 mt-4 mt-md-0">
+      <h5>Aktuelle Bestellung</h5>
+      <ul id="bestellung-list" class="list-group mb-3"></ul>
+      <button
+        id="buchen-btn"
+        class="btn w-100 mb-3 fs-5 {% if mitglied.blacklist %}btn-secondary{% else %}btn-success{% endif %}"
+        {% if mitglied.blacklist %}disabled{% endif %}
+      >
+    <strong>Buchen</strong>
+  </button>
+
       <h5>Letzte Buchungen</h5>
       <ul class="list-group mb-3">
         {% for b in buchungen %}
@@ -65,16 +75,6 @@
         <li class="list-group-item text-muted">Keine Buchungen vorhanden.</li>
         {% endfor %}
       </ul>
-
-      <h5>Aktuelle Bestellung</h5>
-      <ul id="bestellung-list" class="list-group mb-3"></ul>
-      <button
-        id="buchen-btn"
-        class="btn w-100 {% if mitglied.blacklist %}btn-secondary{% else %}btn-success{% endif %}"
-        {% if mitglied.blacklist %}disabled{% endif %}
-      >
-    Buchen
-  </button>
     </div>
   </div>
 </div>
@@ -210,12 +210,11 @@ function renderBestellung() {
     list.appendChild(li);
   });
 
-  // Gesamt-Summe unten
+  const buchenBtn = document.getElementById("buchen-btn");
   if (bestellung.length > 0) {
-    const sumLi = document.createElement("li");
-    sumLi.className = "list-group-item d-flex justify-content-between fw-bold";
-    sumLi.innerHTML = `<span>Gesamt:</span><span>${summe.toFixed(2)} €</span>`;
-    list.appendChild(sumLi);
+    buchenBtn.innerHTML = `<strong>Gesamt ${summe.toFixed(2)} € buchen.</strong>`;
+  } else {
+    buchenBtn.innerHTML = `<strong>Buchen</strong>`;
   }
 }
 
