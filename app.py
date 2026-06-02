@@ -8,6 +8,7 @@ from blueprints.auth import auth_bp
 from blueprints.admin import admin_bp
 from blueprints.admin.aussendungen import cronjob
 from blueprints.bar import bar_bp
+from blueprints.ranking import ranking_bp
 from logging.config import dictConfig
 
 dictConfig({
@@ -45,6 +46,7 @@ def load_user(user_id):
 app.register_blueprint(auth_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(bar_bp)
+app.register_blueprint(ranking_bp)
 
 
 @app.template_filter("float_format")

@@ -211,6 +211,10 @@
     🍺 Barliste
   </a>
 
+  <a href="{{ url_for('ranking.index') }}">
+    🏆 Ranking
+  </a>
+
   {% if current_user.is_authenticated %}
 
     <a href="{{ url_for('admin.guthaben.guthaben_management') }}">

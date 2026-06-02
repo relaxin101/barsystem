@@ -100,6 +100,17 @@ class Abrechnung(db.Model):
         return f"<Abrechnung {self.id} {self.name}>"
 
 
+class RankingArtikel(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    artikel_id = db.Column(db.Integer, db.ForeignKey("artikel.id"), unique=True, nullable=False)
+    artikel_obj = db.relationship("Artikel")
+
+
+class RankingKonfiguration(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    stunden = db.Column(db.Integer, nullable=False, default=24)
+
+
 class Bericht(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.Text, nullable=False)

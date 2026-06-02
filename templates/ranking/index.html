@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Ranking{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+
+  <div class="d-flex align-items-center justify-content-between mb-1">
+    <h3 class="mb-0">🏆 Ranking</h3>
+    <a href="{{ url_for('ranking.config') }}" class="btn btn-sm btn-secondary">
+      ⚙️ Konfiguration
+    </a>
+  </div>
+
+  <p class="text-muted mb-3" style="font-size:0.85rem;">
+    Rollierendes Fenster: letzte {{ stunden }} Stunde{{ 'n' if stunden != 1 else '' }}
+    (seit {{ seit.strftime('%d.%m.%Y %H:%M') }})
+  </p>
+
+  {% if not artikel_liste %}
+    <div class="alert alert-info">
+      Noch keine Artikel für das Ranking konfiguriert.
+      <a href="{{ url_for('ranking.config') }}">Jetzt konfigurieren →</a>
+    </div>
+  {% elif not eintraege %}
+    <div class="alert alert-info">
+      Im gewählten Zeitraum wurden keine Buchungen gefunden.
+    </div>
+  {% else %}
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th style="width:3rem;">#</th>
+          <th>Mitglied</th>
+          {% for a in artikel_liste %}
+            <th class="text-center">{{ a.name }}</th>
+          {% endfor %}
+          <th class="text-center">Gesamt</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in eintraege %}
+          {% set rang = loop.index %}
+          <tr class="
+            {% if rang == 1 %}ranking-gold
+            {% elif rang == 2 %}ranking-silber
+            {% elif rang == 3 %}ranking-bronze
+            {% endif %}
+          ">
+            <td class="fw-bold ranking-rang">
+              {% if rang == 1 %}🥇
+              {% elif rang == 2 %}🥈
+              {% elif rang == 3 %}🥉
+              {% else %}{{ rang }}
+              {% endif %}
+            </td>
+            <td>
+              <span class="fw-semibold">{{ e.mitglied.name }}</span>
+              {% if e.mitglied.nickname %}
+                <span class="text-muted" style="font-size:0.85rem;"> · {{ e.mitglied.nickname.split(',')[0] }}</span>
+              {% endif %}
+            </td>
+            {% for a in artikel_liste %}
+              <td class="text-center">{{ e.art_mengen.get(a.id, 0) }}</td>
+            {% endfor %}
+            <td class="text-center fw-bold">{{ e.gesamt }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% endif %}
+
+</div>
+{% endblock %}
