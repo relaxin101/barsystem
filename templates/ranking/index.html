@@ -38,16 +38,16 @@
             <th class="text-center">
               {{ a.name }}
               <small class="d-block text-muted" style="font-weight:400;">
-                {% if modus == 'reinalkohol' %}
-                  mL
-                {% elif a.typ == 'volumen' %}
-                  L
-                {% else %}
-                  Stk.
-                {% endif %}
+                {% if a.typ == 'stueck' %}Stk.{% else %}L{% endif %}
               </small>
             </th>
           {% endfor %}
+          {% if modus == 'reinalkohol' %}
+            <th class="text-center">
+              Reinalkohol
+              <small class="d-block text-muted" style="font-weight:400;">mL</small>
+            </th>
+          {% endif %}
           <th class="text-center">Gesamt</th>
         </tr>
       </thead>
@@ -74,21 +74,12 @@
               {% endif %}
             </td>
             {% for a in artikel_liste %}
-              <td class="text-center">
-                {% if modus == 'reinalkohol' %}
-                  {{ e.art_reinalkohol.get(a.id, 0) }}
-                {% else %}
-                  {{ e.art_menge.get(a.id, 0) }}
-                {% endif %}
-              </td>
+              <td class="text-center">{{ e.art_menge.get(a.id, 0) }}</td>
             {% endfor %}
-            <td class="text-center fw-bold">
-              {% if modus == 'reinalkohol' %}
-                {{ e.gesamt_reinalkohol }}
-              {% else %}
-                {{ e.gesamt_menge }}
-              {% endif %}
-            </td>
+            {% if modus == 'reinalkohol' %}
+              <td class="text-center">{{ e.gesamt_reinalkohol }}</td>
+            {% endif %}
+            <td class="text-center fw-bold">{{ e.gesamt_menge }}</td>
           </tr>
         {% endfor %}
       </tbody>

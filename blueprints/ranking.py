@@ -108,6 +108,7 @@ def index():
 
         eintraege.append({
             "mitglied":            mitglied,
+            "art_stueck":          art_stueck,
             "art_menge":           art_menge,
             "art_reinalkohol":     art_reinalkohol,
             "gesamt_menge":        gesamt_menge,
