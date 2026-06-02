@@ -102,3 +102,31 @@
 
 </div>
 {% endblock %}
+
+{% block scripts %}
+<script>
+(async function () {
+  const INTERVAL = 10000;
+
+  async function fetchVersion() {
+    try {
+      const res = await fetch("/ranking/api/version");
+      const data = await res.json();
+      return data.v;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  const initial = await fetchVersion();
+  if (initial === null) return;
+
+  setInterval(async () => {
+    const current = await fetchVersion();
+    if (current !== null && current !== initial) {
+      location.reload();
+    }
+  }, INTERVAL);
+})();
+</script>
+{% endblock %}
