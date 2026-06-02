@@ -1,15 +1,19 @@
 from datetime import datetime, timedelta
 
-from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for, session
 from sqlalchemy import func, case
 
+import config as app_config
 from models import db, Artikel, Buchung, Mitglied, RankingArtikel, RankingKonfiguration
 
 ranking_bp = Blueprint("ranking", __name__, url_prefix="/ranking")
 
+_SESSION_STUNDEN = 'ranking_stunden'
+_SESSION_ARTIKEL = 'ranking_artikel_ids'
+_SESSION_MODUS   = 'ranking_modus'
 
-def _get_konfiguration():
-    """Gibt die Singleton-Konfiguration zurück, legt sie bei Bedarf an."""
+
+def _get_db_konfiguration():
     config = RankingKonfiguration.query.get(1)
     if config is None:
         config = RankingKonfiguration(id=1, stunden=24)
@@ -18,94 +22,140 @@ def _get_konfiguration():
     return config
 
 
+def _get_session_stunden():
+    if _SESSION_STUNDEN not in session:
+        session[_SESSION_STUNDEN] = app_config.RANKING_DEFAULT_STUNDEN
+    return session[_SESSION_STUNDEN]
+
+
+def _get_session_artikel_ids():
+    if _SESSION_ARTIKEL not in session:
+        session[_SESSION_ARTIKEL] = [
+            a.id for a in Artikel.query.filter(Artikel.reinalkohol_liter > 0).all()
+        ]
+    return set(session[_SESSION_ARTIKEL])
+
+
+def _get_session_modus():
+    if _SESSION_MODUS not in session:
+        session[_SESSION_MODUS] = 'menge'
+    return session[_SESSION_MODUS]
+
+
 @ranking_bp.route("/")
 def index():
-    config = _get_konfiguration()
-    selected = RankingArtikel.query.join(Artikel, RankingArtikel.artikel_id == Artikel.id).order_by(Artikel.reihenfolge).all()
+    stunden     = _get_session_stunden()
+    selected_ids = _get_session_artikel_ids()
+    modus       = _get_session_modus()
+    seit        = datetime.now() - timedelta(hours=stunden)
 
-    seit = datetime.now() - timedelta(hours=config.stunden)
+    artikel_liste = (
+        Artikel.query
+        .filter(Artikel.id.in_(selected_ids))
+        .order_by(Artikel.reihenfolge)
+        .all()
+    ) if selected_ids else []
 
-    if not selected:
+    if not artikel_liste:
         return render_template(
             "ranking/index.html",
-            eintraege=[],
-            artikel_liste=[],
-            stunden=config.stunden,
-            seit=seit,
+            eintraege=[], artikel_liste=[],
+            stunden=stunden, seit=seit, modus=modus,
         )
 
-    selected_ids = [ra.artikel_id for ra in selected]
-    artikel_liste = [ra.artikel_obj for ra in selected]
-
-    # Pro Artikel eine aggregierte Spalte
     artikel_cols = [
         func.sum(
             case((Buchung.artikel_id == a.id, Buchung.menge), else_=0)
         ).label(f"art_{a.id}")
         for a in artikel_liste
     ]
-
     gesamt_col = func.sum(Buchung.menge).label("gesamt")
 
     rows = (
         db.session.query(Mitglied, *artikel_cols, gesamt_col)
         .join(Buchung, Buchung.mitglied_id == Mitglied.id)
         .filter(
-            Buchung.artikel_id.in_(selected_ids),
+            Buchung.artikel_id.in_(list(selected_ids)),
             Buchung.storno == False,
             Mitglied.aktiv == True,
             Buchung.zeitstempel >= seit,
         )
         .group_by(Mitglied.id)
-        .order_by(gesamt_col.desc())
         .all()
     )
 
     eintraege = []
     for row in rows:
-        mitglied = row[0]
-        art_mengen = {a.id: row[i + 1] for i, a in enumerate(artikel_liste)}
-        gesamt = row[-1]
+        mitglied  = row[0]
+        art_stueck = {a.id: row[i + 1] for i, a in enumerate(artikel_liste)}
+
+        # Menge-Anzeige: Stück-Artikel → Stückzahl, Volumen-Artikel → Stückzahl × volumen_liter
+        art_menge = {}
+        for a in artikel_liste:
+            cnt = art_stueck.get(a.id, 0)
+            if a.typ == 'volumen':
+                art_menge[a.id] = round(cnt * (a.volumen_liter or 0.5), 3)
+            else:
+                art_menge[a.id] = cnt
+        gesamt_menge = round(sum(art_menge.values()), 3)
+
+        # Reinalkohol-Anzeige: Stückzahl × reinalkohol_liter × 1000 (mL)
+        art_reinalkohol = {
+            a.id: round(art_stueck.get(a.id, 0) * (a.reinalkohol_liter or 0) * 1000, 1)
+            for a in artikel_liste
+        }
+        gesamt_reinalkohol = round(sum(art_reinalkohol.values()), 1)
+
         eintraege.append({
-            "mitglied": mitglied,
-            "art_mengen": art_mengen,
-            "gesamt": gesamt,
+            "mitglied":            mitglied,
+            "art_menge":           art_menge,
+            "art_reinalkohol":     art_reinalkohol,
+            "gesamt_menge":        gesamt_menge,
+            "gesamt_reinalkohol":  gesamt_reinalkohol,
         })
+
+    if modus == 'reinalkohol':
+        eintraege.sort(key=lambda e: e['gesamt_reinalkohol'], reverse=True)
+    else:
+        eintraege.sort(key=lambda e: e['gesamt_menge'], reverse=True)
 
     return render_template(
         "ranking/index.html",
         eintraege=eintraege,
         artikel_liste=artikel_liste,
-        stunden=config.stunden,
+        stunden=stunden,
         seit=seit,
+        modus=modus,
     )
 
 
 @ranking_bp.route("/config", methods=["GET"])
 def config():
-    konfiguration = _get_konfiguration()
+    stunden      = _get_session_stunden()
+    selected_ids = _get_session_artikel_ids()
+    modus        = _get_session_modus()
     alle_artikel = Artikel.query.filter_by(aktiv=True).order_by(Artikel.reihenfolge).all()
-    selected_ids = {ra.artikel_id for ra in RankingArtikel.query.all()}
     return render_template(
         "ranking/config.html",
         alle_artikel=alle_artikel,
         selected_ids=selected_ids,
-        stunden=konfiguration.stunden,
+        stunden=stunden,
+        modus=modus,
     )
 
 
 @ranking_bp.route("/config/toggle/<int:artikel_id>", methods=["POST"])
 def toggle_artikel(artikel_id):
-    artikel = Artikel.query.get_or_404(artikel_id)
-    eintrag = RankingArtikel.query.filter_by(artikel_id=artikel_id).first()
-    if eintrag:
-        db.session.delete(eintrag)
+    Artikel.query.get_or_404(artikel_id)
+    ids = _get_session_artikel_ids()
+    if artikel_id in ids:
+        ids.discard(artikel_id)
         aktiv = False
     else:
-        db.session.add(RankingArtikel(artikel_id=artikel_id))
+        ids.add(artikel_id)
         aktiv = True
-    db.session.commit()
-    return jsonify({"success": True, "aktiv": aktiv, "name": artikel.name})
+    session[_SESSION_ARTIKEL] = list(ids)
+    return jsonify({"success": True, "aktiv": aktiv})
 
 
 @ranking_bp.route("/config/stunden", methods=["POST"])
@@ -117,8 +167,22 @@ def set_stunden():
             raise ValueError
     except (TypeError, ValueError):
         return jsonify({"success": False, "error": "Ungültiger Wert"}), 400
-
-    config = _get_konfiguration()
-    config.stunden = stunden
-    db.session.commit()
+    session[_SESSION_STUNDEN] = stunden
     return jsonify({"success": True, "stunden": stunden})
+
+
+@ranking_bp.route("/config/modus", methods=["POST"])
+def set_modus():
+    modus = request.get_json().get("modus", "menge")
+    if modus not in ("menge", "reinalkohol"):
+        modus = "menge"
+    session[_SESSION_MODUS] = modus
+    return jsonify({"success": True, "modus": modus})
+
+
+@ranking_bp.route("/config/reset", methods=["POST"])
+def reset_config():
+    session.pop(_SESSION_STUNDEN, None)
+    session.pop(_SESSION_ARTIKEL, None)
+    session.pop(_SESSION_MODUS,   None)
+    return redirect(url_for("ranking.config"))

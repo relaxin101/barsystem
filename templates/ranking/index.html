@@ -4,7 +4,7 @@
 {% block content %}
 <div class="container-fluid mt-4">
 
-  <div class="d-flex align-items-center justify-content-between mb-1">
+  <div class="d-flex align-items-center justify-content-between mb-1 flex-wrap gap-2">
     <h3 class="mb-0">🏆 Ranking</h3>
     <a href="{{ url_for('ranking.config') }}" class="btn btn-sm btn-secondary">
       ⚙️ Konfiguration
@@ -14,6 +14,7 @@
   <p class="text-muted mb-3" style="font-size:0.85rem;">
     Rollierendes Fenster: letzte {{ stunden }} Stunde{{ 'n' if stunden != 1 else '' }}
     (seit {{ seit.strftime('%d.%m.%Y %H:%M') }})
+    · Modus: <strong>{{ 'Reinalkohol (mL)' if modus == 'reinalkohol' else 'Menge' }}</strong>
   </p>
 
   {% if not artikel_liste %}
@@ -34,7 +35,18 @@
           <th style="width:3rem;">#</th>
           <th>Mitglied</th>
           {% for a in artikel_liste %}
-            <th class="text-center">{{ a.name }}</th>
+            <th class="text-center">
+              {{ a.name }}
+              <small class="d-block text-muted" style="font-weight:400;">
+                {% if modus == 'reinalkohol' %}
+                  mL
+                {% elif a.typ == 'volumen' %}
+                  L
+                {% else %}
+                  Stk.
+                {% endif %}
+              </small>
+            </th>
           {% endfor %}
           <th class="text-center">Gesamt</th>
         </tr>
@@ -62,9 +74,21 @@
               {% endif %}
             </td>
             {% for a in artikel_liste %}
-              <td class="text-center">{{ e.art_mengen.get(a.id, 0) }}</td>
+              <td class="text-center">
+                {% if modus == 'reinalkohol' %}
+                  {{ e.art_reinalkohol.get(a.id, 0) }}
+                {% else %}
+                  {{ e.art_menge.get(a.id, 0) }}
+                {% endif %}
+              </td>
             {% endfor %}
-            <td class="text-center fw-bold">{{ e.gesamt }}</td>
+            <td class="text-center fw-bold">
+              {% if modus == 'reinalkohol' %}
+                {{ e.gesamt_reinalkohol }}
+              {% else %}
+                {{ e.gesamt_menge }}
+              {% endif %}
+            </td>
           </tr>
         {% endfor %}
       </tbody>

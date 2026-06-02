@@ -31,6 +31,9 @@ class Artikel(db.Model):
     aktiv = db.Column(db.Boolean, nullable=False, default=True)
     name = db.Column(db.Text, unique=True, nullable=False)
     preis = db.Column(db.Integer, nullable=False)
+    typ = db.Column(db.String(10), nullable=False, default='volumen')
+    volumen_liter = db.Column(db.Float, nullable=True, default=0.5)
+    reinalkohol_liter = db.Column(db.Float, nullable=True, default=0.0)
     buchungen = db.relationship("Buchung", lazy=True)
     buchungen_von_artikel = db.relationship(
         "Buchung", back_populates="artikel_obj", lazy=True
