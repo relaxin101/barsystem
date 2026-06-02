@@ -25,54 +25,70 @@
           <input type="hidden" id="modal-id">
 
           <div class="mb-3">
-
             <label class="form-label">Name</label>
-
-            <input
-              type="text"
-              class="form-control"
-              id="modal-name"
-            >
-
+            <input type="text" class="form-control" id="modal-name">
           </div>
 
           <div class="mb-3">
-
             <label class="form-label">Preis (€)</label>
-
-            <input
-              type="number"
-              step="0.01"
-              class="form-control"
-              id="modal-preis"
-            >
-
+            <input type="number" step="0.01" class="form-control" id="modal-preis">
           </div>
 
           <div class="mb-3">
-
             <label class="form-label">Reihenfolge</label>
-
-            <input
-              type="number"
-              class="form-control"
-              id="modal-reihenfolge"
-            >
-
+            <input type="number" class="form-control" id="modal-reihenfolge">
           </div>
 
-          <div class="form-check form-switch">
+          <!-- Typ-Toggle -->
+          <div class="mb-3">
+            <label class="form-label d-block">Mengentyp</label>
+            <div class="d-flex align-items-center gap-3">
+              <span class="text-muted" id="label-stueck">Stück</span>
+              <div class="form-check form-switch mb-0">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="modal-typ-toggle"
+                  style="width:2.8em; height:1.4em;"
+                >
+              </div>
+              <span class="fw-semibold" id="label-volumen">Volumen</span>
+            </div>
+          </div>
 
-            <input
-              class="form-check-input"
-              type="checkbox"
-              id="modal-aktiv"
-            >
+          <!-- Volumen-Felder (nur sichtbar wenn Volumen aktiv) -->
+          <div id="volumen-felder" style="display:none;">
+            <hr class="my-2">
+            <div class="mb-3">
+              <label class="form-label">Menge (L)</label>
+              <input
+                type="number"
+                step="0.001"
+                min="0"
+                class="form-control"
+                id="modal-volumen-liter"
+                value="0.500"
+              >
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Reinalkohol (mL)</label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                class="form-control"
+                id="modal-reinalkohol-ml"
+                value="0.0"
+              >
+              <div class="form-text">
+                Produkte mit Volumen und Reinalkohol &gt; 0 werden automatisch im Ranking aktiviert.
+              </div>
+            </div>
+          </div>
 
-            <label class="form-check-label">
-              Aktiv
-            </label>
-
+          <div class="form-check form-switch mt-3">
+            <input class="form-check-input" type="checkbox" id="modal-aktiv">
+            <label class="form-check-label">Aktiv</label>
           </div>
 
         </div>
@@ -87,10 +103,7 @@
             Abbrechen
           </button>
 
-          <button
-            type="submit"
-            class="btn btn-primary"
-          >
+          <button type="submit" class="btn btn-primary">
             Speichern
           </button>
 
@@ -103,3 +116,26 @@
   </div>
 
 </div>
+
+<script>
+// Typ-Toggle: Volumen-Felder ein-/ausblenden
+(function () {
+  const toggle = document.getElementById("modal-typ-toggle");
+  const felder = document.getElementById("volumen-felder");
+  const labelStueck = document.getElementById("label-stueck");
+  const labelVolumen = document.getElementById("label-volumen");
+
+  function applyTyp(isVolumen) {
+    felder.style.display = isVolumen ? "" : "none";
+    labelStueck.classList.toggle("fw-semibold", !isVolumen);
+    labelStueck.classList.toggle("text-muted", isVolumen);
+    labelVolumen.classList.toggle("fw-semibold", isVolumen);
+    labelVolumen.classList.toggle("text-muted", !isVolumen);
+  }
+
+  toggle.addEventListener("change", () => applyTyp(toggle.checked));
+
+  // expose for index.html
+  window.applyArtikelTyp = applyTyp;
+})();
+</script>

@@ -30,6 +30,9 @@ _guthaben = os.environ.get("MINDEST_GUTHABEN", None)
 MINDEST_GUTHABEN = int(100*float(_guthaben)) if _guthaben else None
 
 
+# Ranking
+RANKING_DEFAULT_STUNDEN = int(os.environ.get("RANKING_DEFAULT_STUNDEN", 24))
+
 # Aussendungen specials
 BREVO_SECRET = os.environ.get("BREVO_SECRET")
 BREVO_SENDER_MAIL = os.environ.get("BREVO_SENDER_MAIL")

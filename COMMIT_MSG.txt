@@ -1,8 +1,0 @@
-Ranking-Feature: öffentliche Top-Trinker-Tabelle mit konfigurierbaren Artikeln und rollieredem Zeitfenster
-
-- Neues Blueprint /ranking mit Ranking-Tabelle und öffentlicher Config-Seite
-- Config erlaubt Artikel-Auswahl per Toggle und Stunden-Zeitfenster (Default 24h)
-- Rollierendes Fenster: Buchungen der letzten N Stunden, stornierte ausgenommen
-- Top 3 mit Gold/Silber/Bronze Farbmarkierung (theme-konform)
-- Sidebar-Link '🏆 Ranking' für alle sichtbar
-- Neue DB-Modelle RankingArtikel + RankingKonfiguration (Migration e4f5a6b7c8d9)

@@ -4,11 +4,48 @@
 {% block content %}
 <div class="container mt-4" style="max-width:650px;">
 
-  <div class="d-flex align-items-center mb-4">
-    <a href="{{ url_for('ranking.index') }}" class="btn btn-sm btn-secondary me-3">← Zurück</a>
-    <h3 class="mb-0">⚙️ Ranking-Konfiguration</h3>
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <div class="d-flex align-items-center">
+      <a href="{{ url_for('ranking.index') }}" class="btn btn-sm btn-secondary me-3">← Zurück</a>
+      <h3 class="mb-0">⚙️ Ranking-Konfiguration</h3>
+    </div>
+    <form method="post" action="{{ url_for('ranking.reset_config') }}"
+          onsubmit="return confirm('Konfiguration auf Standardwerte zurücksetzen?');">
+      <button type="submit" class="btn btn-sm btn-danger">↺ Zurücksetzen</button>
+    </form>
   </div>
 
+  <div class="alert alert-info py-2 mb-4" style="font-size:0.85rem;">
+    Die Konfiguration gilt nur für diese Browser-Sitzung und wird beim Schließen des Browsers automatisch zurückgesetzt.
+  </div>
+
+
+  <!-- Ranking-Modus -->
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white">Ranking-Modus</div>
+    <div class="card-body">
+      <div class="d-flex align-items-center gap-3">
+        <span class="{% if modus == 'menge' %}fw-semibold{% else %}text-muted{% endif %}" id="label-menge">Menge</span>
+        <div class="form-check form-switch mb-0">
+          <input
+            class="form-check-input"
+            type="checkbox"
+            id="modus-toggle"
+            style="width:2.8em; height:1.4em;"
+            {% if modus == 'reinalkohol' %}checked{% endif %}
+          >
+        </div>
+        <span class="{% if modus == 'reinalkohol' %}fw-semibold{% else %}text-muted{% endif %}" id="label-reinalkohol">Reinalkohol</span>
+      </div>
+      <div class="form-text mt-2">
+        {% if modus == 'reinalkohol' %}
+          Ranking nach Reinalkohol (mL) — Volumen-Artikel werden mit ihrem Alkoholgehalt gewichtet.
+        {% else %}
+          Ranking nach Menge — Stück als Stückzahl, Volumen-Artikel in Liter.
+        {% endif %}
+      </div>
+    </div>
+  </div>
 
   <!-- Zeitfenster -->
   <div class="card mb-4">
@@ -45,20 +82,40 @@
       {% else %}
         <ul class="list-group list-group-flush">
           {% for a in alle_artikel %}
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-              <span>
-                <span class="fw-semibold">{{ a.name }}</span>
-                <span class="text-muted ms-2" style="font-size:0.85rem;">{{ (a.preis / 100) | float_format }} €</span>
-              </span>
-              <div class="form-check form-switch mb-0">
-                <input
-                  class="form-check-input artikel-toggle"
-                  type="checkbox"
-                  role="switch"
-                  id="art-{{ a.id }}"
-                  data-artikel-id="{{ a.id }}"
-                  {% if a.id in selected_ids %}checked{% endif %}
-                >
+            <li class="list-group-item">
+              <div class="d-flex justify-content-between align-items-start">
+
+                <div>
+                  <span class="fw-semibold">{{ a.name }}</span>
+                  <span class="text-muted ms-2" style="font-size:0.85rem;">{{ (a.preis / 100) | float_format }} €</span>
+
+                  <div class="mt-1">
+                    {% if a.typ == 'volumen' %}
+                      <span class="badge bg-primary me-1">Volumen</span>
+                      <span class="text-muted" style="font-size:0.8rem;">
+                        {{ "%.3f"|format(a.volumen_liter or 0.5) }} L
+                        · Alkohol: {{ "%.1f"|format((a.reinalkohol_liter or 0.0) * 1000) }} mL
+                      </span>
+                      {% if not a.reinalkohol_liter or a.reinalkohol_liter == 0 %}
+                        <span class="badge bg-warning ms-1" title="Wird nicht automatisch zum Ranking hinzugefügt">⚠ kein Alkohol</span>
+                      {% endif %}
+                    {% else %}
+                      <span class="badge bg-secondary">Stück</span>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <div class="form-check form-switch mb-0 ms-3 flex-shrink-0">
+                  <input
+                    class="form-check-input artikel-toggle"
+                    type="checkbox"
+                    role="switch"
+                    id="art-{{ a.id }}"
+                    data-artikel-id="{{ a.id }}"
+                    {% if a.id in selected_ids %}checked{% endif %}
+                  >
+                </div>
+
               </div>
             </li>
           {% endfor %}
@@ -73,6 +130,22 @@
 
 {% block scripts %}
 <script>
+// Modus-Toggle
+document.getElementById("modus-toggle").addEventListener("change", async function () {
+  const modus = this.checked ? "reinalkohol" : "menge";
+  const res = await fetch("/ranking/config/modus", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ modus }),
+  });
+  const data = await res.json();
+  if (data.success) {
+    location.reload();
+  } else {
+    this.checked = !this.checked;
+  }
+});
+
 // Artikel-Toggle
 document.querySelectorAll(".artikel-toggle").forEach(toggle => {
   toggle.addEventListener("change", async function () {
