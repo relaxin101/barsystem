@@ -208,6 +208,15 @@ def alle_abwaehlen():
     return redirect(url_for("ranking.config"))
 
 
+@ranking_bp.route("/api/version")
+def api_version():
+    """Lightweight fingerprint of current booking state for polling."""
+    max_id      = db.session.query(func.max(Buchung.id)).scalar() or 0
+    max_storno  = db.session.query(func.max(Buchung.storno_updated_at)).scalar()
+    fingerprint = f"{max_id}_{max_storno.isoformat() if max_storno else 'none'}"
+    return jsonify({"v": fingerprint})
+
+
 @ranking_bp.route("/config/reset", methods=["POST"])
 def reset_config():
     session.pop(_SESSION_STUNDEN, None)
