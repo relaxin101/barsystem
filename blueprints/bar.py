@@ -1,8 +1,9 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app, session
 from sqlalchemy import or_, func, text, desc
 from models import db, Mitglied, Artikel, Buchung
 from datetime import datetime, timedelta
 from utils.admin import calc_blacklist
+import os
 
 bar_bp = Blueprint("bar", __name__)
 
@@ -119,11 +120,26 @@ def buchen():
             .all()
         )
 
+        schwaerzung_dir = os.path.join(current_app.static_folder, "schwaerzung")
+        allowed_ext = {".webp", ".png", ".jpg", ".jpeg", ".gif"}
+        images = sorted([
+            f for f in os.listdir(schwaerzung_dir)
+            if os.path.splitext(f)[1].lower() in allowed_ext
+        ])
+        if images:
+            idx = session.get("schwaerzung_idx", 0) % len(images)
+            session["schwaerzung_idx"] = (idx + 1) % len(images)
+            schwaerzungs_bild = url_for("static", filename=f"schwaerzung/{images[idx]}")
+        else:
+            schwaerzungs_bild = None
+
         return render_template(
             "bar/buchen.html",
             mitglied=mitglied,
             artikel_liste=artikel_liste,
             buchungen=buchungen,
+            schwaerzungs_text=current_app.config.get("SCHWAERZUNGS_TEXT"),
+            schwaerzungs_bild=schwaerzungs_bild,
         )
 
     # POST → Buchung(en)
