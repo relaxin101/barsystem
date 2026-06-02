@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Ranking – Konfiguration{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width:650px;">
+
+  <div class="d-flex align-items-center mb-4">
+    <a href="{{ url_for('ranking.index') }}" class="btn btn-sm btn-secondary me-3">← Zurück</a>
+    <h3 class="mb-0">⚙️ Ranking-Konfiguration</h3>
+  </div>
+
+
+  <!-- Zeitfenster -->
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white">Betrachtungszeitraum</div>
+    <div class="card-body">
+      <p class="text-muted mb-3" style="font-size:0.88rem;">
+        Das Ranking zeigt die letzten <strong id="stunden-preview">{{ stunden }}</strong>
+        Stunde{{ 'n' if stunden != 1 else '' }} rollierend.
+      </p>
+      <div class="d-flex align-items-center gap-3">
+        <label class="fw-semibold mb-0" for="stunden-input">Stunden:</label>
+        <input
+          type="number"
+          id="stunden-input"
+          class="form-control"
+          style="width:120px;"
+          min="1"
+          max="8760"
+          value="{{ stunden }}"
+        >
+        <button class="btn btn-primary" id="stunden-save-btn">Speichern</button>
+        <span id="stunden-feedback" class="text-success" style="display:none;">✓ Gespeichert</span>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Artikel-Auswahl -->
+  <div class="card">
+    <div class="card-header bg-primary text-white">Artikel im Ranking</div>
+    <div class="card-body p-0">
+      {% if not alle_artikel %}
+        <p class="p-3 text-muted mb-0">Keine aktiven Artikel vorhanden.</p>
+      {% else %}
+        <ul class="list-group list-group-flush">
+          {% for a in alle_artikel %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <span>
+                <span class="fw-semibold">{{ a.name }}</span>
+                <span class="text-muted ms-2" style="font-size:0.85rem;">{{ (a.preis / 100) | float_format }} €</span>
+              </span>
+              <div class="form-check form-switch mb-0">
+                <input
+                  class="form-check-input artikel-toggle"
+                  type="checkbox"
+                  role="switch"
+                  id="art-{{ a.id }}"
+                  data-artikel-id="{{ a.id }}"
+                  {% if a.id in selected_ids %}checked{% endif %}
+                >
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+// Artikel-Toggle
+document.querySelectorAll(".artikel-toggle").forEach(toggle => {
+  toggle.addEventListener("change", async function () {
+    const artikelId = this.dataset.artikelId;
+    const res = await fetch(`/ranking/config/toggle/${artikelId}`, { method: "POST" });
+    const data = await res.json();
+    if (!data.success) {
+      this.checked = !this.checked;
+      alert("Fehler beim Speichern.");
+    }
+  });
+});
+
+// Stunden speichern
+document.getElementById("stunden-save-btn").addEventListener("click", async () => {
+  const val = parseInt(document.getElementById("stunden-input").value, 10);
+  if (!val || val < 1) { alert("Bitte eine gültige Stundenzahl eingeben."); return; }
+
+  const res = await fetch("/ranking/config/stunden", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ stunden: val }),
+  });
+  const data = await res.json();
+  if (data.success) {
+    document.getElementById("stunden-preview").textContent = val;
+    const fb = document.getElementById("stunden-feedback");
+    fb.style.display = "inline";
+    setTimeout(() => { fb.style.display = "none"; }, 2500);
+  } else {
+    alert("Fehler: " + (data.error || "Unbekannt"));
+  }
+});
+</script>
+{% endblock %}
