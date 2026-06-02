@@ -30,6 +30,8 @@ _guthaben = os.environ.get("MINDEST_GUTHABEN", None)
 MINDEST_GUTHABEN = int(100*float(_guthaben)) if _guthaben else None
 
 
+SCHWAERZUNGS_TEXT = os.environ.get("SCHWAERZUNGS_TEXT", "Du bist geschwärzt!")
+
 # Ranking
 RANKING_DEFAULT_STUNDEN = int(os.environ.get("RANKING_DEFAULT_STUNDEN", 24))
 
