@@ -11,6 +11,18 @@ ranking_bp = Blueprint("ranking", __name__, url_prefix="/ranking")
 _SESSION_STUNDEN = 'ranking_stunden'
 _SESSION_ARTIKEL = 'ranking_artikel_ids'
 _SESSION_MODUS   = 'ranking_modus'
+_SESSION_SET_AT  = 'ranking_config_set_at'
+
+
+def _check_and_expire_config():
+    set_at_str = session.get(_SESSION_SET_AT)
+    if not set_at_str:
+        return
+    if datetime.now() - datetime.fromisoformat(set_at_str) > timedelta(hours=app_config.RANKING_CONFIG_TTL_STUNDEN):
+        session.pop(_SESSION_STUNDEN, None)
+        session.pop(_SESSION_ARTIKEL, None)
+        session.pop(_SESSION_MODUS,   None)
+        session.pop(_SESSION_SET_AT,  None)
 
 
 def _get_db_konfiguration():
@@ -47,6 +59,7 @@ _VALID_MODI = ('menge', 'reinalkohol', 'umsatz')
 
 @ranking_bp.route("/")
 def index():
+    _check_and_expire_config()
     stunden     = _get_session_stunden()
     selected_ids = _get_session_artikel_ids()
     modus       = _get_session_modus()
@@ -145,6 +158,7 @@ def index():
 
 @ranking_bp.route("/config", methods=["GET"])
 def config():
+    _check_and_expire_config()
     stunden      = _get_session_stunden()
     selected_ids = _get_session_artikel_ids()
     modus        = _get_session_modus()
@@ -169,6 +183,7 @@ def toggle_artikel(artikel_id):
         ids.add(artikel_id)
         aktiv = True
     session[_SESSION_ARTIKEL] = list(ids)
+    session[_SESSION_SET_AT] = datetime.now().isoformat()
     return jsonify({"success": True, "aktiv": aktiv})
 
 
@@ -182,6 +197,7 @@ def set_stunden():
     except (TypeError, ValueError):
         return jsonify({"success": False, "error": "Ungültiger Wert"}), 400
     session[_SESSION_STUNDEN] = stunden
+    session[_SESSION_SET_AT] = datetime.now().isoformat()
     return jsonify({"success": True, "stunden": stunden})
 
 
@@ -191,6 +207,7 @@ def set_modus():
     if modus not in _VALID_MODI:
         modus = "menge"
     session[_SESSION_MODUS] = modus
+    session[_SESSION_SET_AT] = datetime.now().isoformat()
     return jsonify({"success": True, "modus": modus})
 
 
@@ -199,12 +216,14 @@ def alle_auswaehlen():
     session[_SESSION_ARTIKEL] = [
         a.id for a in Artikel.query.filter_by(aktiv=True).all()
     ]
+    session[_SESSION_SET_AT] = datetime.now().isoformat()
     return redirect(url_for("ranking.config"))
 
 
 @ranking_bp.route("/config/alle-abwaehlen", methods=["POST"])
 def alle_abwaehlen():
     session[_SESSION_ARTIKEL] = []
+    session[_SESSION_SET_AT] = datetime.now().isoformat()
     return redirect(url_for("ranking.config"))
 
 
@@ -222,4 +241,5 @@ def reset_config():
     session.pop(_SESSION_STUNDEN, None)
     session.pop(_SESSION_ARTIKEL, None)
     session.pop(_SESSION_MODUS,   None)
+    session.pop(_SESSION_SET_AT,  None)
     return redirect(url_for("ranking.config"))

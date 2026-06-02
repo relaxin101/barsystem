@@ -34,6 +34,7 @@ SCHWAERZUNGS_TEXT = os.environ.get("SCHWAERZUNGS_TEXT", "Du bist geschwärzt!")
 
 # Ranking
 RANKING_DEFAULT_STUNDEN = int(os.environ.get("RANKING_DEFAULT_STUNDEN", 24))
+RANKING_CONFIG_TTL_STUNDEN = int(os.environ.get("RANKING_CONFIG_TTL_STUNDEN", 12))
 
 # Aussendungen specials
 BREVO_SECRET = os.environ.get("BREVO_SECRET")
