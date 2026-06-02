@@ -24,22 +24,28 @@
   <div class="card mb-4">
     <div class="card-header bg-primary text-white">Ranking-Modus</div>
     <div class="card-body">
-      <div class="d-flex align-items-center gap-3">
-        <span class="{% if modus == 'menge' %}fw-semibold{% else %}text-muted{% endif %}" id="label-menge">Menge</span>
-        <div class="form-check form-switch mb-0">
-          <input
-            class="form-check-input"
-            type="checkbox"
-            id="modus-toggle"
-            style="width:2.8em; height:1.4em;"
-            {% if modus == 'reinalkohol' %}checked{% endif %}
-          >
+      <div class="d-flex gap-4">
+        <div class="form-check">
+          <input class="form-check-input modus-radio" type="radio" name="modus" id="modus-menge"
+                 value="menge" {% if modus == 'menge' %}checked{% endif %}>
+          <label class="form-check-label" for="modus-menge">Menge</label>
         </div>
-        <span class="{% if modus == 'reinalkohol' %}fw-semibold{% else %}text-muted{% endif %}" id="label-reinalkohol">Reinalkohol</span>
+        <div class="form-check">
+          <input class="form-check-input modus-radio" type="radio" name="modus" id="modus-reinalkohol"
+                 value="reinalkohol" {% if modus == 'reinalkohol' %}checked{% endif %}>
+          <label class="form-check-label" for="modus-reinalkohol">Reinalkohol</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input modus-radio" type="radio" name="modus" id="modus-umsatz"
+                 value="umsatz" {% if modus == 'umsatz' %}checked{% endif %}>
+          <label class="form-check-label" for="modus-umsatz">Umsatz</label>
+        </div>
       </div>
       <div class="form-text mt-2">
         {% if modus == 'reinalkohol' %}
-          Ranking nach Reinalkohol (mL) — Volumen-Artikel werden mit ihrem Alkoholgehalt gewichtet.
+          Ranking nach Reinalkohol (mL) — Volumen-Artikel mit Alkoholgehalt gewichtet.
+        {% elif modus == 'umsatz' %}
+          Ranking nach Umsatz (€) — tatsächlich gebuchte Preise.
         {% else %}
           Ranking nach Menge — Stück als Stückzahl, Volumen-Artikel in Liter.
         {% endif %}
@@ -75,7 +81,17 @@
 
   <!-- Artikel-Auswahl -->
   <div class="card">
-    <div class="card-header bg-primary text-white">Artikel im Ranking</div>
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+      <span>Artikel im Ranking</span>
+      <div class="d-flex gap-2">
+        <form method="post" action="{{ url_for('ranking.alle_auswaehlen') }}" class="m-0">
+          <button type="submit" class="btn btn-sm btn-light">Alle ✓</button>
+        </form>
+        <form method="post" action="{{ url_for('ranking.alle_abwaehlen') }}" class="m-0">
+          <button type="submit" class="btn btn-sm btn-outline-light">Alle ✗</button>
+        </form>
+      </div>
+    </div>
     <div class="card-body p-0">
       {% if not alle_artikel %}
         <p class="p-3 text-muted mb-0">Keine aktiven Artikel vorhanden.</p>
@@ -130,20 +146,19 @@
 
 {% block scripts %}
 <script>
-// Modus-Toggle
-document.getElementById("modus-toggle").addEventListener("change", async function () {
-  const modus = this.checked ? "reinalkohol" : "menge";
-  const res = await fetch("/ranking/config/modus", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ modus }),
+// Modus-Radio
+document.querySelectorAll(".modus-radio").forEach(radio => {
+  radio.addEventListener("change", async function () {
+    const res = await fetch("/ranking/config/modus", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ modus: this.value }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      location.reload();
+    }
   });
-  const data = await res.json();
-  if (data.success) {
-    location.reload();
-  } else {
-    this.checked = !this.checked;
-  }
 });
 
 // Artikel-Toggle

@@ -48,7 +48,16 @@
               <small class="d-block text-muted" style="font-weight:400;">mL</small>
             </th>
           {% endif %}
-          <th class="text-center">Gesamt</th>
+          {% if modus == 'umsatz' %}
+            <th class="text-center">
+              Umsatz
+              <small class="d-block text-muted" style="font-weight:400;">€</small>
+            </th>
+          {% endif %}
+          <th class="text-center">
+            Gesamt
+            <small class="d-block text-muted" style="font-weight:400;">L &amp; Stk.</small>
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -78,6 +87,9 @@
             {% endfor %}
             {% if modus == 'reinalkohol' %}
               <td class="text-center">{{ e.gesamt_reinalkohol }}</td>
+            {% endif %}
+            {% if modus == 'umsatz' %}
+              <td class="text-center">{{ "%.2f"|format(e.gesamt_umsatz / 100) }}</td>
             {% endif %}
             <td class="text-center fw-bold">{{ e.gesamt_menge }}</td>
           </tr>

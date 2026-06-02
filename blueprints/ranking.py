@@ -42,6 +42,9 @@ def _get_session_modus():
     return session[_SESSION_MODUS]
 
 
+_VALID_MODI = ('menge', 'reinalkohol', 'umsatz')
+
+
 @ranking_bp.route("/")
 def index():
     stunden     = _get_session_stunden()
@@ -63,16 +66,20 @@ def index():
             stunden=stunden, seit=seit, modus=modus,
         )
 
+    n = len(artikel_liste)
     artikel_cols = [
         func.sum(
             case((Buchung.artikel_id == a.id, Buchung.menge), else_=0)
         ).label(f"art_{a.id}")
         for a in artikel_liste
     ]
-    gesamt_col = func.sum(Buchung.menge).label("gesamt")
+    gesamt_menge_col  = func.sum(Buchung.menge).label("gesamt_menge")
+    gesamt_umsatz_col = (func.sum(
+        case((Buchung.gesamtpreis < 0, Buchung.gesamtpreis), else_=0)
+    ) * -1).label("gesamt_umsatz")
 
     rows = (
-        db.session.query(Mitglied, *artikel_cols, gesamt_col)
+        db.session.query(Mitglied, *artikel_cols, gesamt_menge_col, gesamt_umsatz_col)
         .join(Buchung, Buchung.mitglied_id == Mitglied.id)
         .filter(
             Buchung.artikel_id.in_(list(selected_ids)),
@@ -86,8 +93,8 @@ def index():
 
     eintraege = []
     for row in rows:
-        mitglied  = row[0]
-        art_stueck = {a.id: row[i + 1] for i, a in enumerate(artikel_liste)}
+        mitglied   = row[0]
+        art_stueck    = {a.id: row[i + 1] for i, a in enumerate(artikel_liste)}
 
         # Menge-Anzeige: Stück-Artikel → Stückzahl, Volumen-Artikel → Stückzahl × volumen_liter
         art_menge = {}
@@ -99,24 +106,30 @@ def index():
                 art_menge[a.id] = cnt
         gesamt_menge = round(sum(art_menge.values()), 3)
 
-        # Reinalkohol-Anzeige: Stückzahl × reinalkohol_liter × 1000 (mL)
+        # Reinalkohol: Stückzahl × reinalkohol_liter × 1000 (mL)
         art_reinalkohol = {
             a.id: round(art_stueck.get(a.id, 0) * (a.reinalkohol_liter or 0) * 1000, 1)
             for a in artikel_liste
         }
         gesamt_reinalkohol = round(sum(art_reinalkohol.values()), 1)
 
+        # Umsatz aus tatsächlich gebuchten Preisen (Cent)
+        gesamt_umsatz = row[n + 2] or 0
+
         eintraege.append({
-            "mitglied":            mitglied,
-            "art_stueck":          art_stueck,
-            "art_menge":           art_menge,
-            "art_reinalkohol":     art_reinalkohol,
-            "gesamt_menge":        gesamt_menge,
-            "gesamt_reinalkohol":  gesamt_reinalkohol,
+            "mitglied":           mitglied,
+            "art_stueck":         art_stueck,
+            "art_menge":          art_menge,
+            "art_reinalkohol":    art_reinalkohol,
+            "gesamt_menge":       gesamt_menge,
+            "gesamt_reinalkohol": gesamt_reinalkohol,
+            "gesamt_umsatz":      gesamt_umsatz,
         })
 
     if modus == 'reinalkohol':
         eintraege.sort(key=lambda e: e['gesamt_reinalkohol'], reverse=True)
+    elif modus == 'umsatz':
+        eintraege.sort(key=lambda e: e['gesamt_umsatz'], reverse=True)
     else:
         eintraege.sort(key=lambda e: e['gesamt_menge'], reverse=True)
 
@@ -175,10 +188,24 @@ def set_stunden():
 @ranking_bp.route("/config/modus", methods=["POST"])
 def set_modus():
     modus = request.get_json().get("modus", "menge")
-    if modus not in ("menge", "reinalkohol"):
+    if modus not in _VALID_MODI:
         modus = "menge"
     session[_SESSION_MODUS] = modus
     return jsonify({"success": True, "modus": modus})
+
+
+@ranking_bp.route("/config/alle-auswaehlen", methods=["POST"])
+def alle_auswaehlen():
+    session[_SESSION_ARTIKEL] = [
+        a.id for a in Artikel.query.filter_by(aktiv=True).all()
+    ]
+    return redirect(url_for("ranking.config"))
+
+
+@ranking_bp.route("/config/alle-abwaehlen", methods=["POST"])
+def alle_abwaehlen():
+    session[_SESSION_ARTIKEL] = []
+    return redirect(url_for("ranking.config"))
 
 
 @ranking_bp.route("/config/reset", methods=["POST"])
