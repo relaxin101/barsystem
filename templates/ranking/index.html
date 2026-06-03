@@ -89,7 +89,7 @@
               <td class="text-center">{{ e.gesamt_reinalkohol }}</td>
             {% endif %}
             {% if modus == 'umsatz' %}
-              <td class="text-center">{{ "%.2f"|format(e.gesamt_umsatz / 100) }}</td>
+              <td class="text-center">€&nbsp;{{ (e.gesamt_umsatz / 100)|float_format }}</td>
             {% endif %}
             <td class="text-center fw-bold">{{ e.gesamt_menge }}</td>
           </tr>

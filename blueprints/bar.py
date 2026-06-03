@@ -265,8 +265,9 @@ def buchen():
 
         db.session.commit()
 
+        betrag = f"{abs(gesamtpreis / 100):.2f}".replace(".", ",")
         flash(
-            f"Buchung erfolgreich: {gesamtpreis / 100:.2f}€",
+            f"Buchung erfolgreich: € {betrag}",
             "success",
         )
 
