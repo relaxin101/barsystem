@@ -103,7 +103,7 @@
 
                 <div>
                   <span class="fw-semibold">{{ a.name }}</span>
-                  <span class="text-muted ms-2" style="font-size:0.85rem;">{{ (a.preis / 100) | float_format }} €</span>
+                  <span class="text-muted ms-2" style="font-size:0.85rem;">€&nbsp;{{ (a.preis / 100) | float_format }}</span>
 
                   <div class="mt-1">
                     {% if a.typ == 'volumen' %}

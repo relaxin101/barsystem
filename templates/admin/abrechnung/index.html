@@ -81,11 +81,11 @@
             </td>
 
             <td class="text-success">
-              {{ "%.2f"|format(a.summe_eingaenge / 100) }} €
+              €&nbsp;{{ (a.summe_eingaenge / 100)|float_format }}
             </td>
 
             <td class="text-danger">
-              {{ "%.2f"|format(a.summe_ausgaenge / 100) }} €
+              €&nbsp;{{ (a.summe_ausgaenge / 100)|float_format }}
             </td>
 
             <td>

@@ -61,7 +61,7 @@
             <td>{{ a.reihenfolge }}</td>
             <td>{{ a.id }}</td>
             <td>{{ a.name }}</td>
-            <td>{{ "%.2f"|format(a.preis / 100) }} €</td>
+            <td>€&nbsp;{{ (a.preis / 100)|float_format }}</td>
 
             <td>
               {% if a.typ == 'volumen' %}

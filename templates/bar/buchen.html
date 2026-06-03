@@ -6,7 +6,7 @@
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h3 class="mb-0 text-center flex-grow-1">
       {{ mitglied.name }}{% if mitglied.nickname %} ({{ mitglied.nickname }}){% endif %}:
-      <span id="guthaben" class="fw-bold">{{ '%0.2f'|format(mitglied.guthaben/100|float) }} €</span>
+      <span id="guthaben" class="fw-bold">€&nbsp;{{ (mitglied.guthaben/100)|float|float_format }}</span>
     </h3>
     <a href="{{ url_for('bar.bar_interface') }}" class="btn btn-secondary ms-3">
       &larr; Zurück
@@ -43,7 +43,7 @@
             data-artikel-preis="{{ artikel.preis }}"
           >
             {{ artikel.name }}<br>
-            <small>{{ '%0.2f'|format(artikel.preis/100|float) }} €</small>
+            <small>€&nbsp;{{ (artikel.preis/100)|float|float_format }}</small>
           </button>
         </div>
         {% endfor %}
@@ -69,7 +69,7 @@
         <li class="list-group-item d-flex justify-content-between">
           <span> {{ b.zeitstempel.strftime('%d.%m.%Y %H:%M') }}</span>
           <span>{% if b.beschreibung is not none %} {{b.beschreibung}} {%else%} {{ b.menge }} × {{ b.artikel_obj.name }} {% endif %}</span>
-          <span>{{ '%0.2f'|format(b.gesamtpreis/100|float) }} €</span>
+          <span>€&nbsp;{{ (b.gesamtpreis/100)|float|float_format }}</span>
         </li>
         {% else %}
         <li class="list-group-item text-muted">Keine Buchungen vorhanden.</li>
@@ -191,7 +191,7 @@ function renderBestellung() {
 
     const preisSpan = document.createElement("span");
     preisSpan.className = "me-3";
-    preisSpan.innerHTML = `${gesamt.toFixed(2)} €`;
+    preisSpan.innerHTML = `€&nbsp;${gesamt.toFixed(2).replace('.', ',')}`;
     preisSpan.style.flexShrink = "0";
     rightDiv.appendChild(preisSpan);
 
@@ -212,7 +212,7 @@ function renderBestellung() {
 
   const buchenBtn = document.getElementById("buchen-btn");
   if (bestellung.length > 0) {
-    buchenBtn.innerHTML = `<strong>Gesamt ${summe.toFixed(2)} € buchen.</strong>`;
+    buchenBtn.innerHTML = `<strong>Gesamt €&nbsp;${summe.toFixed(2).replace('.', ',')} buchen.</strong>`;
   } else {
     buchenBtn.innerHTML = `<strong>Buchen</strong>`;
   }
