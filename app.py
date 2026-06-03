@@ -1,3 +1,4 @@
+from datetime import datetime
 from flask import Flask
 from models import db, User
 import config
@@ -14,12 +15,13 @@ from logging.config import dictConfig
 
 dictConfig({
     'version': 1,
+    'disable_existing_loggers': False,
     'formatters': {'default': {
         'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
     }},
     'handlers': {'wsgi': {
         'class': 'logging.StreamHandler',
-        'stream': 'ext://flask.logging.wsgi_errors_stream',
+        'stream': 'ext://sys.stderr',
         'formatter': 'default',
     }},
     'root': {
@@ -81,6 +83,7 @@ if __name__ == "__main__":
         func=lambda: auto_aufbuchung_cronjob(app),
         trigger="interval",
         seconds=60,
+        next_run_time=datetime.now(),
     )
     scheduler.start()
 
