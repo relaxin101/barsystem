@@ -6,7 +6,8 @@ from flask_login import LoginManager
 from flask_apscheduler import APScheduler
 from blueprints.auth import auth_bp
 from blueprints.admin import admin_bp
-from blueprints.admin.aussendungen import cronjob
+from blueprints.admin.aussendungen import cronjob as aussendungen_cronjob
+from utils.auto_aufbuchung import cronjob as auto_aufbuchung_cronjob
 from blueprints.bar import bar_bp
 from blueprints.ranking import ranking_bp
 from logging.config import dictConfig
@@ -71,7 +72,13 @@ if __name__ == "__main__":
     scheduler.init_app(app)
     scheduler.add_job(
         id="aussendungen",
-        func=lambda: cronjob(app),
+        func=lambda: aussendungen_cronjob(app),
+        trigger="interval",
+        seconds=60,
+    )
+    scheduler.add_job(
+        id="auto_aufbuchung",
+        func=lambda: auto_aufbuchung_cronjob(app),
         trigger="interval",
         seconds=60,
     )

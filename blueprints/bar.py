@@ -1,9 +1,10 @@
+import os
+
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app, session
 from sqlalchemy import or_, func, text, desc
 from models import db, Mitglied, Artikel, Buchung
 from datetime import datetime, timedelta
-from utils.admin import calc_blacklist
-import os
+from utils.admin import calc_blacklist, suche_mitglied
 
 bar_bp = Blueprint("bar", __name__)
 
@@ -62,20 +63,7 @@ def get_members_api():
     search_term = request.args.get("search", "")  # Suchbegriff aus den URL-Parametern
 
     if search_term:
-        # PostgreSQL text search across name and nickname columns
-        # Using to_tsvector for full-text search
-        members_query = Mitglied.query.filter(
-            text(
-                """
-                aktiv = true and (
-                    to_tsvector( name || ' ' || nickname)  @@  to_tsquery(:search_term) 
-                    or name iLike '%' || :search_term || '%' 
-                    or nickname iLike '%' || :search_term || '%'
-                )
-                """
-            )
-        ).params(search_term=search_term)
-        members = members_query.order_by(Mitglied.name).all()
+        members = suche_mitglied(search_term)
     else:
         members = hotlist()
 
