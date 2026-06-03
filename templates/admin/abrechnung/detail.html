@@ -128,7 +128,7 @@
             </td>
 
             <td>
-              {{ "%.2f"|format(b.gesamtpreis / 100) }} €
+              €&nbsp;{{ (b.gesamtpreis / 100)|float_format }}
             </td>
 
             <td>
@@ -184,11 +184,11 @@
             </td>
 
             <td class="text-success">
-              {{ "%.2f"|format(konto.einzahlungen / 100) }} €
+              €&nbsp;{{ (konto.einzahlungen / 100)|float_format }}
             </td>
 
             <td class="text-danger">
-              {{ "%.2f"|format(konto.konsum / 100) }} €
+              €&nbsp;{{ (konto.konsum / 100)|float_format }}
             </td>
 
           </tr>
@@ -253,7 +253,7 @@
             </td>
 
             <td>
-              {{ "%.2f"|format(b.gesamtpreis / 100) }} €
+              €&nbsp;{{ (b.gesamtpreis / 100)|float_format }}
             </td>
 
             <td>

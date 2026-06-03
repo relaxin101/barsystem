@@ -30,6 +30,12 @@ _guthaben = os.environ.get("MINDEST_GUTHABEN", None)
 MINDEST_GUTHABEN = int(100*float(_guthaben)) if _guthaben else None
 
 
+SCHWAERZUNGS_TEXT = os.environ.get("SCHWAERZUNGS_TEXT", "Du bist geschwärzt!")
+
+# Ranking
+RANKING_DEFAULT_STUNDEN = int(os.environ.get("RANKING_DEFAULT_STUNDEN", 24))
+RANKING_CONFIG_TTL_STUNDEN = int(os.environ.get("RANKING_CONFIG_TTL_STUNDEN", 12))
+
 # Aussendungen specials
 BREVO_SECRET = os.environ.get("BREVO_SECRET")
 BREVO_SENDER_MAIL = os.environ.get("BREVO_SENDER_MAIL")
@@ -47,3 +53,5 @@ AUTO_KONTO_REGEX = os.environ.get("AUTO_KONTO_REGEX")         # Regex → Mitgli
 AUTO_KONTO_GROUP = int(os.environ.get("AUTO_KONTO_GROUP", "1")) # Welche Capture-Group verwenden (default: 1)
 AUTO_BETRAG_REGEX = os.environ.get("AUTO_BETRAG_REGEX")         # Regex → Betrag in €
 AUTO_BETRAG_GROUP = int(os.environ.get("AUTO_BETRAG_GROUP", "1")) # Welche Capture-Group verwenden (default: 1)
+
+DEBUG = os.environ.get("FLASK_DEBUG", "0") == "1"

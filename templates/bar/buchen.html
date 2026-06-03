@@ -6,16 +6,29 @@
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h3 class="mb-0 text-center flex-grow-1">
       {{ mitglied.name }}{% if mitglied.nickname %} ({{ mitglied.nickname }}){% endif %}:
-      <span id="guthaben" class="fw-bold">{{ '%0.2f'|format(mitglied.guthaben/100|float) }} €</span>
+      <span id="guthaben" class="fw-bold">€&nbsp;{{ (mitglied.guthaben/100)|float|float_format }}</span>
     </h3>
     <a href="{{ url_for('bar.bar_interface') }}" class="btn btn-secondary ms-3">
       &larr; Zurück
     </a>
   </div>
 
-  <div class="row">
+  <div class="row align-items-stretch">
     <!-- Linke Seite: Produkte -->
-    <div class="col-md-8">
+    <div class="col-md-8 d-flex flex-column">
+      {% if mitglied.blacklist %}
+      {% if schwaerzungs_bild %}
+      <div class="flex-grow-1 rounded d-flex justify-content-center align-items-center" style="background:#000; padding:5%;">
+        <img src="{{ schwaerzungs_bild }}"
+             alt="{{ schwaerzungs_text }}" style="width:100%; height:100%; object-fit:contain; max-width:600px; max-height:600px;">
+      </div>
+      {% else %}
+      <div class="flex-grow-1 d-flex justify-content-center align-items-center rounded"
+           style="background:#000;">
+        <span class="fw-bold fs-3 text-white text-center px-4">{{ schwaerzungs_text }}</span>
+      </div>
+      {% endif %}
+      {% else %}
       <div class="d-flex justify-content-between align-items-center mb-2">
         <h5>Produkte</h5>
       </div>
@@ -30,37 +43,38 @@
             data-artikel-preis="{{ artikel.preis }}"
           >
             {{ artikel.name }}<br>
-            <small>{{ '%0.2f'|format(artikel.preis/100|float) }} €</small>
+            <small>€&nbsp;{{ (artikel.preis/100)|float|float_format }}</small>
           </button>
         </div>
         {% endfor %}
       </div>
+      {% endif %}
     </div>
 
     <!-- Rechte Seite: Übersicht -->
     <div class="col-md-4 mt-4 mt-md-0">
+      <h5>Aktuelle Bestellung</h5>
+      <button
+        id="buchen-btn"
+        class="btn w-100 mb-3 fs-5 {% if mitglied.blacklist %}btn-secondary{% else %}btn-success{% endif %}"
+        {% if mitglied.blacklist %}disabled{% endif %}
+      >
+    <strong>Buchen</strong>
+  </button>
+      <ul id="bestellung-list" class="list-group mb-3"></ul>
+
       <h5>Letzte Buchungen</h5>
       <ul class="list-group mb-3">
         {% for b in buchungen %}
         <li class="list-group-item d-flex justify-content-between">
           <span> {{ b.zeitstempel.strftime('%d.%m.%Y %H:%M') }}</span>
           <span>{% if b.beschreibung is not none %} {{b.beschreibung}} {%else%} {{ b.menge }} × {{ b.artikel_obj.name }} {% endif %}</span>
-          <span>{{ '%0.2f'|format(b.gesamtpreis/100|float) }} €</span>
+          <span>€&nbsp;{{ (b.gesamtpreis/100)|float|float_format }}</span>
         </li>
         {% else %}
         <li class="list-group-item text-muted">Keine Buchungen vorhanden.</li>
         {% endfor %}
       </ul>
-
-      <h5>Aktuelle Bestellung</h5>
-      <ul id="bestellung-list" class="list-group mb-3"></ul>
-      <button
-        id="buchen-btn"
-        class="btn w-100 {% if mitglied.blacklist %}btn-secondary{% else %}btn-success{% endif %}"
-        {% if mitglied.blacklist %}disabled{% endif %}
-      >
-    Buchen
-  </button>
     </div>
   </div>
 </div>
@@ -177,7 +191,7 @@ function renderBestellung() {
 
     const preisSpan = document.createElement("span");
     preisSpan.className = "me-3";
-    preisSpan.innerHTML = `${gesamt.toFixed(2)} €`;
+    preisSpan.innerHTML = `€&nbsp;${gesamt.toFixed(2).replace('.', ',')}`;
     preisSpan.style.flexShrink = "0";
     rightDiv.appendChild(preisSpan);
 
@@ -196,12 +210,11 @@ function renderBestellung() {
     list.appendChild(li);
   });
 
-  // Gesamt-Summe unten
+  const buchenBtn = document.getElementById("buchen-btn");
   if (bestellung.length > 0) {
-    const sumLi = document.createElement("li");
-    sumLi.className = "list-group-item d-flex justify-content-between fw-bold";
-    sumLi.innerHTML = `<span>Gesamt:</span><span>${summe.toFixed(2)} €</span>`;
-    list.appendChild(sumLi);
+    buchenBtn.innerHTML = `<strong>Gesamt €&nbsp;${summe.toFixed(2).replace('.', ',')} buchen.</strong>`;
+  } else {
+    buchenBtn.innerHTML = `<strong>Buchen</strong>`;
   }
 }
 

@@ -9,7 +9,7 @@ from html.parser import HTMLParser
 
 import config
 from models import Buchung, db
-from utils.admin import calc_blacklist, suche_mitglied
+from utils.admin import calc_blacklist, suche_mitglied, parse_betrag_cents
 
 logger = logging.getLogger(__name__)
 
@@ -77,20 +77,6 @@ def _get_body(msg: email.message.Message) -> str:
             else:
                 plain = text
     return plain or _strip_html(html)
-
-
-def _parse_betrag_cents(raw: str) -> int:
-    """Betrag-String zu Cent konvertieren.
-
-    Unterstützt deutsches Format (1.234,56) und englisches (1,234.56 / 1234.56).
-    """
-    raw = raw.strip()
-    # Deutsches Format: endet auf ,XX
-    if re.search(r",\d{2}$", raw):
-        raw = raw.replace(".", "").replace(",", ".")
-    else:
-        raw = raw.replace(",", "")
-    return round(float(raw) * 100)
 
 
 # ---------------------------------------------------------------------------
@@ -178,7 +164,7 @@ def _handle_message(mail, msg_id, konto_re, betrag_re):
         return
 
     try:
-        betrag_cents = _parse_betrag_cents(betrag_m.group(config.AUTO_BETRAG_GROUP))
+        betrag_cents = parse_betrag_cents(betrag_m.group(config.AUTO_BETRAG_GROUP))
     except IndexError:
         logger.error(
             "Auto-Aufbuchung: AUTO_BETRAG_GROUP=%d existiert nicht im Match — from=%s, subject=%s",

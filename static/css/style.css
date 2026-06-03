@@ -571,6 +571,45 @@ thead.table-light th {
 }
 
 /* ============================================
+   Ranking Podium Rows
+   ============================================ */
+
+tr.ranking-gold {
+    background: linear-gradient(90deg, rgba(200,164,50,0.18) 0%, rgba(200,164,50,0.06) 100%) !important;
+    border-left: 4px solid #C8A432;
+}
+
+tr.ranking-gold td {
+    color: var(--text-dark);
+    font-weight: 600;
+}
+
+tr.ranking-silber {
+    background: linear-gradient(90deg, rgba(155,150,170,0.18) 0%, rgba(155,150,170,0.06) 100%) !important;
+    border-left: 4px solid #9B96AA;
+}
+
+tr.ranking-silber td {
+    color: var(--text-dark);
+    font-weight: 600;
+}
+
+tr.ranking-bronze {
+    background: linear-gradient(90deg, rgba(180,110,60,0.18) 0%, rgba(180,110,60,0.06) 100%) !important;
+    border-left: 4px solid #B46E3C;
+}
+
+tr.ranking-bronze td {
+    color: var(--text-dark);
+    font-weight: 600;
+}
+
+.ranking-rang {
+    font-size: 1.3rem;
+    line-height: 1;
+}
+
+/* ============================================
    Misc
    ============================================ */
 

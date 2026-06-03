@@ -9,6 +9,7 @@ from blueprints.admin import admin_bp
 from blueprints.admin.aussendungen import cronjob as aussendungen_cronjob
 from utils.auto_aufbuchung import cronjob as auto_aufbuchung_cronjob
 from blueprints.bar import bar_bp
+from blueprints.ranking import ranking_bp
 from logging.config import dictConfig
 
 dictConfig({
@@ -22,7 +23,7 @@ dictConfig({
         'formatter': 'default',
     }},
     'root': {
-        'level': 'INFO',
+        'level': "DEBUG" if config.DEBUG else "INFO",
         'handlers': ['wsgi'],
     }
 })
@@ -46,6 +47,7 @@ def load_user(user_id):
 app.register_blueprint(auth_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(bar_bp)
+app.register_blueprint(ranking_bp)
 
 
 @app.template_filter("float_format")
@@ -82,4 +84,4 @@ if __name__ == "__main__":
     )
     scheduler.start()
 
-    app.run(host="0.0.0.0", debug=True)
+    app.run(host="0.0.0.0", debug=config.DEBUG)
