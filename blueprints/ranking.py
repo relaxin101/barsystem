@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request, jsonify, redirect, url_fo
 from sqlalchemy import func, case
 
 import config as app_config
-from models import db, Artikel, Buchung, Mitglied, RankingArtikel, RankingKonfiguration
+from models import db, Artikel, Buchung, Mitglied
 
 ranking_bp = Blueprint("ranking", __name__, url_prefix="/ranking")
 
@@ -23,15 +23,6 @@ def _check_and_expire_config():
         session.pop(_SESSION_ARTIKEL, None)
         session.pop(_SESSION_MODUS,   None)
         session.pop(_SESSION_SET_AT,  None)
-
-
-def _get_db_konfiguration():
-    config = RankingKonfiguration.query.get(1)
-    if config is None:
-        config = RankingKonfiguration(id=1, stunden=24)
-        db.session.add(config)
-        db.session.commit()
-    return config
 
 
 def _get_session_stunden():

@@ -1,7 +1,7 @@
 from flask import Blueprint, flash, render_template, request, jsonify, url_for
 from flask_login import login_required
 
-from models import db, Artikel, RankingArtikel
+from models import db, Artikel
 from utils.admin import handle_excel_import
 
 artikel_bp = Blueprint(
@@ -11,14 +11,6 @@ artikel_bp = Blueprint(
     template_folder="../../templates/admin/artikel",
 )
 DB_FIELDS = ["id", "reihenfolge", "name", "preis", "aktiv"]
-
-
-def _sync_ranking(artikel):
-    """Auto-add to ranking when typ=volumen and reinalkohol_liter > 0."""
-    if artikel.typ == 'volumen' and (artikel.reinalkohol_liter or 0) > 0:
-        exists = RankingArtikel.query.filter_by(artikel_id=artikel.id).first()
-        if not exists:
-            db.session.add(RankingArtikel(artikel_id=artikel.id))
 
 
 @artikel_bp.route("/", methods=["GET"])
@@ -80,7 +72,6 @@ def update_artikel(artikel_id):
         artikel.volumen_liter = None
         artikel.reinalkohol_liter = None
 
-    _sync_ranking(artikel)
     db.session.commit()
     return jsonify({"success": True})
 
@@ -103,7 +94,6 @@ def create():
 
     db.session.add(artikel)
     db.session.flush()  # get artikel.id before commit
-    _sync_ranking(artikel)
     db.session.commit()
 
     return jsonify({"success": True, "artikel_id": artikel.id})
