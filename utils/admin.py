@@ -6,6 +6,7 @@ from flask import request, send_file, flash, redirect
 import pandas as pd
 import numpy as np
 from sqlalchemy import text
+import re
 
 from models import db, Mitglied
 
@@ -74,7 +75,7 @@ def import_excel_to_db(file_stream, model, field_mapping, unique_field=None):
 
     def price_mapper(key, value):
         if "preis" in key and value is not None:
-            return int(round(value * 100, 0))
+            return parse_betrag_cents(value)
         return value
 
     def aktiv_mapper(key, value):
@@ -154,6 +155,21 @@ def suche_mitglied(search_term: str) -> list:
         .order_by(Mitglied.name)
         .all()
     )
+
+def parse_betrag_cents(raw: str) -> int:
+    """Betrag-String zu Cent konvertieren.
+
+    Unterstützt deutsches Format (1.234,56) und englisches (1,234.56 / 1234.56).
+    """
+    raw = raw.strip()
+    # Deutsches Format: endet auf ,XX
+    if re.search(r",\d{2}$", raw):
+        raw = raw.replace(".", "").replace(",", ".")
+    else:
+        raw = raw.replace(",", "")
+    return round(float(raw) * 100)
+
+
 
 
 def calc_blacklist(mitglied: Mitglied, betrag: int) -> bool:
