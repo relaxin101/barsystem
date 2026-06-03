@@ -54,7 +54,6 @@
     <!-- Rechte Seite: Übersicht -->
     <div class="col-md-4 mt-4 mt-md-0">
       <h5>Aktuelle Bestellung</h5>
-      <ul id="bestellung-list" class="list-group mb-3"></ul>
       <button
         id="buchen-btn"
         class="btn w-100 mb-3 fs-5 {% if mitglied.blacklist %}btn-secondary{% else %}btn-success{% endif %}"
@@ -62,6 +61,7 @@
       >
     <strong>Buchen</strong>
   </button>
+      <ul id="bestellung-list" class="list-group mb-3"></ul>
 
       <h5>Letzte Buchungen</h5>
       <ul class="list-group mb-3">
