@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block title %}Ranking – Konfiguration{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width:650px;">
+
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <div class="d-flex align-items-center">
+      <a href="{{ url_for('ranking.index') }}" class="btn btn-sm btn-secondary me-3">← Zurück</a>
+      <h3 class="mb-0">⚙️ Ranking-Konfiguration</h3>
+    </div>
+    <form method="post" action="{{ url_for('ranking.reset_config') }}"
+          onsubmit="return confirm('Konfiguration auf Standardwerte zurücksetzen?');">
+      <button type="submit" class="btn btn-sm btn-danger">↺ Zurücksetzen</button>
+    </form>
+  </div>
+
+  <div class="alert alert-info py-2 mb-4" style="font-size:0.85rem;">
+    Die Konfiguration gilt nur für diese Browser-Sitzung und wird beim Schließen des Browsers automatisch zurückgesetzt.
+  </div>
+
+
+  <!-- Ranking-Modus -->
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white">Ranking-Modus</div>
+    <div class="card-body">
+      <div class="d-flex gap-4">
+        <div class="form-check">
+          <input class="form-check-input modus-radio" type="radio" name="modus" id="modus-menge"
+                 value="menge" {% if modus == 'menge' %}checked{% endif %}>
+          <label class="form-check-label" for="modus-menge">Menge</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input modus-radio" type="radio" name="modus" id="modus-reinalkohol"
+                 value="reinalkohol" {% if modus == 'reinalkohol' %}checked{% endif %}>
+          <label class="form-check-label" for="modus-reinalkohol">Reinalkohol</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input modus-radio" type="radio" name="modus" id="modus-umsatz"
+                 value="umsatz" {% if modus == 'umsatz' %}checked{% endif %}>
+          <label class="form-check-label" for="modus-umsatz">Umsatz</label>
+        </div>
+      </div>
+      <div class="form-text mt-2">
+        {% if modus == 'reinalkohol' %}
+          Ranking nach Reinalkohol (mL) — Volumen-Artikel mit Alkoholgehalt gewichtet.
+        {% elif modus == 'umsatz' %}
+          Ranking nach Umsatz (€) — tatsächlich gebuchte Preise.
+        {% else %}
+          Ranking nach Menge — Stück als Stückzahl, Volumen-Artikel in Liter.
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Zeitfenster -->
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white">Betrachtungszeitraum</div>
+    <div class="card-body">
+      <p class="text-muted mb-3" style="font-size:0.88rem;">
+        Das Ranking zeigt die letzten <strong id="stunden-preview">{{ stunden }}</strong>
+        Stunde{{ 'n' if stunden != 1 else '' }} rollierend.
+      </p>
+      <div class="d-flex align-items-center gap-3">
+        <label class="fw-semibold mb-0" for="stunden-input">Stunden:</label>
+        <input
+          type="number"
+          id="stunden-input"
+          class="form-control"
+          style="width:120px;"
+          min="1"
+          max="8760"
+          value="{{ stunden }}"
+        >
+        <button class="btn btn-primary" id="stunden-save-btn">Speichern</button>
+        <span id="stunden-feedback" class="text-success" style="display:none;">✓ Gespeichert</span>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Artikel-Auswahl -->
+  <div class="card">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+      <span>Artikel im Ranking</span>
+      <div class="d-flex gap-2">
+        <form method="post" action="{{ url_for('ranking.alle_auswaehlen') }}" class="m-0">
+          <button type="submit" class="btn btn-sm btn-light">Alle ✓</button>
+        </form>
+        <form method="post" action="{{ url_for('ranking.alle_abwaehlen') }}" class="m-0">
+          <button type="submit" class="btn btn-sm btn-outline-light">Alle ✗</button>
+        </form>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      {% if not alle_artikel %}
+        <p class="p-3 text-muted mb-0">Keine aktiven Artikel vorhanden.</p>
+      {% else %}
+        <ul class="list-group list-group-flush">
+          {% for a in alle_artikel %}
+            <li class="list-group-item">
+              <div class="d-flex justify-content-between align-items-start">
+
+                <div>
+                  <span class="fw-semibold">{{ a.name }}</span>
+                  <span class="text-muted ms-2" style="font-size:0.85rem;">€&nbsp;{{ (a.preis / 100) | float_format }}</span>
+
+                  <div class="mt-1">
+                    {% if a.typ == 'volumen' %}
+                      <span class="badge bg-primary me-1">Volumen</span>
+                      <span class="text-muted" style="font-size:0.8rem;">
+                        {{ "%.3f"|format(a.volumen_liter or 0.5) }} L
+                        · Alkohol: {{ "%.1f"|format((a.reinalkohol_liter or 0.0) * 1000) }} mL
+                      </span>
+                      {% if not a.reinalkohol_liter or a.reinalkohol_liter == 0 %}
+                        <span class="badge bg-warning ms-1" title="Wird nicht automatisch zum Ranking hinzugefügt">⚠ kein Alkohol</span>
+                      {% endif %}
+                    {% else %}
+                      <span class="badge bg-secondary">Stück</span>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <div class="form-check form-switch mb-0 ms-3 flex-shrink-0">
+                  <input
+                    class="form-check-input artikel-toggle"
+                    type="checkbox"
+                    role="switch"
+                    id="art-{{ a.id }}"
+                    data-artikel-id="{{ a.id }}"
+                    {% if a.id in selected_ids %}checked{% endif %}
+                  >
+                </div>
+
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+// Modus-Radio
+document.querySelectorAll(".modus-radio").forEach(radio => {
+  radio.addEventListener("change", async function () {
+    const res = await fetch("/ranking/config/modus", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ modus: this.value }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      location.reload();
+    }
+  });
+});
+
+// Artikel-Toggle
+document.querySelectorAll(".artikel-toggle").forEach(toggle => {
+  toggle.addEventListener("change", async function () {
+    const artikelId = this.dataset.artikelId;
+    const res = await fetch(`/ranking/config/toggle/${artikelId}`, { method: "POST" });
+    const data = await res.json();
+    if (!data.success) {
+      this.checked = !this.checked;
+      alert("Fehler beim Speichern.");
+    }
+  });
+});
+
+// Stunden speichern
+document.getElementById("stunden-save-btn").addEventListener("click", async () => {
+  const val = parseInt(document.getElementById("stunden-input").value, 10);
+  if (!val || val < 1) { alert("Bitte eine gültige Stundenzahl eingeben."); return; }
+
+  const res = await fetch("/ranking/config/stunden", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ stunden: val }),
+  });
+  const data = await res.json();
+  if (data.success) {
+    document.getElementById("stunden-preview").textContent = val;
+    const fb = document.getElementById("stunden-feedback");
+    fb.style.display = "inline";
+    setTimeout(() => { fb.style.display = "none"; }, 2500);
+  } else {
+    alert("Fehler: " + (data.error || "Unbekannt"));
+  }
+});
+</script>
+{% endblock %}

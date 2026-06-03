@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block content %}
 <div class="container-fluid mt-4 d-flex flex-column" style="height: calc(100vh - 100px);">
   <h3 class="mb-3 text-center flex-shrink-0">Mitglieder suchen oder auswählen</h3>
@@ -51,7 +51,7 @@ async function loadMembers(search = "") {
 
     div.innerHTML = `
       <strong>${displayName}</strong> <small>${member.nickname?.split(",")[0] || ""}</small>
-      <div class="text-white-50 mt-1" style="font-size:0.9rem;">${(member.guthaben/100).toFixed(2)} €</div>
+      <div class="text-white-50 mt-1" style="font-size:0.9rem;">€ ${(member.guthaben/100).toFixed(2).replace('.', ',')}</div>
     `;
 
     div.addEventListener("click", () => {

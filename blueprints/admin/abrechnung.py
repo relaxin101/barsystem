@@ -135,10 +135,10 @@ def detail(abrechnung_id):
     for b in buchungen:
         konto = konten[b.mitglied_id]
         konto["mitglied"] = b.mitglied_obj
-        if b.gesamtpreis < 0:
-            konto["einzahlungen"] += abs(b.gesamtpreis)
+        if b.gesamtpreis > 0:
+            konto["einzahlungen"] += b.gesamtpreis
         else:
-            konto["konsum"] += b.gesamtpreis
+            konto["konsum"] += abs(b.gesamtpreis)
 
     return render_template(
         "admin/abrechnung/detail.html",

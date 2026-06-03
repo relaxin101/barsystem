@@ -48,8 +48,8 @@
           
         <td>{% if b.beschreibung is not none and b.beschreibung != '' %} {{b.beschreibung}} {% else %} {{ b.artikel_obj.name }} {% endif %}</td>
         <td>{{ b.menge }}</td>
-        <td>{{ "%.2f"|format(b.preis_pro_einheit/100) }}</td>
-        <td>{{ "%.2f"|format(b.gesamtpreis/100) }}</td>
+        <td>{{ (b.preis_pro_einheit/100)|float_format }}</td>
+        <td>{{ (b.gesamtpreis/100)|float_format }}</td>
         <td>
           {% if b.abrechnung_obj %}
             <a href="{{ url_for('admin.abrechnung.detail', abrechnung_id=b.abrechnung_obj.id) }}" class="text-decoration-none">

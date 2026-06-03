@@ -43,6 +43,7 @@
             <th>ID</th>
             <th>Name</th>
             <th>Preis</th>
+            <th>Typ</th>
             <th>Aktiv</th>
           </tr>
         </thead>
@@ -59,25 +60,29 @@
 
             <td>{{ a.reihenfolge }}</td>
             <td>{{ a.id }}</td>
-
             <td>{{ a.name }}</td>
-
-            <td>{{ "%.2f"|format(a.preis / 100) }} €</td>
-
-
+            <td>€&nbsp;{{ (a.preis / 100)|float_format }}</td>
 
             <td>
+              {% if a.typ == 'volumen' %}
+                <span class="badge bg-primary">Volumen</span>
+                <span class="text-muted d-block" style="font-size:0.78rem;">
+                  {{ "%.3f"|format(a.volumen_liter or 0.5) }} L
+                  · 🍺 {{ "%.1f"|format((a.reinalkohol_liter or 0.0) * 1000) }} mL
+                </span>
+              {% else %}
+                <span class="badge bg-secondary">Stück</span>
+              {% endif %}
+            </td>
 
+            <td>
               <div class="form-check form-switch">
-
                 <input
                   class="form-check-input aktiv-toggle"
                   type="checkbox"
                   {% if a.aktiv %}checked{% endif %}
                 >
-
               </div>
-
             </td>
 
           </tr>
@@ -107,7 +112,7 @@
 
         <hr>
         <h5 class="mt-3">Spaltenzuordnung</h5>
-        <p class="text-muted">Ordne die Spalten aus deiner Excel-Datei den Datenbankfeldern zu. <br> 
+        <p class="text-muted">Ordne die Spalten aus deiner Excel-Datei den Datenbankfeldern zu. <br>
             Das Feld id wird nur für Updates benötigt. Bei neuen Artikeln wird die id automatisch angelegt
         </p>
 
@@ -213,6 +218,14 @@ document.querySelectorAll(".aktiv-toggle").forEach(toggle => {
         document.getElementById("modal-aktiv").checked =
           artikel.aktiv;
 
+        const isVolumen = artikel.typ === 'volumen';
+        document.getElementById("modal-typ-toggle").checked = isVolumen;
+        document.getElementById("modal-volumen-liter").value =
+          (artikel.volumen_liter || 0.5).toFixed(3);
+        document.getElementById("modal-reinalkohol-ml").value =
+          ((artikel.reinalkohol_liter || 0.0) * 1000).toFixed(1);
+        window.applyArtikelTyp(isVolumen);
+
         document.getElementById("artikelModalLabel").textContent = "Artikel bearbeiten";
         modal.show();
 
@@ -236,6 +249,12 @@ document.querySelectorAll(".aktiv-toggle").forEach(toggle => {
       document.getElementById("modal-reihenfolge").value = "0";
       document.getElementById("modal-aktiv").checked = true;
 
+      // Default: Volumen
+      document.getElementById("modal-typ-toggle").checked = true;
+      document.getElementById("modal-volumen-liter").value = "0.500";
+      document.getElementById("modal-reinalkohol-ml").value = "0.0";
+      window.applyArtikelTyp(true);
+
       modal.show();
 
   });
@@ -258,6 +277,8 @@ document.getElementById("artikel-form").addEventListener("submit", async (e) => 
     ? "POST"
     : "PUT";
 
+  const isVolumen = document.getElementById("modal-typ-toggle").checked;
+
   const payload = {
 
     name: document.getElementById("modal-name").value,
@@ -267,6 +288,18 @@ document.getElementById("artikel-form").addEventListener("submit", async (e) => 
     reihenfolge: document.getElementById("modal-reihenfolge").value,
 
     aktiv: document.getElementById("modal-aktiv").checked,
+
+    typ: isVolumen ? "volumen" : "stueck",
+
+    volumen_liter: isVolumen
+      ? parseFloat(document.getElementById("modal-volumen-liter").value)
+      : null,
+
+    reinalkohol_liter: isVolumen
+      ? parseFloat(document.getElementById("modal-reinalkohol-ml").value) / 1000
+      : null,
+
+    order: document.getElementById("modal-reihenfolge").value,
 
   };
 
