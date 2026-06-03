@@ -211,7 +211,7 @@
     🍺 Barliste
   </a>
 
-  <a href="{{ url_for('ranking.index') }}">
+  <a href="{{ url_for('auth.logout') if current_user.is_authenticated else url_for('ranking.index') }}">
     🏆 Ranking
   </a>
 
