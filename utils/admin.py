@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from flask import request, send_file, flash, redirect
 import pandas as pd
 import numpy as np
+from sqlalchemy import text
 
 from models import db, Mitglied
 
@@ -133,6 +134,26 @@ def handle_excel_import(db_fields, model, redirect_url, unique_field=None):
         flash(f"Fehler beim Import: {e}", "error")
 
     return redirect(redirect_url)
+
+
+def suche_mitglied(search_term: str) -> list:
+    """Durchsucht aktive Mitglieder nach Name und Nickname (PostgreSQL Full-Text + iLike)."""
+    return (
+        Mitglied.query.filter(
+            text(
+                """
+                aktiv = true and (
+                    to_tsvector(name || ' ' || coalesce(nickname, '')) @@ to_tsquery(:search_term)
+                    or name iLike '%' || :search_term || '%'
+                    or nickname iLike '%' || :search_term || '%'
+                )
+                """
+            )
+        )
+        .params(search_term=search_term)
+        .order_by(Mitglied.name)
+        .all()
+    )
 
 
 def calc_blacklist(mitglied: Mitglied, betrag: int) -> bool:

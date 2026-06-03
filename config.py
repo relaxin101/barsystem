@@ -41,3 +41,15 @@ BREVO_SECRET = os.environ.get("BREVO_SECRET")
 BREVO_SENDER_MAIL = os.environ.get("BREVO_SENDER_MAIL")
 BREVO_SENDER_NAME = os.environ.get("BREVO_SENDER_NAME")
 BREVO_TEMPLATE = int(os.environ.get("BREVO_TEMPLATE",0))
+
+# Auto-Aufbuchung via IMAP (alle optional — fehlt IMAP_HOST/USER/PASSWORD, wird der Job übersprungen)
+IMAP_HOST = os.environ.get("IMAP_HOST")
+IMAP_PORT = int(os.environ.get("IMAP_PORT", "993"))
+IMAP_USER = os.environ.get("IMAP_USER")
+IMAP_PASSWORD = os.environ.get("IMAP_PASSWORD")
+AUTO_SENDER = os.environ.get("AUTO_SENDER")           # Absender-Filter (optional)
+AUTO_BETREFF = os.environ.get("AUTO_BETREFF")         # Betreff-Filter (optional, Teilstring)
+AUTO_KONTO_REGEX = os.environ.get("AUTO_KONTO_REGEX")         # Regex → Mitglied-Name oder -E-Mail
+AUTO_KONTO_GROUP = int(os.environ.get("AUTO_KONTO_GROUP", "1")) # Welche Capture-Group verwenden (default: 1)
+AUTO_BETRAG_REGEX = os.environ.get("AUTO_BETRAG_REGEX")         # Regex → Betrag in €
+AUTO_BETRAG_GROUP = int(os.environ.get("AUTO_BETRAG_GROUP", "1")) # Welche Capture-Group verwenden (default: 1)
