@@ -106,7 +106,11 @@ def _process_mailbox():
     mail = imaplib.IMAP4_SSL(config.IMAP_HOST, config.IMAP_PORT)
     try:
         mail.login(config.IMAP_USER, config.IMAP_PASSWORD)
-        mail.select("INBOX")
+        typ, counts = mail.select("INBOX")
+        logger.debug("INBOX select: typ=%s counts=%s", typ, counts)
+
+        _, all_data = mail.search(None, "ALL")
+        logger.debug("ALL search: %s", all_data)
 
         # IMAP-Suchkriterien aufbauen (AND-Semantik)
         parts = ["UNSEEN"]
@@ -114,9 +118,9 @@ def _process_mailbox():
             parts.append(f'FROM "{config.AUTO_SENDER}"')
         if config.AUTO_BETREFF:
             parts.append(f'SUBJECT "{config.AUTO_BETREFF}"')
-        criteria = "(" + " ".join(parts) + ")"
-
-        result, data = mail.search(None, criteria)
+        logger.debug("Suchkriterien: %s", parts)
+        result, data = mail.search(None, *parts)
+        logger.debug("UNSEEN search: result=%s data=%s", result, data)
         if result != "OK" or not data[0]:
             return
 
@@ -125,11 +129,13 @@ def _process_mailbox():
 
         for msg_id in data[0].split():
             _handle_message(mail, msg_id, konto_re, betrag_re)
+    except Exception as e:
+        logger.error(e)
     finally:
         try:
             mail.logout()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(e)
 
 
 def _handle_message(mail, msg_id, konto_re, betrag_re):
