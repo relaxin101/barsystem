@@ -53,3 +53,5 @@ AUTO_KONTO_REGEX = os.environ.get("AUTO_KONTO_REGEX")         # Regex → Mitgli
 AUTO_KONTO_GROUP = int(os.environ.get("AUTO_KONTO_GROUP", "1")) # Welche Capture-Group verwenden (default: 1)
 AUTO_BETRAG_REGEX = os.environ.get("AUTO_BETRAG_REGEX")         # Regex → Betrag in €
 AUTO_BETRAG_GROUP = int(os.environ.get("AUTO_BETRAG_GROUP", "1")) # Welche Capture-Group verwenden (default: 1)
+
+DEBUG = os.environ.get("FLASK_DEBUG", "0") == "1"

@@ -23,7 +23,7 @@ dictConfig({
         'formatter': 'default',
     }},
     'root': {
-        'level': "DEBUG",
+        'level': "DEBUG" if config.DEBUG else "INFO",
         'handlers': ['wsgi'],
     }
 })
@@ -84,4 +84,4 @@ if __name__ == "__main__":
     )
     scheduler.start()
 
-    app.run(host="0.0.0.0", debug=True)
+    app.run(host="0.0.0.0", debug=config.DEBUG)
