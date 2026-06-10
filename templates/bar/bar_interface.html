@@ -11,7 +11,7 @@
   />
 
   <!-- Scrollbarer Grid-Bereich -->
-  <div id="members-grid" class="row g-3 overflow-auto"></div>
+  <div id="members-grid" class="row g-3 overflow-auto flex-grow-1 align-content-start"></div>
 </div>
 
 <script>
@@ -50,8 +50,12 @@ function measureAndStore() {
   const cardH = firstCol.offsetHeight;
   if (!cardW || !cardH) return null;
 
-  const cols = Math.max(1, Math.floor(container.offsetWidth / cardW));
-  const rows = Math.max(1, Math.floor(container.offsetHeight / cardH));
+  // Bootstrap g-3 uses margin-top on each child as the row gap
+  const rowGap = parseFloat(getComputedStyle(firstCol).marginTop) || 0;
+
+  const cols = Math.max(1, Math.round(container.offsetWidth / cardW));
+  // +rowGap in numerator: last row needs no trailing gap
+  const rows = Math.max(1, Math.floor((container.offsetHeight + rowGap) / (cardH + rowGap)));
   const fits = cols * rows;
 
   setTileLimit(fits);
@@ -97,6 +101,19 @@ function buildCard(member) {
   return col;
 }
 
+// non-pinned A→Z first, then pinned Z→A (bottom-right corner)
+function renderMembers(members, container) {
+  const nonPinned = members
+    .filter(m => !m.gepinnt)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const pinned = members
+    .filter(m => m.gepinnt)
+    .sort((a, b) => b.name.localeCompare(a.name));
+
+  container.innerHTML = "";
+  [...nonPinned, ...pinned].forEach(m => container.appendChild(buildCard(m)));
+}
+
 async function loadMembers(search = "") {
   const limit = getTileLimit();
   const params = new URLSearchParams({ search });
@@ -106,30 +123,26 @@ async function loadMembers(search = "") {
   const data = await res.json();
   if (!data.success) return;
 
-  const container = document.getElementById("members-grid");
-  container.innerHTML = "";
-  data.members.forEach(member => container.appendChild(buildCard(member)));
+  renderMembers(data.members, document.getElementById("members-grid"));
 }
 
 async function initialLoad() {
-  // Fetch without limit first so we can measure
-  const res = await fetch("/api/members?search=");
-  const data = await res.json();
-  if (!data.success) return;
+  // Render one invisible probe card to measure tile dimensions before the real fetch
+  const probeRes = await fetch("/api/members?search=&limit=1");
+  const probeData = await probeRes.json();
 
   const container = document.getElementById("members-grid");
-  container.innerHTML = "";
-  data.members.forEach(member => container.appendChild(buildCard(member)));
 
-  // Measure after render, store, then trim to fit
-  requestAnimationFrame(() => {
-    const fits = measureAndStore();
-    if (fits && container.children.length > fits) {
-      while (container.children.length > fits) {
-        container.removeChild(container.lastChild);
-      }
-    }
-  });
+  if (probeData.success && probeData.members.length) {
+    const probe = buildCard(probeData.members[0]);
+    probe.style.visibility = "hidden";
+    container.appendChild(probe);
+    await new Promise(r => requestAnimationFrame(r));
+    measureAndStore();
+    container.innerHTML = "";
+  }
+
+  await loadMembers();
 }
 
 document.getElementById("search").addEventListener("input", e => {
