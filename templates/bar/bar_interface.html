@@ -17,10 +17,17 @@
 <script>
 let searchTimeout = null;
 
-const colors = [
-  "#1b932c", "#0f4c75", "#3282b8", "#1a759f",
-  "#6a2c70", "#b83b5e", "#f08a5d", "#f28482"
-];
+function escapeHtml(str) {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function goToMember(id) {
+  window.location.href = `/bar/buchen?mitglied_id=${id}`;
+}
 
 async function loadMembers(search = "") {
   const res = await fetch(`/api/members?search=${encodeURIComponent(search)}`);
@@ -34,31 +41,40 @@ async function loadMembers(search = "") {
     const col = document.createElement("div");
     col.className = "col-6 col-md-3 col-lg-2 d-flex";
 
-    const div = document.createElement("div");
-    div.className = "text-white rounded member-card d-flex flex-column justify-content-center align-items-center text-center";
-    div.style.cursor = "pointer";
-    div.style.fontSize = "1.3rem";
-    div.style.padding = "0.5rem";
+    // Kachel als fokussierbares, per Tastatur bedienbares Element
+    const card = document.createElement("div");
+    card.className =
+      "member-card tile-c" + (member.id % 8) +
+      (member.blacklist ? " is-blacklist" : "") +
+      " d-flex flex-column justify-content-center align-items-center text-center";
+    card.setAttribute("role", "button");
+    card.setAttribute("tabindex", "0");
 
-    const colorIndex = member.id % colors.length;
-    div.style.backgroundColor = colors[colorIndex];
-     if (member.blacklist) {
-    	div.style.backgroundColor = '#000000';
-     }
+    // Voller Name bleibt im title/aria-label erhalten, auch wenn gekürzt
+    const fullName = member.name + (member.nickname ? ` (${member.nickname})` : "");
+    card.setAttribute("title", fullName);
+    card.setAttribute("aria-label", fullName);
 
     let displayName = member.name;
     if (displayName.length > 12) displayName = displayName.slice(0, 12) + "…";
 
-    div.innerHTML = `
-      <strong>${displayName}</strong> <small>${member.nickname?.split(",")[0] || ""}</small>
-      <div class="text-white-50 mt-1" style="font-size:0.9rem;">€ ${(member.guthaben/100).toFixed(2).replace('.', ',')}</div>
+    const nick = (member.nickname || "").split(",")[0];
+
+    card.innerHTML = `
+      <strong style="font-size:1.3rem;">${escapeHtml(displayName)}</strong>
+      <small>${escapeHtml(nick)}</small>
+      <div class="text-white-50 mt-1" style="font-size:0.9rem;">€ ${(member.guthaben/100).toFixed(2).replace('.', ',')}</div>
     `;
 
-    div.addEventListener("click", () => {
-      window.location.href = `/bar/buchen?mitglied_id=${member.id}`;
+    card.addEventListener("click", () => goToMember(member.id));
+    card.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        goToMember(member.id);
+      }
     });
 
-    col.appendChild(div);
+    col.appendChild(card);
     container.appendChild(col);
   });
 }
@@ -70,12 +86,4 @@ document.getElementById("search").addEventListener("input", e => {
 
 loadMembers();
 </script>
-
-<style>
-.member-card {
-  width: 100%;
-  min-height: 140px;
-  max-height: 200px
-}
-</style>
 {% endblock %}

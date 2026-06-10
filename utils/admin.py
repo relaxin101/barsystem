@@ -15,24 +15,29 @@ from models import db, Mitglied
 # 📄 Hilfsfunktion: Zeitraum ermitteln
 # -------------------------
 def parse_daterange():
-    """Liest start/end-Parameter aus und gibt Datumsobjekte zurück."""
+    """Liest start/end-Parameter aus und gibt datetime-Objekte zurück."""
     start_str = request.args.get("start")
     end_str = request.args.get("end")
 
-    end_date = datetime.now().date()
-    start_date = end_date - timedelta(days=30)
+    now = datetime.now()
+    end_date = now.replace(second=0, microsecond=0)
+    start_date = (end_date - timedelta(days=30)).replace(hour=0, minute=0)
 
-    if start_str:
-        try:
-            start_date = datetime.strptime(start_str, "%Y-%m-%d").date()
-        except ValueError:
-            pass
+    for fmt in ("%Y-%m-%dT%H:%M", "%Y-%m-%d"):
+        if start_str:
+            try:
+                start_date = datetime.strptime(start_str, fmt)
+                break
+            except ValueError:
+                continue
 
-    if end_str:
-        try:
-            end_date = datetime.strptime(end_str, "%Y-%m-%d").date()
-        except ValueError:
-            pass
+    for fmt in ("%Y-%m-%dT%H:%M", "%Y-%m-%d"):
+        if end_str:
+            try:
+                end_date = datetime.strptime(end_str, fmt)
+                break
+            except ValueError:
+                continue
 
     return start_date, end_date
 
