@@ -142,9 +142,9 @@ def handle_excel_import(db_fields, model, redirect_url, unique_field=None):
     return redirect(redirect_url)
 
 
-def suche_mitglied(search_term: str) -> list:
+def suche_mitglied(search_term: str, limit: int = None) -> list:
     """Durchsucht aktive Mitglieder nach Name und Nickname (PostgreSQL Full-Text + iLike)."""
-    return (
+    q = (
         Mitglied.query.filter(
             text(
                 """
@@ -158,8 +158,10 @@ def suche_mitglied(search_term: str) -> list:
         )
         .params(search_term=search_term)
         .order_by(Mitglied.name)
-        .all()
     )
+    if limit is not None:
+        q = q.limit(limit)
+    return q.all()
 
 def parse_betrag_cents(raw: str) -> int:
     """Betrag-String zu Cent konvertieren.
