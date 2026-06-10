@@ -15,24 +15,29 @@ from models import db, Mitglied
 # 📄 Hilfsfunktion: Zeitraum ermitteln
 # -------------------------
 def parse_daterange():
-    """Liest start/end-Parameter aus und gibt Datumsobjekte zurück."""
+    """Liest start/end-Parameter aus und gibt datetime-Objekte zurück."""
     start_str = request.args.get("start")
     end_str = request.args.get("end")
 
-    end_date = datetime.now().date()
-    start_date = end_date - timedelta(days=30)
+    now = datetime.now()
+    end_date = now.replace(second=0, microsecond=0)
+    start_date = (end_date - timedelta(days=30)).replace(hour=0, minute=0)
 
-    if start_str:
-        try:
-            start_date = datetime.strptime(start_str, "%Y-%m-%d").date()
-        except ValueError:
-            pass
+    for fmt in ("%Y-%m-%dT%H:%M", "%Y-%m-%d"):
+        if start_str:
+            try:
+                start_date = datetime.strptime(start_str, fmt)
+                break
+            except ValueError:
+                continue
 
-    if end_str:
-        try:
-            end_date = datetime.strptime(end_str, "%Y-%m-%d").date()
-        except ValueError:
-            pass
+    for fmt in ("%Y-%m-%dT%H:%M", "%Y-%m-%d"):
+        if end_str:
+            try:
+                end_date = datetime.strptime(end_str, fmt)
+                break
+            except ValueError:
+                continue
 
     return start_date, end_date
 
@@ -117,6 +122,14 @@ def import_excel_to_db(file_stream, model, field_mapping, unique_field=None):
 
     db.session.commit()
 
+    # Sequenz nach Import zurücksetzen (nötig wenn IDs explizit gesetzt wurden)
+    table = model.__tablename__
+    db.session.execute(text(
+        f"SELECT setval(pg_get_serial_sequence('{table}', 'id'), "
+        f"COALESCE((SELECT MAX(id)+1 FROM \"{table}\"), 1))"
+    ))
+    db.session.commit()
+
 
 def handle_excel_import(db_fields, model, redirect_url, unique_field=None):
     """Zentrale Logik für den Excel-Import."""
@@ -137,9 +150,9 @@ def handle_excel_import(db_fields, model, redirect_url, unique_field=None):
     return redirect(redirect_url)
 
 
-def suche_mitglied(search_term: str) -> list:
+def suche_mitglied(search_term: str, limit: int = None) -> list:
     """Durchsucht aktive Mitglieder nach Name und Nickname (PostgreSQL Full-Text + iLike)."""
-    return (
+    q = (
         Mitglied.query.filter(
             text(
                 """
@@ -153,8 +166,10 @@ def suche_mitglied(search_term: str) -> list:
         )
         .params(search_term=search_term)
         .order_by(Mitglied.name)
-        .all()
     )
+    if limit is not None:
+        q = q.limit(limit)
+    return q.all()
 
 def parse_betrag_cents(raw: str) -> int:
     """Betrag-String zu Cent konvertieren.
