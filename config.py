@@ -19,7 +19,7 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 # Ein geheimer Schlüssel für Flask-Sitzungen und Sicherheitsfunktionen.
 # Ändere diesen Wert in der echten Anwendung zu einem langen, zufälligen String!
-SECRET_KEY = os.environ.get("SECRET_KEY", "asdfasdfasdfasdf")
+SECRET_KEY = os.environ.get("FLASK_SECRET_KEY", "asdfasdfasdfasdf")
 
 # --- Admin Zugang für Flask-Login (für den Admin-Bereich) ---
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
