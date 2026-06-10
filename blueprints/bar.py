@@ -9,7 +9,7 @@ from utils.admin import calc_blacklist, suche_mitglied
 bar_bp = Blueprint("bar", __name__)
 
 
-def hotlist():
+def hotlist(limit: int = None):
     since = datetime.now() - timedelta(days=14)
 
     gepinnte = (
@@ -21,15 +21,20 @@ def hotlist():
 
     gepinnte_ids = {m.id for m in gepinnte}
 
-    aktive = (
+    aktive_query = (
         db.session.query(Mitglied)
         .filter(Mitglied.aktiv == True, Mitglied.gepinnt == False)
         .join(Buchung, Buchung.mitglied_id == Mitglied.id)
         .filter(Buchung.zeitstempel >= since, Buchung.storno == False)
         .distinct()
         .order_by(Mitglied.name)
-        .all()
     )
+
+    if limit is not None:
+        remaining = max(0, limit - len(gepinnte))
+        aktive = aktive_query.limit(remaining).all()
+    else:
+        aktive = aktive_query.all()
 
     return gepinnte + aktive
 
@@ -60,12 +65,13 @@ def bar_interface():
 
 @bar_bp.route("/api/members", methods=["GET"])
 def get_members_api():
-    search_term = request.args.get("search", "")  # Suchbegriff aus den URL-Parametern
+    search_term = request.args.get("search", "")
+    limit = request.args.get("limit", type=int)
 
     if search_term:
-        members = suche_mitglied(search_term)
+        members = suche_mitglied(search_term, limit=limit)
     else:
-        members = hotlist()
+        members = hotlist(limit=limit)
 
     return jsonify(
         {

@@ -16,6 +16,8 @@
 
 <script>
 let searchTimeout = null;
+let resizeTimeout = null;
+const COOKIE_NAME = "tile_limit";
 
 function escapeHtml(str) {
   return String(str ?? "")
@@ -29,53 +31,104 @@ function goToMember(id) {
   window.location.href = `/bar/buchen?mitglied_id=${id}`;
 }
 
+function getTileLimit() {
+  const match = document.cookie.match(/(?:^|;\s*)tile_limit=(\d+)/);
+  return match ? parseInt(match[1], 10) : null;
+}
+
+function setTileLimit(n) {
+  const maxAge = 365 * 24 * 60 * 60;
+  document.cookie = `${COOKIE_NAME}=${n}; path=/; max-age=${maxAge}`;
+}
+
+function measureAndStore() {
+  const container = document.getElementById("members-grid");
+  const firstCol = container.querySelector(".col-6");
+  if (!firstCol) return null;
+
+  const cardW = firstCol.offsetWidth;
+  const cardH = firstCol.offsetHeight;
+  if (!cardW || !cardH) return null;
+
+  const cols = Math.max(1, Math.floor(container.offsetWidth / cardW));
+  const rows = Math.max(1, Math.floor(container.offsetHeight / cardH));
+  const fits = cols * rows;
+
+  setTileLimit(fits);
+  return fits;
+}
+
+function buildCard(member) {
+  const col = document.createElement("div");
+  col.className = "col-6 col-md-3 col-lg-2 d-flex";
+
+  const card = document.createElement("div");
+  card.className =
+    "member-card tile-c" + (member.id % 8) +
+    (member.blacklist ? " is-blacklist" : "") +
+    " d-flex flex-column justify-content-center align-items-center text-center";
+  card.setAttribute("role", "button");
+  card.setAttribute("tabindex", "0");
+
+  const fullName = member.name + (member.nickname ? ` (${member.nickname})` : "");
+  card.setAttribute("title", fullName);
+  card.setAttribute("aria-label", fullName);
+
+  let displayName = member.name;
+  if (displayName.length > 12) displayName = displayName.slice(0, 12) + "…";
+
+  const nick = (member.nickname || "").split(",")[0];
+
+  card.innerHTML = `
+    <strong style="font-size:1.3rem;">${escapeHtml(displayName)}</strong>
+    <small>${escapeHtml(nick)}</small>
+    <div class="text-white-50 mt-1" style="font-size:0.9rem;">€ ${(member.guthaben/100).toFixed(2).replace('.', ',')}</div>
+  `;
+
+  card.addEventListener("click", () => goToMember(member.id));
+  card.addEventListener("keydown", e => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      goToMember(member.id);
+    }
+  });
+
+  col.appendChild(card);
+  return col;
+}
+
 async function loadMembers(search = "") {
-  const res = await fetch(`/api/members?search=${encodeURIComponent(search)}`);
+  const limit = getTileLimit();
+  const params = new URLSearchParams({ search });
+  if (limit) params.set("limit", limit);
+
+  const res = await fetch(`/api/members?${params}`);
   const data = await res.json();
   if (!data.success) return;
 
   const container = document.getElementById("members-grid");
   container.innerHTML = "";
+  data.members.forEach(member => container.appendChild(buildCard(member)));
+}
 
-  data.members.forEach(member => {
-    const col = document.createElement("div");
-    col.className = "col-6 col-md-3 col-lg-2 d-flex";
+async function initialLoad() {
+  // Fetch without limit first so we can measure
+  const res = await fetch("/api/members?search=");
+  const data = await res.json();
+  if (!data.success) return;
 
-    // Kachel als fokussierbares, per Tastatur bedienbares Element
-    const card = document.createElement("div");
-    card.className =
-      "member-card tile-c" + (member.id % 8) +
-      (member.blacklist ? " is-blacklist" : "") +
-      " d-flex flex-column justify-content-center align-items-center text-center";
-    card.setAttribute("role", "button");
-    card.setAttribute("tabindex", "0");
+  const container = document.getElementById("members-grid");
+  container.innerHTML = "";
+  data.members.forEach(member => container.appendChild(buildCard(member)));
 
-    // Voller Name bleibt im title/aria-label erhalten, auch wenn gekürzt
-    const fullName = member.name + (member.nickname ? ` (${member.nickname})` : "");
-    card.setAttribute("title", fullName);
-    card.setAttribute("aria-label", fullName);
-
-    let displayName = member.name;
-    if (displayName.length > 12) displayName = displayName.slice(0, 12) + "…";
-
-    const nick = (member.nickname || "").split(",")[0];
-
-    card.innerHTML = `
-      <strong style="font-size:1.3rem;">${escapeHtml(displayName)}</strong>
-      <small>${escapeHtml(nick)}</small>
-      <div class="text-white-50 mt-1" style="font-size:0.9rem;">€ ${(member.guthaben/100).toFixed(2).replace('.', ',')}</div>
-    `;
-
-    card.addEventListener("click", () => goToMember(member.id));
-    card.addEventListener("keydown", e => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        goToMember(member.id);
+  // Measure after render, store, then trim to fit
+  requestAnimationFrame(() => {
+    const fits = measureAndStore();
+    if (fits && container.children.length > fits) {
+      while (container.children.length > fits) {
+        container.removeChild(container.lastChild);
       }
-    });
-
-    col.appendChild(card);
-    container.appendChild(col);
+    }
   });
 }
 
@@ -84,6 +137,18 @@ document.getElementById("search").addEventListener("input", e => {
   searchTimeout = setTimeout(() => loadMembers(e.target.value), 400);
 });
 
-loadMembers();
+window.addEventListener("resize", () => {
+  clearTimeout(resizeTimeout);
+  resizeTimeout = setTimeout(() => {
+    const fits = measureAndStore();
+    if (fits) loadMembers(document.getElementById("search").value);
+  }, 300);
+});
+
+if (getTileLimit()) {
+  loadMembers();
+} else {
+  initialLoad();
+}
 </script>
 {% endblock %}
