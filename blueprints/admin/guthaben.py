@@ -97,6 +97,8 @@ def aufbuchung(mitglied_id):
     data = request.get_json()
     betrag = data.get("betrag")
     beschreibung = data.get("beschreibung")
+    if beschreibung is None or len(beschreibung) < 3:
+        return jsonify({"success": False, "message": "Beschreibung fehlt oder ist zu kurz"}), 400
 
     if betrag is None:
         return jsonify({"success": False, "message": "Betrag fehlt"}), 400

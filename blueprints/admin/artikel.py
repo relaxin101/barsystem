@@ -93,7 +93,6 @@ def create():
     )
 
     db.session.add(artikel)
-    db.session.flush()  # get artikel.id before commit
     db.session.commit()
 
     return jsonify({"success": True, "artikel_id": artikel.id})

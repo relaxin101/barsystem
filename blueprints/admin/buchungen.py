@@ -1,6 +1,6 @@
 """Buchungen blueprint for admin panel"""
 
-from datetime import timedelta
+from datetime import datetime
 
 from flask import Blueprint, render_template, request, flash, jsonify
 from flask_login import login_required
@@ -9,7 +9,6 @@ import pandas as pd
 
 from models import db, Buchung
 from utils.admin import export_df_to_excel, parse_daterange, calc_blacklist
-from datetime import datetime
 
 buchungen_bp = Blueprint("buchungen", __name__, url_prefix="/buchungen")
 
@@ -26,7 +25,7 @@ def history():
     query = (
         Buchung.query.join(Buchung.mitglied_obj)
         .outerjoin(Buchung.artikel_obj)
-        .filter(Buchung.zeitstempel.between(start_date, end_date + timedelta(days=1)))
+        .filter(Buchung.zeitstempel.between(start_date, end_date))
         .order_by(desc(Buchung.zeitstempel))
     )
 
@@ -37,8 +36,8 @@ def history():
         "admin/buchungshistorie.html",
         buchungen=buchungen,
         pagination=pagination,
-        start_date=start_date,
-        end_date=end_date,
+        start_date=start_date.strftime("%Y-%m-%dT%H:%M"),
+        end_date=end_date.strftime("%Y-%m-%dT%H:%M"),
     )
 
 
@@ -80,7 +79,7 @@ def download():
     buchungen = (
         Buchung.query.join(Buchung.mitglied_obj)
         .outerjoin(Buchung.artikel_obj)
-        .filter(Buchung.zeitstempel.between(start_date, end_date + timedelta(days=1)))
+        .filter(Buchung.zeitstempel.between(start_date, end_date))
         .order_by(desc(Buchung.zeitstempel))
         .all()
     )

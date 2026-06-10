@@ -18,6 +18,17 @@
     --text-light: #F7F5FC;
     --text-muted: #7A7490;
 
+        /* Mitglieds-Kacheln (Barliste) — fliederbasierte, harmonische Palette.
+       Alle Töne sind dunkel genug für weiße Schrift (Kontrast >= 4.5:1). */
+    --tile-1: #5A4A8C;
+    --tile-2: #6B5B9E;
+    --tile-3: #574A85;
+    --tile-4: #7A5694;
+    --tile-5: #8A4F86;
+    --tile-6: #4E4377;
+    --tile-7: #6E4D8A;
+    --tile-8: #855B9E;
+
     /* Bootstrap Overrides */
     --bs-primary: #6B5B9E;
     --bs-primary-rgb: 107, 91, 158;
@@ -517,22 +528,51 @@ thead.table-light th {
 }
 
 /* ============================================
-   Member Cards (bar_interface)
+   Member Cards (bar_interface)  (PATCH)
+   ----------------------------------------------------------
+   - Fliederbasierte Kachelpalette über .tile-c0 … .tile-c7
+     (Farben themeable via :root, nicht mehr hartkodiert im JS)
+   - Tastatur-Fokus sichtbar (:focus-visible)
+   - Blacklist behält schwarze Kachel
    ============================================ */
-
+ 
 .member-card {
     width: 100%;
     min-height: 140px;
     max-height: 200px;
+    padding: 0.5rem;
+    border: 0;
     border-radius: 12px !important;
+    cursor: pointer;
+    color: #fff;
     transition: transform 0.15s ease, box-shadow 0.15s ease;
     box-shadow: 0 2px 8px rgba(0,0,0,0.10);
 }
-
+ 
 .member-card:hover {
     transform: translateY(-3px);
     box-shadow: 0 8px 20px rgba(107, 91, 158, 0.25) !important;
 }
+ 
+.member-card:focus-visible {
+    outline: 3px solid var(--primary-accent);
+    outline-offset: 2px;
+}
+ 
+/* Kachel-Farben (modulo 8, passend zum bisherigen Verhalten) */
+.member-card.tile-c0 { background-color: var(--tile-1); }
+.member-card.tile-c1 { background-color: var(--tile-2); }
+.member-card.tile-c2 { background-color: var(--tile-3); }
+.member-card.tile-c3 { background-color: var(--tile-4); }
+.member-card.tile-c4 { background-color: var(--tile-5); }
+.member-card.tile-c5 { background-color: var(--tile-6); }
+.member-card.tile-c6 { background-color: var(--tile-7); }
+.member-card.tile-c7 { background-color: var(--tile-8); }
+ 
+.member-card.is-blacklist {
+    background-color: #000 !important;
+}
+
 
 /* ============================================
    Modal

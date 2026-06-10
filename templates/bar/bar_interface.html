@@ -11,56 +11,138 @@
   />
 
   <!-- Scrollbarer Grid-Bereich -->
-  <div id="members-grid" class="row g-3 overflow-auto"></div>
+  <div id="members-grid" class="row g-3 overflow-auto flex-grow-1 align-content-start"></div>
 </div>
 
 <script>
 let searchTimeout = null;
+let resizeTimeout = null;
+const COOKIE_NAME = "tile_limit";
 
-const colors = [
-  "#1b932c", "#0f4c75", "#3282b8", "#1a759f",
-  "#6a2c70", "#b83b5e", "#f08a5d", "#f28482"
-];
+function escapeHtml(str) {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function goToMember(id) {
+  window.location.href = `/bar/buchen?mitglied_id=${id}`;
+}
+
+function getTileLimit() {
+  const match = document.cookie.match(/(?:^|;\s*)tile_limit=(\d+)/);
+  return match ? parseInt(match[1], 10) : null;
+}
+
+function setTileLimit(n) {
+  const maxAge = 365 * 24 * 60 * 60;
+  document.cookie = `${COOKIE_NAME}=${n}; path=/; max-age=${maxAge}`;
+}
+
+function measureAndStore() {
+  const container = document.getElementById("members-grid");
+  const firstCol = container.querySelector(".col-6");
+  if (!firstCol) return null;
+
+  const cardW = firstCol.offsetWidth;
+  const cardH = firstCol.offsetHeight;
+  if (!cardW || !cardH) return null;
+
+  // Bootstrap g-3 uses margin-top on each child as the row gap
+  const rowGap = parseFloat(getComputedStyle(firstCol).marginTop) || 0;
+
+  const cols = Math.max(1, Math.round(container.offsetWidth / cardW));
+  // +rowGap in numerator: last row needs no trailing gap
+  const rows = Math.max(1, Math.floor((container.offsetHeight + rowGap) / (cardH + rowGap)));
+  const fits = cols * rows;
+
+  setTileLimit(fits);
+  return fits;
+}
+
+function buildCard(member) {
+  const col = document.createElement("div");
+  col.className = "col-6 col-md-3 col-lg-2 d-flex";
+
+  const card = document.createElement("div");
+  card.className =
+    "member-card tile-c" + (member.id % 8) +
+    (member.blacklist ? " is-blacklist" : "") +
+    " d-flex flex-column justify-content-center align-items-center text-center";
+  card.setAttribute("role", "button");
+  card.setAttribute("tabindex", "0");
+
+  const fullName = member.name + (member.nickname ? ` (${member.nickname})` : "");
+  card.setAttribute("title", fullName);
+  card.setAttribute("aria-label", fullName);
+
+  let displayName = member.name;
+  if (displayName.length > 12) displayName = displayName.slice(0, 12) + "…";
+
+  const nick = (member.nickname || "").split(",")[0];
+
+  card.innerHTML = `
+    <strong style="font-size:1.3rem;">${escapeHtml(displayName)}</strong>
+    <small>${escapeHtml(nick)}</small>
+    <div class="text-white-50 mt-1" style="font-size:0.9rem;">€ ${(member.guthaben/100).toFixed(2).replace('.', ',')}</div>
+  `;
+
+  card.addEventListener("click", () => goToMember(member.id));
+  card.addEventListener("keydown", e => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      goToMember(member.id);
+    }
+  });
+
+  col.appendChild(card);
+  return col;
+}
+
+// non-pinned A→Z first, then pinned Z→A (bottom-right corner)
+function renderMembers(members, container) {
+  const nonPinned = members
+    .filter(m => !m.gepinnt)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const pinned = members
+    .filter(m => m.gepinnt)
+    .sort((a, b) => b.name.localeCompare(a.name));
+
+  container.innerHTML = "";
+  [...nonPinned, ...pinned].forEach(m => container.appendChild(buildCard(m)));
+}
 
 async function loadMembers(search = "") {
-  const res = await fetch(`/api/members?search=${encodeURIComponent(search)}`);
+  const limit = getTileLimit();
+  const params = new URLSearchParams({ search });
+  if (limit) params.set("limit", limit);
+
+  const res = await fetch(`/api/members?${params}`);
   const data = await res.json();
   if (!data.success) return;
 
+  renderMembers(data.members, document.getElementById("members-grid"));
+}
+
+async function initialLoad() {
+  // Render one invisible probe card to measure tile dimensions before the real fetch
+  const probeRes = await fetch("/api/members?search=&limit=1");
+  const probeData = await probeRes.json();
+
   const container = document.getElementById("members-grid");
-  container.innerHTML = "";
 
-  data.members.forEach(member => {
-    const col = document.createElement("div");
-    col.className = "col-6 col-md-3 col-lg-2 d-flex";
+  if (probeData.success && probeData.members.length) {
+    const probe = buildCard(probeData.members[0]);
+    probe.style.visibility = "hidden";
+    container.appendChild(probe);
+    await new Promise(r => requestAnimationFrame(r));
+    measureAndStore();
+    container.innerHTML = "";
+  }
 
-    const div = document.createElement("div");
-    div.className = "text-white rounded member-card d-flex flex-column justify-content-center align-items-center text-center";
-    div.style.cursor = "pointer";
-    div.style.fontSize = "1.3rem";
-    div.style.padding = "0.5rem";
-
-    const colorIndex = member.id % colors.length;
-    div.style.backgroundColor = colors[colorIndex];
-     if (member.blacklist) {
-    	div.style.backgroundColor = '#000000';
-     }
-
-    let displayName = member.name;
-    if (displayName.length > 12) displayName = displayName.slice(0, 12) + "…";
-
-    div.innerHTML = `
-      <strong>${displayName}</strong> <small>${member.nickname?.split(",")[0] || ""}</small>
-      <div class="text-white-50 mt-1" style="font-size:0.9rem;">€ ${(member.guthaben/100).toFixed(2).replace('.', ',')}</div>
-    `;
-
-    div.addEventListener("click", () => {
-      window.location.href = `/bar/buchen?mitglied_id=${member.id}`;
-    });
-
-    col.appendChild(div);
-    container.appendChild(col);
-  });
+  await loadMembers();
 }
 
 document.getElementById("search").addEventListener("input", e => {
@@ -68,14 +150,18 @@ document.getElementById("search").addEventListener("input", e => {
   searchTimeout = setTimeout(() => loadMembers(e.target.value), 400);
 });
 
-loadMembers();
-</script>
+window.addEventListener("resize", () => {
+  clearTimeout(resizeTimeout);
+  resizeTimeout = setTimeout(() => {
+    const fits = measureAndStore();
+    if (fits) loadMembers(document.getElementById("search").value);
+  }, 300);
+});
 
-<style>
-.member-card {
-  width: 100%;
-  min-height: 140px;
-  max-height: 200px
+if (getTileLimit()) {
+  loadMembers();
+} else {
+  initialLoad();
 }
-</style>
+</script>
 {% endblock %}
