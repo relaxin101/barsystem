@@ -122,6 +122,14 @@ def import_excel_to_db(file_stream, model, field_mapping, unique_field=None):
 
     db.session.commit()
 
+    # Sequenz nach Import zurücksetzen (nötig wenn IDs explizit gesetzt wurden)
+    table = model.__tablename__
+    db.session.execute(text(
+        f"SELECT setval(pg_get_serial_sequence('{table}', 'id'), "
+        f"COALESCE((SELECT MAX(id)+1 FROM \"{table}\"), 1))"
+    ))
+    db.session.commit()
+
 
 def handle_excel_import(db_fields, model, redirect_url, unique_field=None):
     """Zentrale Logik für den Excel-Import."""

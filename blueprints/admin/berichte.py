@@ -193,6 +193,12 @@ def db_restore():
                     db.session.add(model(**row_data))
                     inserted += 1
 
+                # Sequenz nach Import zurücksetzen (nötig wenn IDs explizit gesetzt wurden)
+                table = model.__tablename__
+                db.session.execute(text(
+                    f"SELECT setval(pg_get_serial_sequence('{table}', 'id'), "
+                    f"COALESCE((SELECT MAX(id)+1 FROM \"{table}\"), 1))"
+                ))
                 db.session.commit()
                 summary.append(f"{name}: {inserted} eingefügt, {skipped} übersprungen")
 
