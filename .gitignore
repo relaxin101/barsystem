@@ -284,12 +284,7 @@ pip-selfcheck.json
 .vscode/settings.json
 useringest1.xlsx
 produkte.xlsx
-static/schwaerzung/1000069505.jpg
-static/schwaerzung/1000069506.jpg
-static/schwaerzung/1000069507.jpg
-static/schwaerzung/1000069508.jpg
-static/schwaerzung/1000069509.jpg
-static/schwaerzung/1000069511.jpg
+static/schwaerzung/*
 .gitignore
 docker-compose.yml
 static/img/logo.png
