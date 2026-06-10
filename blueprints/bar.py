@@ -10,33 +10,98 @@ bar_bp = Blueprint("bar", __name__)
 
 
 def hotlist(limit: int = None):
-    since = datetime.now() - timedelta(days=14)
+    from flask import current_app
+    hotlist_days = current_app.config.get("HOTLIST_DAYS", 14)
+    since = datetime.now() - timedelta(days=hotlist_days)
 
-    gepinnte = (
+    # Bucket 1: pinned, sorted A→Z — always included
+    pinned = (
         Mitglied.query
         .filter(Mitglied.aktiv == True, Mitglied.gepinnt == True)
         .order_by(Mitglied.name)
         .all()
     )
+    pinned_ids = {m.id for m in pinned}
 
-    gepinnte_ids = {m.id for m in gepinnte}
+    remaining = (limit - len(pinned)) if limit is not None else None
+    if remaining is not None and remaining <= 0:
+        return pinned
 
-    aktive_query = (
+    # Bucket 2: most consumed last HOTLIST_DAYS days, sorted by sum desc then alph
+    recent_filters = [
+        Mitglied.aktiv == True,
+        Mitglied.gepinnt == False,
+        Buchung.zeitstempel >= since,
+        Buchung.storno == False,
+        Buchung.gesamtpreis < 0,
+    ]
+    if pinned_ids:
+        recent_filters.append(~Mitglied.id.in_(pinned_ids))
+
+    recent_q = (
         db.session.query(Mitglied)
-        .filter(Mitglied.aktiv == True, Mitglied.gepinnt == False)
         .join(Buchung, Buchung.mitglied_id == Mitglied.id)
-        .filter(Buchung.zeitstempel >= since, Buchung.storno == False)
-        .distinct()
+        .filter(*recent_filters)
+        .group_by(Mitglied.id)
+        .order_by(func.sum(Buchung.gesamtpreis).asc(), Mitglied.name)
+    )
+    if remaining is not None:
+        recent_q = recent_q.limit(remaining)
+    recent = recent_q.all()
+    recent_ids = {m.id for m in recent}
+
+    if remaining is not None:
+        remaining -= len(recent)
+        if remaining <= 0:
+            return pinned + recent
+
+    # Bucket 3: most consumed all-time, sorted by sum desc then alph
+    exclude_b3 = pinned_ids | recent_ids
+    alltime_filters = [
+        Mitglied.aktiv == True,
+        Mitglied.gepinnt == False,
+        Buchung.storno == False,
+        Buchung.gesamtpreis < 0,
+    ]
+    if exclude_b3:
+        alltime_filters.append(~Mitglied.id.in_(exclude_b3))
+
+    alltime_q = (
+        db.session.query(Mitglied)
+        .join(Buchung, Buchung.mitglied_id == Mitglied.id)
+        .filter(*alltime_filters)
+        .group_by(Mitglied.id)
+        .order_by(func.sum(Buchung.gesamtpreis).asc(), Mitglied.name)
+    )
+    if remaining is not None:
+        alltime_q = alltime_q.limit(remaining)
+    alltime = alltime_q.all()
+    alltime_ids = {m.id for m in alltime}
+
+    if remaining is not None:
+        remaining -= len(alltime)
+        if remaining <= 0:
+            return pinned + recent + alltime
+
+    # Bucket 4: all remaining active non-pinned, sorted A→Z
+    exclude_b4 = pinned_ids | recent_ids | alltime_ids
+    alpha_filters = [
+        Mitglied.aktiv == True,
+        Mitglied.gepinnt == False,
+    ]
+    if exclude_b4:
+        alpha_filters.append(~Mitglied.id.in_(exclude_b4))
+
+    alpha_q = (
+        Mitglied.query
+        .filter(*alpha_filters)
         .order_by(Mitglied.name)
     )
+    if remaining is not None:
+        alpha_q = alpha_q.limit(remaining)
+    alpha = alpha_q.all()
 
-    if limit is not None:
-        remaining = max(0, limit - len(gepinnte))
-        aktive = aktive_query.limit(remaining).all()
-    else:
-        aktive = aktive_query.all()
-
-    return gepinnte + aktive
+    return pinned + recent + alltime + alpha
 
 
 @bar_bp.route("/", methods=["GET", "POST"])
@@ -84,7 +149,7 @@ def get_members_api():
                         "nickname": member.nickname,
                         "guthaben": member.guthaben,
                         "blacklist": member.blacklist,
-                        # Füge hier alle weiteren Daten hinzu, die du im Frontend benötigst
+                        "gepinnt": member.gepinnt,
                     },
                     members,
                 )
