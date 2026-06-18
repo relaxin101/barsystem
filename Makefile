@@ -6,7 +6,7 @@ FLASK_APP ?= app:create_app
 
 # --- Development (local, no container) ---
 
-dev:
+dev: db
 	APP_ENV=development uv run python app.py
 
 shell:
