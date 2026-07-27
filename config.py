@@ -1,60 +1,98 @@
 import os
 
-# PostgreSQL Database Configuration
-# Uses environment variables for database connection
-DATABASE_NAME = os.environ.get("DATABASE_NAME", "postgres")
-DATABASE_USERNAME = os.environ.get("DATABASE_USERNAME", "postgres")
-DATABASE_PASSWORD = os.environ.get("DATABASE_PASSWORD", "postgres")
-DATABASE_HOST = os.environ.get("DATABASE_HOST", "localhost")
-DATABASE_PORT = os.environ.get("DATABASE_PORT", "5432")
 
-# PostgreSQL Database URI
-SQLALCHEMY_DATABASE_URI = os.environ.get("SQLALCHEMY_DATABASE_URI", 
-    f"postgresql://{DATABASE_USERNAME}:{DATABASE_PASSWORD}@"
-    f"{DATABASE_HOST}:{DATABASE_PORT}/{DATABASE_NAME}"
-)
-
-# Deaktiviert eine Warnung von SQLAlchemy, die nicht unbedingt notwendig ist.
-SQLALCHEMY_TRACK_MODIFICATIONS = False
-
-# Ein geheimer Schlüssel für Flask-Sitzungen und Sicherheitsfunktionen.
-# Ändere diesen Wert in der echten Anwendung zu einem langen, zufälligen String!
-SECRET_KEY = os.environ.get("FLASK_SECRET_KEY", "asdfasdfasdfasdf")
-
-# --- Admin Zugang für Flask-Login (für den Admin-Bereich) ---
-ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "password!")
+def _parse_mindest_guthaben():
+    val = os.environ.get("MINDEST_GUTHABEN")
+    return int(100 * float(val)) if val else None
 
 
-_guthaben = os.environ.get("MINDEST_GUTHABEN", None)
-MINDEST_GUTHABEN = int(100*float(_guthaben)) if _guthaben else None
+class BaseConfig:
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SECRET_KEY = os.environ.get("FLASK_SECRET_KEY", "dev-secret-key-change-in-prod")
+    ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
+    ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "password!")
 
+    SQLALCHEMY_DATABASE_URI = os.environ.get(
+        "SQLALCHEMY_DATABASE_URI",
+        "postgresql://{username}:{password}@{host}:{port}/{name}".format(
+            username=os.environ.get("DATABASE_USERNAME", "postgres"),
+            password=os.environ.get("DATABASE_PASSWORD", "postgres"),
+            host=os.environ.get("DATABASE_HOST", "localhost"),
+            port=os.environ.get("DATABASE_PORT", "5432"),
+            name=os.environ.get("DATABASE_NAME", "postgres"),
+        ),
+    )
+
+    MINDEST_GUTHABEN = _parse_mindest_guthaben()
+    SCHWAERZUNGS_TEXT = os.environ.get("SCHWAERZUNGS_TEXT", "Du bist geschwärzt!")
+    RANKING_DEFAULT_STUNDEN = int(os.environ.get("RANKING_DEFAULT_STUNDEN", 24))
+    RANKING_CONFIG_TTL_STUNDEN = int(os.environ.get("RANKING_CONFIG_TTL_STUNDEN", 12))
+    HOTLIST_DAYS = int(os.environ.get("HOTLIST_DAYS", 14))
+
+    BREVO_SECRET = os.environ.get("BREVO_SECRET")
+    BREVO_SENDER_MAIL = os.environ.get("BREVO_SENDER_MAIL")
+    BREVO_SENDER_NAME = os.environ.get("BREVO_SENDER_NAME")
+    BREVO_TEMPLATE = int(os.environ.get("BREVO_TEMPLATE", 0))
+
+    IMAP_HOST = os.environ.get("IMAP_HOST")
+    IMAP_PORT = int(os.environ.get("IMAP_PORT", 993))
+    IMAP_USER = os.environ.get("IMAP_USER")
+    IMAP_PASSWORD = os.environ.get("IMAP_PASSWORD")
+    AUTO_SENDER = os.environ.get("AUTO_SENDER")
+    AUTO_BETREFF = os.environ.get("AUTO_BETREFF")
+    AUTO_KONTO_REGEX = os.environ.get("AUTO_KONTO_REGEX")
+    AUTO_KONTO_GROUP = int(os.environ.get("AUTO_KONTO_GROUP", 1))
+    AUTO_BETRAG_REGEX = os.environ.get("AUTO_BETRAG_REGEX")
+    AUTO_BETRAG_GROUP = int(os.environ.get("AUTO_BETRAG_GROUP", 1))
+
+
+class DevelopmentConfig(BaseConfig):
+    DEBUG = True
+
+
+class ProductionConfig(BaseConfig):
+    DEBUG = False
+
+
+class TestingConfig(BaseConfig):
+    TESTING = True
+    DEBUG = True
+    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
+    SECRET_KEY = "test-secret-key"
+    ADMIN_USERNAME = "testadmin"
+    ADMIN_PASSWORD = "testpassword"
+
+
+config_map = {
+    "development": DevelopmentConfig,
+    "production": ProductionConfig,
+    "testing": TestingConfig,
+    "default": DevelopmentConfig,
+}
+
+# Module-level variables kept for backward compatibility.
+# brevo.py imports these directly; auto_aufbuchung.py accesses them via `import config`.
+MINDEST_GUTHABEN = _parse_mindest_guthaben()
 
 SCHWAERZUNGS_TEXT = os.environ.get("SCHWAERZUNGS_TEXT", "Du bist geschwärzt!")
-
-# Ranking
 RANKING_DEFAULT_STUNDEN = int(os.environ.get("RANKING_DEFAULT_STUNDEN", 24))
 RANKING_CONFIG_TTL_STUNDEN = int(os.environ.get("RANKING_CONFIG_TTL_STUNDEN", 12))
-
-# Hotlist
 HOTLIST_DAYS = int(os.environ.get("HOTLIST_DAYS", 14))
 
-# Aussendungen specials
 BREVO_SECRET = os.environ.get("BREVO_SECRET")
 BREVO_SENDER_MAIL = os.environ.get("BREVO_SENDER_MAIL")
 BREVO_SENDER_NAME = os.environ.get("BREVO_SENDER_NAME")
-BREVO_TEMPLATE = int(os.environ.get("BREVO_TEMPLATE",0))
+BREVO_TEMPLATE = int(os.environ.get("BREVO_TEMPLATE", 0))
 
-# Auto-Aufbuchung via IMAP (alle optional — fehlt IMAP_HOST/USER/PASSWORD, wird der Job übersprungen)
 IMAP_HOST = os.environ.get("IMAP_HOST")
-IMAP_PORT = int(os.environ.get("IMAP_PORT", "993"))
+IMAP_PORT = int(os.environ.get("IMAP_PORT", 993))
 IMAP_USER = os.environ.get("IMAP_USER")
 IMAP_PASSWORD = os.environ.get("IMAP_PASSWORD")
-AUTO_SENDER = os.environ.get("AUTO_SENDER")           # Absender-Filter (optional)
-AUTO_BETREFF = os.environ.get("AUTO_BETREFF")         # Betreff-Filter (optional, Teilstring)
-AUTO_KONTO_REGEX = os.environ.get("AUTO_KONTO_REGEX")         # Regex → Mitglied-Name oder -E-Mail
-AUTO_KONTO_GROUP = int(os.environ.get("AUTO_KONTO_GROUP", "1")) # Welche Capture-Group verwenden (default: 1)
-AUTO_BETRAG_REGEX = os.environ.get("AUTO_BETRAG_REGEX")         # Regex → Betrag in €
-AUTO_BETRAG_GROUP = int(os.environ.get("AUTO_BETRAG_GROUP", "1")) # Welche Capture-Group verwenden (default: 1)
+AUTO_SENDER = os.environ.get("AUTO_SENDER")
+AUTO_BETREFF = os.environ.get("AUTO_BETREFF")
+AUTO_KONTO_REGEX = os.environ.get("AUTO_KONTO_REGEX")
+AUTO_KONTO_GROUP = int(os.environ.get("AUTO_KONTO_GROUP", 1))
+AUTO_BETRAG_REGEX = os.environ.get("AUTO_BETRAG_REGEX")
+AUTO_BETRAG_GROUP = int(os.environ.get("AUTO_BETRAG_GROUP", 1))
 
-DEBUG = os.environ.get("FLASK_DEBUG", "0").lower() in ["1", "true"]
+DEBUG = os.environ.get("FLASK_DEBUG", "0").lower() in ("1", "true")
