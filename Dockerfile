@@ -1,28 +1,18 @@
-# Use the official Python runtime image
-FROM python:3.13
+FROM python:3.13-slim
 
-# Create the app directory
-RUN mkdir /app
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Set the working directory inside the container
 WORKDIR /app
 
-# Set environment variables 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Upgrade pip
-RUN pip install --upgrade pip
+# Install dependencies before copying source to leverage layer cache
+COPY pyproject.toml uv.lock ./
+RUN uv sync --no-group dev
 
-# Copy requirements and install dependencies
-COPY requirements.txt /app/
-RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
 
-# Copy the rest of the application code
-COPY . /app/
-
-# Expose the Flask port
 EXPOSE 5000
 
-# Run the Flask app
-CMD ["python", "app.py"]
+CMD ["uv", "run", "gunicorn", "--workers", "4", "--bind", "0.0.0.0:5000", "--access-logfile", "-", "wsgi:app"]
