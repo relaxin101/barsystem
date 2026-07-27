@@ -157,8 +157,7 @@ def suche_mitglied(search_term: str, limit: int = None) -> list:
             text(
                 """
                 aktiv = true and (
-                    to_tsvector(name || ' ' || coalesce(nickname, '')) @@ to_tsquery(:search_term)
-                    or name iLike '%' || :search_term || '%'
+                    name iLike '%' || :search_term || '%'
                     or nickname iLike '%' || :search_term || '%'
                 )
                 """
