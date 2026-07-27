@@ -288,3 +288,4 @@ static/schwaerzung/*
 .gitignore
 docker-compose.yml
 static/img/logo.png
+barsystem.code-workspace
