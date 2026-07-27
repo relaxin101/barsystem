@@ -207,11 +207,11 @@
 
   <!-- Navigation -->
 
-  <a href="{{ url_for('auth.logout') if current_user.is_authenticated else url_for('bar.bar_interface') }}">
+  <a href="{{ url_for('auth.logout', next=url_for('bar.bar_interface')) if current_user.is_authenticated else url_for('bar.bar_interface') }}">
     🍺 Barliste
   </a>
 
-  <a href="{{ url_for('auth.logout') if current_user.is_authenticated else url_for('ranking.index') }}">
+  <a href="{{ url_for('auth.logout', next=url_for('ranking.index')) if current_user.is_authenticated else url_for('ranking.index') }}">
     🏆 Ranking
   </a>
 
@@ -286,7 +286,7 @@
     </button>
 
 <a
-  href="{{ url_for('bar.bar_interface') }}"
+  href="{{ url_for('auth.logout', next=url_for('bar.bar_interface')) if current_user.is_authenticated else url_for('bar.bar_interface') }}"
   class="brand text-decoration-none text-reset"
 >
 
