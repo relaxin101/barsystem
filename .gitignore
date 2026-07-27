@@ -287,3 +287,4 @@ produkte.xlsx
 static/schwaerzung/*
 .gitignore
 static/img/logo.png
+barsystem.code-workspace
