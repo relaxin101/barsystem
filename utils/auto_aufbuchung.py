@@ -109,9 +109,6 @@ def _process_mailbox():
         typ, counts = mail.select("INBOX")
         logger.debug("INBOX select: typ=%s counts=%s", typ, counts)
 
-        _, all_data = mail.search(None, "ALL")
-        logger.debug("ALL search: %s", all_data)
-
         # IMAP-Suchkriterien aufbauen (AND-Semantik)
         parts = ["UNSEEN"]
         if config.AUTO_SENDER:

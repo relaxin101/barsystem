@@ -7,7 +7,7 @@ FLASK_APP ?= app:create_app
 # --- Development (local, no container) ---
 
 dev: db
-	APP_ENV=development uv run python app.py
+	set -a; . ./.env; set +a; APP_ENV=development uv run python app.py
 
 shell:
 	FLASK_APP=$(FLASK_APP) APP_ENV=development uv run flask shell

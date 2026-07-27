@@ -286,5 +286,4 @@ useringest1.xlsx
 produkte.xlsx
 static/schwaerzung/*
 .gitignore
-docker-compose.yml
 static/img/logo.png
