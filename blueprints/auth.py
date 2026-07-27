@@ -1,8 +1,27 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+import click
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from models import db, User
 from flask_login import login_user, logout_user, login_required, current_user
 
 auth_bp = Blueprint("auth", __name__)
+
+
+@auth_bp.cli.command("change-admin-password")
+@click.option("--username", default=None,
+              help="Username to update. Defaults to ADMIN_USERNAME from config.")
+@click.password_option()
+def change_admin_password(username, password):
+    """Change the password of an admin user."""
+    if username is None:
+        username = current_app.config["ADMIN_USERNAME"]
+
+    user = User.query.filter_by(username=username).first()
+    if user is None:
+        raise click.ClickException(f"User '{username}' does not exist.")
+
+    user.set_password(password)
+    db.session.commit()
+    click.echo(f"Password for user '{username}' updated.")
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
