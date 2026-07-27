@@ -7,6 +7,7 @@ services:
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
     ports:
       - "5432:5432"
+    restart: unless-stopped
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -38,6 +39,7 @@ services:
       dockerfile: Dockerfile
       context: .
     container_name: barsystem
+    restart: unless-stopped
     ports:
       - "80:5000"
     depends_on:
