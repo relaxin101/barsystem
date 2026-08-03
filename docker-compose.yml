@@ -47,6 +47,10 @@ services:
         condition: service_completed_successfully
     environment:
       APP_ENV: production
+      # Force off in production: flask_apscheduler's start() refuses to start
+      # the scheduler when Flask's debug flag (the FLASK_DEBUG env var) is set.
+      # This overrides FLASK_DEBUG from .env.
+      FLASK_DEBUG: "False"
     env_file:
       - .env
 
