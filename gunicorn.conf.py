@@ -1,6 +1,20 @@
+from gunicorn.glogging import Logger as GunicornLogger
+
 workers = 4
 bind = "0.0.0.0:5000"
 accesslog = "-"
+
+
+class HealthzFilterLogger(GunicornLogger):
+    """Drop /healthz access-log lines — the kiosk boot loop polls it every 2s."""
+
+    def access(self, resp, req, environ, request_time):
+        if environ.get("PATH_INFO") == "/healthz":
+            return
+        super().access(resp, req, environ, request_time)
+
+
+logger_class = HealthzFilterLogger
 
 
 def post_worker_init(worker):

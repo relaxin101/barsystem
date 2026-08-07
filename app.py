@@ -1,9 +1,10 @@
 from datetime import datetime
 import os
-from flask import Flask
+from flask import Flask, jsonify
 from flask_migrate import Migrate
 from flask_login import LoginManager
 from logging.config import dictConfig
+from sqlalchemy import text
 
 
 def create_app(config_name=None):
@@ -58,6 +59,24 @@ def create_app(config_name=None):
     @app.template_filter("float_format")
     def float_format_filter(value):
         return "{:.2f}".format(value).replace(".", ",")
+
+    @app.route("/healthz")
+    def healthz():
+        """Authoritative "can the system take bookings" signal.
+
+        Unlike a bare TCP/HTTP check, this fails when the app is up but the
+        database is not — the case the kiosk boot wait-loop actually needs
+        to distinguish so Chromium never starts onto an error page.
+        No auth: it leaks nothing. Excluded from access logs (see
+        gunicorn.conf.py) since it's polled every few seconds.
+        """
+        from utils.version import get_version
+
+        try:
+            db.session.execute(text("SELECT 1"))
+        except Exception:
+            return jsonify(status="error"), 503
+        return jsonify(status="ok", version=get_version()), 200
 
     @app.cli.command("create-admin")
     def create_admin_cmd():
