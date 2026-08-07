@@ -31,14 +31,24 @@ function goToMember(id) {
   window.location.href = `/bar/buchen?mitglied_id=${id}`;
 }
 
+// Cookie format: tile_limit=<n>-<w>x<h>. The viewport acts as invalidation
+// key: rotating the display or swapping hardware changes w×h, the stale
+// count is discarded and the probe measurement runs again. Old-format
+// cookies (plain number) fail the regex and are treated as absent.
 function getTileLimit() {
-  const match = document.cookie.match(/(?:^|;\s*)tile_limit=(\d+)/);
-  return match ? parseInt(match[1], 10) : null;
+  const match = document.cookie.match(/(?:^|;\s*)tile_limit=(\d+)-(\d+)x(\d+)/);
+  if (!match) return null;
+  const [, n, w, h] = match;
+  if (parseInt(w, 10) !== window.innerWidth || parseInt(h, 10) !== window.innerHeight) {
+    return null;
+  }
+  return parseInt(n, 10);
 }
 
 function setTileLimit(n) {
   const maxAge = 365 * 24 * 60 * 60;
-  document.cookie = `${COOKIE_NAME}=${n}; path=/; max-age=${maxAge}`;
+  const value = `${n}-${window.innerWidth}x${window.innerHeight}`;
+  document.cookie = `${COOKIE_NAME}=${value}; path=/; max-age=${maxAge}`;
 }
 
 function measureAndStore() {
