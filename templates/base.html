@@ -361,11 +361,13 @@
   </main>
 
 
-  <!-- Footer -->
+  <!-- Footer (nur im Adminpanel) -->
+  {% if request.blueprint and request.blueprint.split('.')[0] == 'admin' %}
   <footer class="text-center py-4 text-muted">
     <a href="https://github.com/relaxin101/barsystem" class="text-muted"> Feedback? </a>
 
   </footer>
+  {% endif %}
 
 </div>
 
