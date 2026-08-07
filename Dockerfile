@@ -15,4 +15,4 @@ COPY . .
 
 EXPOSE 5000
 
-CMD ["uv", "run", "gunicorn", "--workers", "4", "--bind", "0.0.0.0:5000", "--access-logfile", "-", "wsgi:app"]
+CMD ["uv", "run", "gunicorn", "-c", "gunicorn.conf.py", "wsgi:app"]

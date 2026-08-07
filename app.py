@@ -74,31 +74,47 @@ def create_app(config_name=None):
         else:
             print(f"Admin user '{admin_username}' already exists.")
 
-    if not app.config.get("TESTING"):
-        from blueprints.admin.aussendungen import cronjob as aussendungen_cronjob
-        from utils.auto_aufbuchung import cronjob as auto_aufbuchung_cronjob
-        from flask_apscheduler import APScheduler
-
-        scheduler = APScheduler()
-        scheduler.init_app(app)
-        scheduler.add_job(
-            id="aussendungen",
-            func=lambda: aussendungen_cronjob(app),
-            trigger="interval",
-            seconds=60,
-        )
-        scheduler.add_job(
-            id="auto_aufbuchung",
-            func=lambda: auto_aufbuchung_cronjob(app),
-            trigger="interval",
-            seconds=60,
-            next_run_time=datetime.now(),
-        )
-        scheduler.start()
-
     return app
+
+
+def start_scheduler(app):
+    """Start the background job scheduler.
+
+    This must be called in exactly one process. Under gunicorn it is invoked
+    from a post_fork hook gated to a single worker (see gunicorn.conf.py), so
+    the scheduler's background thread lives inside a real, long-lived worker
+    rather than in the arbiter (whose threads are not inherited across fork).
+    """
+    if app.config.get("TESTING"):
+        return
+
+    from blueprints.admin.aussendungen import cronjob as aussendungen_cronjob
+    from utils.auto_aufbuchung import cronjob as auto_aufbuchung_cronjob
+    from flask_apscheduler import APScheduler
+
+    scheduler = APScheduler()
+    scheduler.init_app(app)
+    scheduler.add_job(
+        id="aussendungen",
+        func=lambda: aussendungen_cronjob(app),
+        trigger="interval",
+        seconds=60,
+    )
+    scheduler.add_job(
+        id="auto_aufbuchung",
+        func=lambda: auto_aufbuchung_cronjob(app),
+        trigger="interval",
+        seconds=60,
+        next_run_time=datetime.now(),
+    )
+    scheduler.start()
+    return scheduler
 
 
 if __name__ == "__main__":
     app = create_app(os.environ.get("APP_ENV", "development"))
+    # When the reloader is active, only start the scheduler in the reloaded
+    # child process (WERKZEUG_RUN_MAIN is set there) to avoid running it twice.
+    if not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+        start_scheduler(app)
     app.run(host="0.0.0.0", debug=app.config["DEBUG"])
