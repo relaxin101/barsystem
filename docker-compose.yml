@@ -38,6 +38,9 @@ services:
     build:
       dockerfile: Dockerfile
       context: .
+      args:
+        # e.g. GIT_SHA=$(git rev-parse --short HEAD) docker compose up -d --build
+        GIT_SHA: ${GIT_SHA:-unknown}
     container_name: barsystem
     restart: unless-stopped
     ports:

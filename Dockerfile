@@ -13,6 +13,11 @@ RUN uv sync --no-group dev
 
 COPY . .
 
+# .git is dockerignored, so utils/version.py can't read it from inside the
+# container — pass the commit in explicitly at build time instead.
+ARG GIT_SHA=unknown
+ENV APP_VERSION=$GIT_SHA
+
 EXPOSE 5000
 
 CMD ["uv", "run", "gunicorn", "-c", "gunicorn.conf.py", "wsgi:app"]
