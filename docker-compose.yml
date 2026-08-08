@@ -56,6 +56,10 @@ services:
       FLASK_DEBUG: "False"
     env_file:
       - .env
+    volumes:
+      # `docker compose exec app flask backup` writes here; bind-mounted so
+      # host cron and the NAS mirror script can reach the files directly.
+      - ./backups:/app/backups
 
 volumes:
   postgres_data:

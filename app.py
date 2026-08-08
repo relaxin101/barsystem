@@ -100,6 +100,24 @@ def create_app(config_name=None):
         else:
             print(f"Admin user '{admin_username}' already exists.")
 
+    @app.cli.command("backup")
+    def backup_cmd():
+        """Write a verified, gzip'd pg_dump to BACKUP_DIR.
+
+        Mirrors the host-side backup script's completeness check, so host
+        cron shrinks to one line calling this instead of reimplementing
+        `docker compose exec db pg_dump` per installation.
+        """
+        from utils.backup import create_backup
+
+        output_dir = os.environ.get("BACKUP_DIR", "/app/backups")
+        try:
+            path = create_backup(app.config["SQLALCHEMY_DATABASE_URI"], output_dir)
+        except RuntimeError as e:
+            print(f"Backup failed: {e}")
+            raise SystemExit(1)
+        print(f"Backup written to {path}")
+
     return app
 
 
