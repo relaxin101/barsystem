@@ -1,3 +1,4 @@
+import logging
 import os
 
 
@@ -6,9 +7,26 @@ def _parse_mindest_guthaben():
     return int(100 * float(val)) if val else None
 
 
+def _resolve_secret_key():
+    # The readme used to say `SECRET_KEY`, but the code has always read
+    # `FLASK_SECRET_KEY` — following the old readme left the insecure
+    # default active silently. Accept the old name for one transition
+    # release so already-deployed .env files with SECRET_KEY still work.
+    value = os.environ.get("FLASK_SECRET_KEY")
+    if value:
+        return value
+    legacy = os.environ.get("SECRET_KEY")
+    if legacy:
+        logging.getLogger(__name__).warning(
+            "SECRET_KEY is deprecated, rename it to FLASK_SECRET_KEY in .env"
+        )
+        return legacy
+    return "dev-secret-key-change-in-prod"
+
+
 class BaseConfig:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SECRET_KEY = os.environ.get("FLASK_SECRET_KEY", "dev-secret-key-change-in-prod")
+    SECRET_KEY = _resolve_secret_key()
     ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
     ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "password!")
 

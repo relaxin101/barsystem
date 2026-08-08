@@ -1,4 +1,5 @@
 from datetime import datetime
+import logging
 import os
 from flask import Flask, jsonify
 from flask_migrate import Migrate
@@ -33,6 +34,12 @@ def create_app(config_name=None):
             "handlers": ["wsgi"],
         },
     })
+
+    if not app.config.get("DEBUG") and not app.config.get("TESTING"):
+        from utils.config_check import validate_production_config
+
+        for warning in validate_production_config(app.config):
+            logging.getLogger(__name__).warning(warning)
 
     from models import db, User
     Migrate(app, db)
