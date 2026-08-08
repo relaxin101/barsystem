@@ -7,6 +7,10 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
+# postgresql-client provides pg_dump, used by `flask backup`
+RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install dependencies before copying source to leverage layer cache
 COPY pyproject.toml uv.lock ./
 RUN uv sync --no-group dev
