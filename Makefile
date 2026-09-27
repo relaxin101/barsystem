@@ -53,6 +53,15 @@ prod-down:
 prod-rebuild:
 	docker compose up --build --force-recreate -d
 
+prod-update:
+	git log --tags --pretty="%h %d %s" --decorate=full -n 1 | cat  # Vorherige Version der App, für den Fall der Fälle notieren
+	docker compose down # Stoppe die App
+	git fetch # Checke nach updates
+	git add . && git stash # Um die customizations (Farben, Logo, etc.) etc. zu speichern und für git zu clearen
+	git reset --hard origin/master # Wendet die updates an
+	git stash pop # Um die customizations wiederherzustellen
+	docker compose up --build -d # Startet die App neu und führt ggf. Datenbank-Migrationen durch
+
 # --- Setup ---
 
 install:
