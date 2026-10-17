@@ -174,6 +174,22 @@ def suche_mitglied(search_term: str, limit: int = None) -> list:
         q = q.limit(limit)
     return q.all()
 
+def normalize_line_endings(text_value: str) -> str:
+    """CRLF/CR -> LF, inkl. von xlsxwriter escapetem CR (``_x000D_``)."""
+    return (
+        text_value.replace("_x000D_", "\r")
+        .replace("\r\n", "\n")
+        .replace("\r", "\n")
+    )
+
+
+def unescape_excel_cr(value):
+    """Macht das Escaping von ``\\r`` durch xlsxwriter beim Einlesen rückgängig."""
+    if isinstance(value, str):
+        return value.replace("_x000D_", "\r")
+    return value
+
+
 def parse_betrag_cents(raw) -> int:
     """Betrag (String oder Zahl) zu Cent konvertieren.
 

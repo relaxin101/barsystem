@@ -234,3 +234,27 @@ class TestExcelImportNumericAndFields:
         a = Artikel.query.filter_by(name="Wein").one()
         assert (a.typ, a.volumen_liter, a.reinalkohol_liter) == ("volumen", 0.25, 0.03)
 
+
+class TestLineEndings:
+    def test_normalize(self):
+        from utils.admin import normalize_line_endings
+        assert normalize_line_endings("a\r\nb\rc\nd") == "a\nb\nc\nd"
+        assert normalize_line_endings("a_x000D_\nb") == "a\nb"
+
+    def test_backup_restore_roundtrip(self, auth_client, db):
+        import zipfile
+        from models import Bericht
+        db.session.add(Bericht(name="R", sql="SELECT 1\r\nFROM x"))
+        db.session.commit()
+        with patch("blueprints.admin.berichte._get_db_revision", return_value="x"):
+            data = auth_client.get("/admin/export/db-backup").data
+            Bericht.query.delete()
+            db.session.commit()
+            with patch("blueprints.admin.berichte.db.session.execute"):
+                auth_client.post(
+                    "/admin/export/db-restore",
+                    data={"file": (io.BytesIO(data), "b.zip")},
+                    content_type="multipart/form-data",
+                )
+        sql = Bericht.query.one().sql
+        assert "_x000D_" not in sql and "\r" not in sql
