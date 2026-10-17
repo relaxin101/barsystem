@@ -121,15 +121,49 @@ def create_app(config_name=None):
     return app
 
 
-def start_scheduler(app):
-    """Start the background job scheduler.
+SCHEDULER_LOCK_ID = 727272  # arbitrary app-wide Postgres advisory-lock key
 
-    This must be called in exactly one process. Under gunicorn it is invoked
-    from a post_fork hook gated to a single worker (see gunicorn.conf.py), so
-    the scheduler's background thread lives inside a real, long-lived worker
-    rather than in the arbiter (whose threads are not inherited across fork).
+_scheduler_lock_conn = None  # held open for the process lifetime
+
+
+def _acquire_scheduler_lock(app):
+    """Try to become the one scheduler process via a session-level advisory lock.
+
+    The lock lives as long as the dedicated connection; if the owning worker
+    dies, Postgres releases it and the next worker that calls
+    start_scheduler (e.g. its respawn) wins. Non-Postgres DBs have no lock.
+    """
+    global _scheduler_lock_conn
+    from models import db
+
+    with app.app_context():
+        engine = db.engine
+        if engine.dialect.name != "postgresql":
+            return True
+        conn = engine.connect()
+        got = conn.exec_driver_sql(
+            "SELECT pg_try_advisory_lock(%s)" % SCHEDULER_LOCK_ID
+        ).scalar()
+        if not got:
+            conn.close()
+            return False
+        _scheduler_lock_conn = conn
+        return True
+
+
+def start_scheduler(app):
+    """Start the background job scheduler, unless another process already runs it.
+
+    Safe to call from every gunicorn worker (see gunicorn.conf.py): a Postgres
+    advisory lock guarantees only one of them actually starts the scheduler,
+    and it is called from post_worker_init so the scheduler's thread lives in a
+    real, long-lived worker rather than in the arbiter (threads are not
+    inherited across fork). Returns None in processes that lost the lock.
     """
     if app.config.get("TESTING"):
+        return
+
+    if not _acquire_scheduler_lock(app):
         return
 
     from blueprints.admin.aussendungen import cronjob as aussendungen_cronjob
