@@ -22,6 +22,6 @@ COPY . .
 ARG GIT_SHA=unknown
 ENV APP_VERSION=$GIT_SHA
 
-EXPOSE 5000
+EXPOSE 4848
 
 CMD ["uv", "run", "gunicorn", "-c", "gunicorn.conf.py", "wsgi:app"]

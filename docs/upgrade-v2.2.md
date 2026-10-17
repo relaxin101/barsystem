@@ -1,6 +1,6 @@
 # Upgrade auf v2.2
 
-Von v2.1.0 auf v2.2. Hardening- und Bugfix-Release; **der Port bleibt bei 80** (die Umstellung auf `APP_PORT`/4848 ist nicht Teil von v2.2).
+Von v2.1.0 auf v2.2. Hardening- und Bugfix-Release; **der Host-Port bleibt standardmäßig 80**, ist aber jetzt über `APP_PORT` in `.env` konfigurierbar; der interne Container-Port ist 4848 statt 5000.
 
 ## Neu & behoben
 
@@ -8,6 +8,7 @@ Von v2.1.0 auf v2.2. Hardening- und Bugfix-Release; **der Port bleibt bei 80** (
 - `/healthz`: Health-Endpoint mit DB-Check und Versionsangabe (für Kiosk-Boot und Monitoring) (#22)
 - `flask backup`: konsistentes, geprüftes `pg_dump` (gzip) nach `BACKUP_DIR` (Standard `/app/backups`) (#22)
 - Tile-Cookie `tile_limit` enthält nun den Viewport (`n-WxH`) (#22)
+- `APP_PORT` in `.env` (Standard 80) bestimmt den Host-Port; intern lauscht Gunicorn auf 4848 (#11)
 - Footer wird nur noch im Admin-Bereich angezeigt (#24)
 
 **Behoben**

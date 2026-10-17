@@ -44,7 +44,7 @@ services:
     container_name: barsystem
     restart: unless-stopped
     ports:
-      - "80:5000"
+      - "${APP_PORT:-80}:4848"
     depends_on:
       db-init:
         condition: service_completed_successfully

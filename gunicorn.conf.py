@@ -1,7 +1,7 @@
 from gunicorn.glogging import Logger as GunicornLogger
 
 workers = 4
-bind = "0.0.0.0:5000"
+bind = "0.0.0.0:4848"
 accesslog = "-"
 
 
