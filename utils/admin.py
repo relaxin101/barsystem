@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 from sqlalchemy import text
 import re
+from numbers import Real
 
 from models import db, Mitglied
 
@@ -80,6 +81,9 @@ def import_excel_to_db(file_stream, model, field_mapping, unique_field=None):
 
     def price_mapper(key, value):
         if "preis" in key and value is not None:
+            return parse_betrag_cents(value)
+        if key == "schwaerzungs_grenze" and value is not None:
+            # Excel enthält Euro, die DB speichert Cent
             return parse_betrag_cents(value)
         return value
 
@@ -170,11 +174,30 @@ def suche_mitglied(search_term: str, limit: int = None) -> list:
         q = q.limit(limit)
     return q.all()
 
-def parse_betrag_cents(raw: str) -> int:
-    """Betrag-String zu Cent konvertieren.
+def normalize_line_endings(text_value: str) -> str:
+    """CRLF/CR -> LF, inkl. von xlsxwriter escapetem CR (``_x000D_``)."""
+    return (
+        text_value.replace("_x000D_", "\r")
+        .replace("\r\n", "\n")
+        .replace("\r", "\n")
+    )
+
+
+def unescape_excel_cr(value):
+    """Macht das Escaping von ``\\r`` durch xlsxwriter beim Einlesen rückgängig."""
+    if isinstance(value, str):
+        return value.replace("_x000D_", "\r")
+    return value
+
+
+def parse_betrag_cents(raw) -> int:
+    """Betrag (String oder Zahl) zu Cent konvertieren.
 
     Unterstützt deutsches Format (1.234,56) und englisches (1,234.56 / 1234.56).
+    Numerische Excel-Zellen (int/float) werden direkt als Euro-Betrag gewertet.
     """
+    if isinstance(raw, Real):
+        return round(raw * 100)
     raw = raw.strip()
     # Deutsches Format: endet auf ,XX
     if re.search(r",\d{2}$", raw):
