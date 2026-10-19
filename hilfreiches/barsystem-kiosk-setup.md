@@ -204,7 +204,8 @@ Your `.env` is git-ignored, so credentials survive the update untouched. Restart
 ## 7. Kiosk User + Autologin
  
 ```bash
-sudo adduser --disabled-password --gecos "Kiosk" kiosk
+sudo adduser --gecos "Kiosk" kiosk        # prompts for a password — set any value
+sudo chage -M -1 -I -1 -E -1 kiosk        # never force a change or expire the account
 ```
  
 `/etc/gdm3/custom.conf`:
@@ -227,11 +228,77 @@ gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'no
 gsettings set org.gnome.settings-daemon.plugins.power power-button-action 'nothing'      # guests can't shut it down with a tap
 gsettings set org.gnome.desktop.a11y.applications screen-keyboard-enabled true           # on-screen keyboard for the Barliste search field
 gsettings set org.gnome.desktop.notifications show-banners false                        # no popups over the kiosk
+gsettings set org.gnome.desktop.sound event-sounds false                                 # no GNOME beeps/alert sounds
+gsettings set org.gnome.desktop.sound input-feedback-sounds false                        # no click sound on volume keys
 ```
  
 The waking tap only wakes — it can't accidentally book anything.
  
 Portrait: rotate once in **Settings → Displays** as kiosk user; Wayland rotates touch coordinates automatically.
+ 
+### 8.1 Permanent silence (speakers off)
+ 
+The `gsettings` lines above only silence GNOME's own beeps — a web page or a stray autoplay could still make noise, and a volume slider can be turned back up. For a bar terminal the sound stack is simply removed, at two levels, so nothing can ever be audible.
+ 
+**Level 1 — no sound card at all** (run as `admin`): never load any audio driver.
+ 
+```bash
+cat <<'EOF' | sudo tee /etc/modprobe.d/kiosk-silence.conf >/dev/null
+# Kiosk is silent by design — no audio driver may load.
+# Intel HDA: onboard analog + the board's HDMI audio
+blacklist snd_hda_intel
+blacklist snd_hda_codec_hdmi
+# Intel SOF/AVS: audio block on newer Atom/Celeron SoCs
+blacklist snd_sof_pci
+blacklist snd_soc_skl
+# USB audio: a monitor or speaker on USB must not become an output either
+blacklist snd_usb_audio
+# blacklist only stops automatic loading — this also blocks manual/dependency loads
+install snd_hda_intel /bin/false
+install snd_usb_audio /bin/false
+EOF
+sudo update-initramfs -u    # these modules can also live in the initramfs
+```
+ 
+**Level 2 — no audio server for the kiosk user**: mask PipeWire in the kiosk session, so even if a driver ever sneaks in, no application can reach it. Masking by symlinking to `/dev/null` works without a running user bus:
+ 
+```bash
+sudo -u kiosk mkdir -p /home/kiosk/.config/systemd/user
+for u in pipewire.service pipewire.socket pipewire-pulse.service pipewire-pulse.socket wireplumber.service; do
+  sudo -u kiosk ln -sf /dev/null "/home/kiosk/.config/systemd/user/$u"
+done
+```
+ 
+Verify after the reboot in §11:
+ 
+```bash
+aplay -l              # expect: "no soundcards found"
+lsmod | grep snd_     # expect: no output
+```
+ 
+> To give the kiosk sound back later: delete `/etc/modprobe.d/kiosk-silence.conf`, remove the five `/dev/null` symlinks, `sudo update-initramfs -u`, reboot.
+ 
+### 8.2 Camera off
+ 
+Blacklisting the USB-video driver kills every webcam — built-in or plugged in afterwards — so the device node never even appears. That's stronger than a browser permission, which only asks the app to behave:
+ 
+```bash
+cat <<'EOF' | sudo tee /etc/modprobe.d/kiosk-no-camera.conf >/dev/null
+# No camera on a public terminal — the /dev/video* nodes never get created.
+blacklist uvcvideo
+install uvcvideo /bin/false
+EOF
+sudo update-initramfs -u
+```
+ 
+Belt-and-braces on the browser side: the Chromium policy in §10.1 already carries `"VideoCaptureAllowed": false` and `"AudioCaptureAllowed": false`, so a page can't even *prompt* for camera or microphone.
+ 
+Verify after the reboot:
+ 
+```bash
+ls /dev/video*            # expect: "No such file or directory"
+lsmod | grep uvcvideo     # expect: no output
+```
  
 ## 9. Auto-Updates + Monthly Reboot
  
@@ -316,7 +383,9 @@ cat <<'EOF' | sudo tee /var/snap/chromium/current/policies/managed/kiosk.json >/
   "PasswordManagerEnabled": false,
   "AutofillAddressEnabled": false,
   "AutofillCreditCardEnabled": false,
-  "PasswordLeakDetectionEnabled": false
+  "PasswordLeakDetectionEnabled": false,
+  "VideoCaptureAllowed": false,
+  "AudioCaptureAllowed": false
 }
 EOF
 sudo chmod 644 /var/snap/chromium/current/policies/managed/kiosk.json
@@ -328,6 +397,8 @@ sudo chmod 644 /var/snap/chromium/current/policies/managed/kiosk.json
 | `AutofillAddressEnabled: false` | No stored addresses |
 | `AutofillCreditCardEnabled: false` | No stored payment data |
 | `PasswordLeakDetectionEnabled: false` | No credential checks phoning home |
+| `VideoCaptureAllowed: false` | No page can use or prompt for a camera (see §8.2) |
+| `AudioCaptureAllowed: false` | No page can use or prompt for a microphone |
  
 (JSON policy files can't contain comments — keep the block as-is.)
  
@@ -430,6 +501,8 @@ sudo reboot
 - [ ] Cable pulled → kiosk keeps working (off-grid)
 - [ ] `sudo pkill chromium` via SSH → kiosk back within ~5 s
 - [ ] `docker compose restart` in `/opt/barsystem` → page recovers
+- [ ] `aplay -l` says "no soundcards found" and `lsmod | grep snd_` is empty → terminal is permanently silent
+- [ ] `ls /dev/video*` says "No such file or directory" → no camera exists
 - [ ] Admin login on the touchscreen shows **no** "Save password?" prompt (`chrome://policy` keys Mandatory/OK)
 - [ ] `systemctl list-timers monthly-reboot.timer` shows a valid next run
 ---
