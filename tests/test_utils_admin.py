@@ -193,3 +193,68 @@ class TestExportDfToExcel:
         resp = client.get("/admin/export/mitglieder")
         assert resp.status_code == 200
         assert "spreadsheetml" in resp.content_type
+
+
+class TestExcelImportNumericAndFields:
+    def _excel(self, rows):
+        buf = io.BytesIO()
+        pd.DataFrame(rows).to_excel(buf, index=False)
+        buf.seek(0)
+        return buf
+
+    def test_parse_betrag_numeric(self):
+        assert parse_betrag_cents(2.5) == 250
+        assert parse_betrag_cents(3) == 300
+
+    def test_numeric_preis_cell(self, db):
+        excel = self._excel([{"name": "Bier", "preis": 2.5}, {"name": "Wasser", "preis": 1}])
+        mapping = {"name": "name", "preis": "preis"}
+        with patch("utils.admin.db.session.execute"):
+            import_excel_to_db(excel, Artikel, mapping)
+        assert Artikel.query.filter_by(name="Bier").one().preis == 250
+        assert Artikel.query.filter_by(name="Wasser").one().preis == 100
+
+    def test_schwaerzungs_grenze_converted_to_cents(self, db):
+        excel = self._excel([{"name": "Alice", "grenze": -5}, {"name": "Bob", "grenze": "-2,50"}])
+        mapping = {"name": "name", "schwaerzungs_grenze": "grenze"}
+        with patch("utils.admin.db.session.execute"):
+            import_excel_to_db(excel, Mitglied, mapping)
+        assert Mitglied.query.filter_by(name="Alice").one().schwaerzungs_grenze == -500
+        assert Mitglied.query.filter_by(name="Bob").one().schwaerzungs_grenze == -250
+
+    def test_artikel_import_fields(self, db):
+        from blueprints.admin.artikel import DB_FIELDS
+        for f in ("typ", "volumen_liter", "reinalkohol_liter"):
+            assert f in DB_FIELDS
+        excel = self._excel([{"name": "Wein", "preis": 4, "typ": "volumen", "vol": 0.25, "alk": 0.03}])
+        mapping = {"name": "name", "preis": "preis", "typ": "typ",
+                   "volumen_liter": "vol", "reinalkohol_liter": "alk"}
+        with patch("utils.admin.db.session.execute"):
+            import_excel_to_db(excel, Artikel, mapping)
+        a = Artikel.query.filter_by(name="Wein").one()
+        assert (a.typ, a.volumen_liter, a.reinalkohol_liter) == ("volumen", 0.25, 0.03)
+
+
+class TestLineEndings:
+    def test_normalize(self):
+        from utils.admin import normalize_line_endings
+        assert normalize_line_endings("a\r\nb\rc\nd") == "a\nb\nc\nd"
+        assert normalize_line_endings("a_x000D_\nb") == "a\nb"
+
+    def test_backup_restore_roundtrip(self, auth_client, db):
+        import zipfile
+        from models import Bericht
+        db.session.add(Bericht(name="R", sql="SELECT 1\r\nFROM x"))
+        db.session.commit()
+        with patch("blueprints.admin.berichte._get_db_revision", return_value="x"):
+            data = auth_client.get("/admin/export/db-backup").data
+            Bericht.query.delete()
+            db.session.commit()
+            with patch("blueprints.admin.berichte.db.session.execute"):
+                auth_client.post(
+                    "/admin/export/db-restore",
+                    data={"file": (io.BytesIO(data), "b.zip")},
+                    content_type="multipart/form-data",
+                )
+        sql = Bericht.query.one().sql
+        assert "_x000D_" not in sql and "\r" not in sql

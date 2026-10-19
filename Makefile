@@ -7,7 +7,7 @@ FLASK_APP ?= app:create_app
 # --- Development (local, no container) ---
 
 dev: db
-	set -a; . ./.env; set +a; APP_ENV=development uv run python app.py
+	set -a; . ./.env; set +a; APP_ENV=development DATABASE_HOST=localhost uv run python app.py
 
 shell:
 	FLASK_APP=$(FLASK_APP) APP_ENV=development uv run flask shell
@@ -52,6 +52,15 @@ prod-down:
 
 prod-rebuild:
 	docker compose up --build --force-recreate -d
+
+prod-update:
+	git log --tags --pretty="%h %d %s" --decorate=full -n 1 | cat  # Vorherige Version der App, für den Fall der Fälle notieren
+	docker compose down # Stoppe die App
+	git fetch # Checke nach updates
+	git add . && git stash # Um die customizations (Farben, Logo, etc.) etc. zu speichern und für git zu clearen
+	git reset --hard origin/master # Wendet die updates an
+	git stash pop # Um die customizations wiederherzustellen
+	docker compose up --build -d # Startet die App neu und führt ggf. Datenbank-Migrationen durch
 
 # --- Setup ---
 

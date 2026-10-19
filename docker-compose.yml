@@ -38,10 +38,13 @@ services:
     build:
       dockerfile: Dockerfile
       context: .
+      args:
+        # e.g. GIT_SHA=$(git rev-parse --short HEAD) docker compose up -d --build
+        GIT_SHA: ${GIT_SHA:-unknown}
     container_name: barsystem
     restart: unless-stopped
     ports:
-      - "80:5000"
+      - "${APP_PORT:-80}:4848"
     depends_on:
       db-init:
         condition: service_completed_successfully
@@ -53,6 +56,10 @@ services:
       FLASK_DEBUG: "False"
     env_file:
       - .env
+    volumes:
+      # `docker compose exec app flask backup` writes here; bind-mounted so
+      # host cron and the NAS mirror script can reach the files directly.
+      - ./backups:/app/backups
 
 volumes:
   postgres_data:

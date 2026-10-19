@@ -11,29 +11,34 @@ Es umfasst u.a.:
 ## Installation
 Zur Installation benötigst du [Docker](https://docs.docker.com/engine/install/) bzw. [Docker Desktop](https://docs.docker.com/desktop/setup/install/windows-install/)
 
-Nachdem du das geschafft hast, dupliziere das File `.env.example` und speichere es als `.env`. Das File beinhält die Konfiguration der Website. Ändere am besten zunächst den Wert `SECRET_KEY` auf einen zufälligen string (du brauchst ihn nachher nicht, das soll nur ein Geheimschlüssel sein den die App für diverse Hintergrunddinge benutzt). Mit `ADMIN_USERNAME`, `ADMIN_PASSWORD` konfigurierst du die Login-Daten für das Admin Panel, mit `MINDEST_GUTHABEN` setzt du das Limit, wie weit Personenkonten ins Minus gehen dürfen. _admin daten können nachträglich nicht einfach geändert werden, da sie in die datenbank geschrieben werden._
+Nachdem du das installiert hast, dupliziere das File `.env.example` und speichere es als `.env`. (Auf Windows ist etwas schwieriger weil du dabei Dateiart änderst und Windows das standardmäßig verhindert [Link](https://support.microsoft.com/en-us/windows/experience/storage-filemanagement/common-file-name-extensions-in-windows)) 
+Die Datei `.env` enthält nun die (Standard-)Konfiguration der Website. Ändere am besten zunächst den Wert `FLASK_SECRET_KEY` auf einen zufälligen string (du brauchst ihn nachher nicht, das soll nur ein Geheimschlüssel sein den die App für diverse Hintergrunddinge benutzt). 
+Mit `ADMIN_USERNAME`, `ADMIN_PASSWORD` konfigurierst du die Login-Daten für das Admin Panel, mit `MINDEST_GUTHABEN` setzt du das Limit, wie weit Personenkonten ins Minus gehen dürfen. Die restlichen Einstellungen kannst du nachlesen und ggf. entsprechend anpassen. 
+_Versuche alles jetzt schon korrekt aufzusetzen, da einige Einstellungen in die Datenbank geschrieben werden und evt. nicht mehr leicht verändert werden können, ohne alle Daten zu löschen._
 
-Jetzt kannst du die Website starten! Wenn du ein Terminal in dem Folder öffnest und `docker compose up -d` (+ ENTER) eintippst, beginnt docker mit der Installation der nötigen Komponenten und startet die Website automatisch. (Je nach Internet und Rechenleistung dauert das 5-15 min) Nun kannst du in dem lokalen Netzwerk unter der IP-Adresse des Computers die Website abrufen. Auf dem Computer wo das Ganze läuft, funktioniert auch [localhost](http://localhost). 
+Jetzt kannst du die Website starten! Wenn du ein Terminal in dem Ordner öffnest (Windows: im File Explorer in den Ordner navigieren, STRG+SHIFT+Rechtsklick in den ordner und "Terminal öffnen" klicken) und `docker compose up -d --build` (+ ENTER) eintippst, beginnt docker mit der Installation der nötigen Komponenten und startet die Website automatisch. (Je nach Internet und Rechenleistung des Computers dauert das beim ersten Mal 5-15 min) Nun kannst du in dem lokalen Netzwerk unter der IP-Adresse des Computers die Website abrufen. Auf dem Computer wo das Ganze läuft, funktioniert auch [localhost](http://localhost). 
 
-Ich empfehle beim Router eine statische IP mittels DHCP zu setzen - in einigen Routern kann man auch Namen vergeben sodass man dann im ganzen Netz unter __http://name-des-geraets__ die Barliste findet.
+Ich empfehle beim Router eine statische IP mittels DHCP zu setzen - in einigen Routern kann man auch Namen vergeben sodass man dann im ganzen Netz unter __http://name-des-geraets__ die Barliste findet. Für Leute mit etwas IT-Ahnung ist sonst [mDNS](https://en.wikipedia.org/wiki/Multicast_DNS) eine angenehme Option.
 
 ### Updates
 Um Updates zu bekommen musst du das repo mit [git](https://git-scm.com/) gecloned haben und nicht einfach nur runtergeladen haben. 
-Dann empfiehlt es sich (semi-)regelmäßig in einem terminal den folgenden befehl auszuführen:
+Dann empfiehlt es sich (semi-)regelmäßig in einem terminal die folgenden befehle auszuführen - notiere dir die aktuelle version der app `git log --oneline  -n 1 | cat`:
 
 ```bash
-
+git log --oneline  -n 1 | cat 
 docker compose down # Stoppe die App
 git fetch # Checke nach updates
-git add . && git stash # Um die customizations etc. zu speichern und für git zu clearen
+git add . && git stash # Um die customizations (Farben, Logo, etc.) etc. zu speichern und für git zu clearen
 git reset --hard origin/master # Wendet die updates an
-docker compose up -d # Startet die App neu und führt ggf. Datenbank-Migrationen durch
 git stash pop # Um die customizations wiederherzustellen
+docker compose up -d # Startet die App neu und führt ggf. Datenbank-Migrationen durch
 ```
 
-**Caveat:** Auch wenn ich versuche alle Datenbank-Migrationen sauber durchzuführen empfiehlt es sich vor jedem Update zumindest die Mitglieder samt Guthabenstände und die Artikel zu sichern (in der Bericht Verwaltung). 
+**Caveat:** Auch wenn ich versuche alle Datenbank-Migrationen sauber durchzuführen empfiehlt es sich vor jedem Update ein Backup zu machen (siehe Bericht verwaltung).
 Um das System gänzlich neu aufzusetzen, starte mit `docker compose down -v` - das stoppt die App und löscht auch die gesamte Datenbank - führe dann die restlichen Schritte durch und zum Schluss kannst du dann entsprechende Daten in den jeweiligen Admin-Panels importieren.
 
+
+Alternativ: Wenn dein Betriebssystem MacOS oder Linux ist (oder `make` installiert hast), kannst du die app auch mit `make prod` starten und mit `make prod-update` updaten.
 
 
 ### Optionale Customization
@@ -41,11 +46,16 @@ Unter `static/css/style.css` können die Hauptfarben der Website angepasst werde
 
 ```css
 :root {
-    --primary-light: #F0EDF8;   /* Hintergrundfarbe */
-    --primary-main: #6B5B9E;    /* Hauptfarbe (Barliste) */
-    --primary-secondary: #D8D2EE; /* Sekundäre Farbe */
+    --primary-light: #F0EDF8;       /* Hintergrund: helles Flieder */
+    --primary-main: #6B5B9E;        /* Hauptfarbe: dunkles Flieder */
+    --primary-hover: #574A85;       /* Hover */
+    --primary-secondary: #D8D2EE;   /* Sekundär */
+    --primary-accent: #9B8EC4;      /* Akzent */
 
-    --admin-primary: #C8A432;   /* Hauptfarbe Sidebar/Topbar im Admin-Panel */
+    /* Admin-Panel Farbe */
+    --admin-primary: #C8A432;       /* Hauptfarbe Sidebar/Topbar im Admin-Panel */
+
+    /*... Sonstige Farben*/
 }
 ```
 
@@ -59,10 +69,7 @@ Hierfür muss ein Brevo-Mail-Template angelegt werden, dass die parameter params
 ### Abrechnungen über einen bestimmten Zeitraum
 Buchungen können zu Abrechnungen gruppiert werden um einen Überblick zu bekommen wie viel in einem bestimmten Zeitraum eingenommen wurde.
 
-### (Geplant) Runden schmeißen
-Falls jemand eine Runde schmeißen möchte.
-
-### (Geplant) Automatische Einzahlungen
+### Automatische Einzahlungen
 Regelmäßiges prüfen eines Email Postfachs um Einzahlungen automatisch zu erkennen.
 
 ## Nützliche Berichte
@@ -122,136 +129,4 @@ ORDER BY mitglied.id
 
  
 #### KI Prompt (keine SQL query, nicht in Bericht-Verwaltung kopieren!)
-```
-Ich habe eine Python-Flask-App mit einer PostgreSQL Datenbank für ein Barsystem mit den folgenden SQLAlchemy Models: 
-
-class Mitglied(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.Text(), unique=False, nullable=False)
-    nickname = db.Column(db.Text(), nullable=True)
-    email = db.Column(db.Text(), nullable=True)
-    guthaben = db.Column(db.Integer, default=0.0)
-    blacklist = db.Column(db.Boolean, default=False)
-    aktiv = db.Column(db.Boolean, nullable=False, default=True)
-    verborgen = db.Column(db.Boolean, nullable=False, default=False)
-    schwaerzungs_grenze = db.Column(db.Integer, nullable=True, default=MINDEST_GUTHABEN)
-    buchungen_von_mitglied = db.relationship(
-        "Buchung", back_populates="mitglied_obj", lazy=True
-    )
-
-    def __repr__(self):
-        return f"<Mitglied {self.name} (Guthaben: {self.guthaben:.2f}€)>"
-
-
-class Artikel(db.Model):
-    """
-    Modell für einen Artikel (Getränk, Snack, etc.).
-    Speichert Name und Preis.
-    """
-
-    id = db.Column(db.Integer, primary_key=True)
-    reihenfolge = db.Column(db.Integer, nullable=True)
-    aktiv = db.Column(db.Boolean, nullable=False, default=True)
-    name = db.Column(db.Text, unique=True, nullable=False)
-    preis = db.Column(db.Integer, nullable=False)
-    buchungen = db.relationship(
-        "Buchung", lazy=True
-    )  # Stelle sicher, dass diese auch hier ist
-
-    buchungen_von_artikel = db.relationship(
-        "Buchung", back_populates="artikel_obj", lazy=True
-    )
-
-    def __repr__(self):
-        return f"<Artikel {self.name} ({self.preis:.2f}€)>"
-
-
-class User(db.Model, UserMixin):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.Text(), unique=True, nullable=False)
-    password = db.Column(db.Text(), nullable=False)  # Speichert das gehashte Passwort
-    is_admin = db.Column(
-        db.Boolean, default=False
-    )  # Optional: Feld, um Admins zu kennzeichnen
-
-    def set_password(self, password):
-        self.password = generate_password_hash(password)
-
-    def check_password(self, password):
-        return check_password_hash(self.password, password)
-
-    def __repr__(self):
-        return f"<User {self.username}>"
-
-    # Methoden, die Flask-Login für die Benutzerverwaltung benötigt:
-    def get_id(self):
-        # Gibt die eindeutige ID des Benutzers zurück
-        return str(self.id)
-
-    def is_active(self):
-        # Gibt True zurück, wenn der Benutzer aktiv ist (nicht deaktiviert)
-        return True
-
-    def is_authenticated(self):
-        # Gibt True zurück, wenn der Benutzer authentifiziert ist (validierte Anmeldeinformationen)
-        return True
-
-    def is_anonymous(self):
-        # Gibt True zurück, wenn der Benutzer ein anonymer Benutzer ist
-        return False
-
-
-class Buchung(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    mitglied_id = db.Column(db.Integer, db.ForeignKey("mitglied.id"), nullable=False)
-    artikel_id = db.Column(db.Integer, db.ForeignKey("artikel.id"), nullable=True)
-    abrechnungs_id = db.Column(
-        db.Integer,
-        db.ForeignKey("abrechnung.id"),
-        nullable=True
-    )
-
-    beschreibung = db.Column(db.Text, nullable=True)
-    menge = db.Column(db.Integer, nullable=False)
-    preis_pro_einheit = db.Column(db.Integer, nullable=False)
-    gesamtpreis = db.Column(db.Integer, nullable=False)
-    zeitstempel = db.Column(db.DateTime, default=datetime.now, nullable=False)
-    storniert = db.Column(
-        db.DateTime, default=None, nullable=True
-    )  # Wichtig für die Statistiken
-
-    # Beziehungen zu anderen Modellen
-    mitglied_obj = db.relationship("Mitglied", back_populates="buchungen_von_mitglied")
-    artikel_obj = db.relationship("Artikel", back_populates="buchungen_von_artikel")
-    abrechnung_obj = db.relationship(
-        "Abrechnung",
-        back_populates="buchungen"
-    )
-
-    def __repr__(self):
-        return f"<Buchung {self.id} - {self.beschreibung}: {self.menge}x {self.artikel_obj.name if self.artikel_obj is not None else None} für {self.mitglied_obj.name}>"
-
-class Abrechnung(db.Model):
-
-    id = db.Column(db.Integer, primary_key=True)
-
-    name = db.Column(db.Text, nullable=False)
-
-    zeitstempel = db.Column(
-        db.DateTime,
-        default=datetime.now,
-        nullable=False
-    )
-
-    buchungen = db.relationship(
-        "Buchung",
-        back_populates="abrechnung_obj",
-        lazy=True
-    )
-
-    def __repr__(self):
-        return f"<Abrechnung {self.id} {self.name}>"
-
-
-Bitte schreibe mir eine SQL query die mir folgendes zurückgibt:
-'''
+siehe [Assistent Prompt](./hilfreiches/barsystem_hilfe_assistent_prompt.md)

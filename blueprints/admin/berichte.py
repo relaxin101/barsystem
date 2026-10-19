@@ -11,7 +11,7 @@ from flask_login import login_required
 from sqlalchemy import text
 
 from models import db, Bericht, Mitglied, Artikel, User, Buchung, Abrechnung, Aussendung
-from utils.admin import export_df_to_excel
+from utils.admin import export_df_to_excel, normalize_line_endings, unescape_excel_cr
 
 # Reihenfolge beachtet FK-Abhängigkeiten: Buchung zuletzt (referenziert Mitglied, Artikel, Abrechnung)
 _BACKUP_TABLES = [
@@ -79,7 +79,7 @@ def create_berichte():
         flash("Es muss ein Name angegeben werden", "error")
         return redirect(url_for("admin.export.admin_export"))
 
-    bericht = Bericht(sql=query, name=name)
+    bericht = Bericht(sql=normalize_line_endings(query), name=name)
     db.session.add(bericht)
     db.session.commit()
     return redirect(url_for("admin.export.admin_export"))
@@ -182,10 +182,12 @@ def db_restore():
 
                 for _, row in df.iterrows():
                     row_data = {
-                        col: row.get(col)
+                        col: unescape_excel_cr(row.get(col))
                         for col in columns
                         if col in df.columns
                     }
+                    if model is Bericht and row_data.get("sql"):
+                        row_data["sql"] = normalize_line_endings(row_data["sql"])
                     pk = row_data.get("id")
                     if pk is not None and db.session.get(model, pk) is not None:
                         skipped += 1
