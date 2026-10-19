@@ -44,11 +44,7 @@ services:
     container_name: barsystem
     restart: unless-stopped
     ports:
-<<<<<<< HEAD
-      - "5000:5000"
-=======
       - "${APP_PORT:-80}:4848"
->>>>>>> origin/ergo-bibamus
     depends_on:
       db-init:
         condition: service_completed_successfully
