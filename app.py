@@ -81,6 +81,9 @@ def create_app(config_name=None):
 
         return value.astimezone(LOCAL_TZ).strftime(fmt) if value else ""
 
+    from utils.einstellungen import einstellung
+    app.jinja_env.globals["einstellung"] = einstellung
+
     @app.route("/healthz")
     def healthz():
         """Authoritative "can the system take bookings" signal.
@@ -113,6 +116,17 @@ def create_app(config_name=None):
             print("Done.")
         else:
             print(f"Admin user '{admin_username}' already exists.")
+
+    @app.cli.command("sync-report-role")
+    def sync_report_role_cmd():
+        """Legt die Datenbank-Rolle für Berichte an bzw. bringt sie auf den Sollzustand."""
+        from utils.bericht_engine import REPORT_ROLE, sync_report_role
+
+        if db.engine.dialect.name != "postgresql":
+            print("Skipped: only needed on Postgres.")
+            return
+        sync_report_role(db.engine, app.config["SECRET_KEY"])
+        print(f"Report role '{REPORT_ROLE}' is up to date.")
 
     @app.cli.command("backup")
     def backup_cmd():

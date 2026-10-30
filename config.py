@@ -27,6 +27,7 @@ def _resolve_secret_key():
 class BaseConfig:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = _resolve_secret_key()
+    SESSION_COOKIE_SAMESITE = "Lax"
     ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
     ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "password!")
     APP_TIMEZONE = os.environ.get("APP_TIMEZONE", "Europe/Vienna")
@@ -42,27 +43,12 @@ class BaseConfig:
         ),
     )
 
-    MINDEST_GUTHABEN = _parse_mindest_guthaben()
-    SCHWAERZUNGS_TEXT = os.environ.get("SCHWAERZUNGS_TEXT", "Du bist geschwärzt!")
-    RANKING_DEFAULT_STUNDEN = int(os.environ.get("RANKING_DEFAULT_STUNDEN", 24))
-    RANKING_CONFIG_TTL_STUNDEN = int(os.environ.get("RANKING_CONFIG_TTL_STUNDEN", 12))
-    HOTLIST_DAYS = int(os.environ.get("HOTLIST_DAYS", 14))
-
     BREVO_SECRET = os.environ.get("BREVO_SECRET")
-    BREVO_SENDER_MAIL = os.environ.get("BREVO_SENDER_MAIL")
-    BREVO_SENDER_NAME = os.environ.get("BREVO_SENDER_NAME")
-    BREVO_TEMPLATE = int(os.environ.get("BREVO_TEMPLATE", 0))
 
     IMAP_HOST = os.environ.get("IMAP_HOST")
     IMAP_PORT = int(os.environ.get("IMAP_PORT", 993))
     IMAP_USER = os.environ.get("IMAP_USER")
     IMAP_PASSWORD = os.environ.get("IMAP_PASSWORD")
-    AUTO_SENDER = os.environ.get("AUTO_SENDER")
-    AUTO_BETREFF = os.environ.get("AUTO_BETREFF")
-    AUTO_KONTO_REGEX = os.environ.get("AUTO_KONTO_REGEX")
-    AUTO_KONTO_GROUP = int(os.environ.get("AUTO_KONTO_GROUP", 1))
-    AUTO_BETRAG_REGEX = os.environ.get("AUTO_BETRAG_REGEX")
-    AUTO_BETRAG_GROUP = int(os.environ.get("AUTO_BETRAG_GROUP", 1))
 
 
 class DevelopmentConfig(BaseConfig):
@@ -89,30 +75,17 @@ config_map = {
     "default": DevelopmentConfig,
 }
 
-# Module-level variables kept for backward compatibility.
-# brevo.py imports these directly; auto_aufbuchung.py accesses them via `import config`.
+# Module-level variables for values that stay in .env (see utils/einstellungen.py).
+# brevo.py and auto_aufbuchung.py read them here; migration 7906e1e0673b needs MINDEST_GUTHABEN.
 MINDEST_GUTHABEN = _parse_mindest_guthaben()
 APP_TIMEZONE = os.environ.get("APP_TIMEZONE", "Europe/Vienna")
 
-SCHWAERZUNGS_TEXT = os.environ.get("SCHWAERZUNGS_TEXT", "Du bist geschwärzt!")
-RANKING_DEFAULT_STUNDEN = int(os.environ.get("RANKING_DEFAULT_STUNDEN", 24))
-RANKING_CONFIG_TTL_STUNDEN = int(os.environ.get("RANKING_CONFIG_TTL_STUNDEN", 12))
-HOTLIST_DAYS = int(os.environ.get("HOTLIST_DAYS", 14))
 
 BREVO_SECRET = os.environ.get("BREVO_SECRET")
-BREVO_SENDER_MAIL = os.environ.get("BREVO_SENDER_MAIL")
-BREVO_SENDER_NAME = os.environ.get("BREVO_SENDER_NAME")
-BREVO_TEMPLATE = int(os.environ.get("BREVO_TEMPLATE", 0))
 
 IMAP_HOST = os.environ.get("IMAP_HOST")
 IMAP_PORT = int(os.environ.get("IMAP_PORT", 993))
 IMAP_USER = os.environ.get("IMAP_USER")
 IMAP_PASSWORD = os.environ.get("IMAP_PASSWORD")
-AUTO_SENDER = os.environ.get("AUTO_SENDER")
-AUTO_BETREFF = os.environ.get("AUTO_BETREFF")
-AUTO_KONTO_REGEX = os.environ.get("AUTO_KONTO_REGEX")
-AUTO_KONTO_GROUP = int(os.environ.get("AUTO_KONTO_GROUP", 1))
-AUTO_BETRAG_REGEX = os.environ.get("AUTO_BETRAG_REGEX")
-AUTO_BETRAG_GROUP = int(os.environ.get("AUTO_BETRAG_GROUP", 1))
 
 DEBUG =os.environ.get("FLASK_DEBUG", "0").lower() in ("1", "true")

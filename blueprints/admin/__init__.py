@@ -12,6 +12,8 @@ from blueprints.admin.aussendungen import aussendungen_bp
 from blueprints.admin.artikel import artikel_bp
 from blueprints.admin.mitglied import mitglied_bp
 from blueprints.admin.abrechnung import abrechnung_bp
+from blueprints.admin.benutzer import benutzer_bp
+from blueprints.admin.einstellungen import einstellungen_bp
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 admin_bp.register_blueprint(export_bp)
@@ -21,6 +23,8 @@ admin_bp.register_blueprint(aussendungen_bp)
 admin_bp.register_blueprint(artikel_bp)
 admin_bp.register_blueprint(mitglied_bp)
 admin_bp.register_blueprint(abrechnung_bp)
+admin_bp.register_blueprint(benutzer_bp)
+admin_bp.register_blueprint(einstellungen_bp)
 
 
 @admin_bp.route("/")

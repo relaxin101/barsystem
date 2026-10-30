@@ -35,9 +35,8 @@ def test_resolve_template_uses_override():
     assert _resolve_template(99) == 99
 
 
-def test_resolve_template_falls_back_to_global():
-    import config
-    assert _resolve_template(None) == config.BREVO_TEMPLATE
+def test_resolve_template_falls_back_to_global(app):
+    assert _resolve_template(None) == 0
 
 
 def test_get_since_returns_none_for_alle_mitglieder():
@@ -174,7 +173,7 @@ def test_get_summen_with_buchungen(db, mitglied, artikel):
 # single_mail — mock HTTP
 # ---------------------------------------------------------------------------
 
-def test_single_mail_calls_brevo_api():
+def test_single_mail_calls_brevo_api(app):
     mock_response = MagicMock()
     mock_response.ok = True
 
@@ -193,7 +192,7 @@ def test_single_mail_calls_brevo_api():
     assert result.ok is True
 
 
-def test_single_mail_logs_on_failure():
+def test_single_mail_logs_on_failure(app):
     mock_response = MagicMock()
     mock_response.ok = False
     mock_response.status_code = 401

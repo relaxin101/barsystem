@@ -27,7 +27,7 @@ services:
       db:
         condition: service_healthy
     restart: "no"
-    command: sh -c "uv run flask db upgrade && uv run flask create-admin"
+    command: sh -c "uv run flask db upgrade && uv run flask create-admin && uv run flask sync-report-role"
     environment:
       FLASK_APP: wsgi
       APP_ENV: production

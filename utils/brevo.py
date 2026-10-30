@@ -7,8 +7,9 @@ from datetime import timedelta
 import requests
 from sqlalchemy import func, case
 
-from config import BREVO_SECRET, BREVO_SENDER_MAIL, BREVO_SENDER_NAME, BREVO_TEMPLATE
+from config import BREVO_SECRET
 from models import db, Mitglied, Buchung, Artikel, Aussendung
+from utils.einstellungen import einstellung
 from utils.zeit import utcnow
 
 logger = logging.getLogger(__name__)
@@ -22,7 +23,7 @@ def _resolve_template(template_override=None):
     """Gibt die Template-ID zurueck - Ueberschreibung hat Vorrang."""
     if template_override is not None:
         return int(template_override)
-    return BREVO_TEMPLATE
+    return einstellung("BREVO_TEMPLATE")
 
 
 def _get_verbrauch(mitglied_id, since):
@@ -123,8 +124,8 @@ def single_mail(subject, recipient_mail, recipient_name, message, amount,
         headers={"api-key": BREVO_SECRET},
         json={
             "sender": {
-                "email": BREVO_SENDER_MAIL,
-                "name": BREVO_SENDER_NAME,
+                "email": einstellung("BREVO_SENDER_MAIL"),
+                "name": einstellung("BREVO_SENDER_NAME"),
             },
             "subject": subject,
             "templateId": template_id,

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Einstellungen{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+  <h2 class="mb-4">⚙️ Einstellungen</h2>
+
+  <form method="post" action="{{ url_for('admin.einstellungen.index') }}">
+    {% for gruppe, felder in gruppen.items() %}
+    <div class="card mb-4">
+      <div class="card-header bg-primary text-white"><strong>{{ gruppe }}</strong></div>
+      <div class="card-body">
+        <div class="row g-3">
+          {% for feld in felder %}
+          {% set d = feld.definition %}
+          <div class="{{ 'col-12' if d.typ == 'regex' else 'col-md-6' }}">
+            <label for="{{ d.key }}" class="form-label">
+              {{ d.label }}
+              <span class="badge {{ 'bg-warning text-dark' if feld.quelle == 'geändert' else 'bg-secondary' }}">{{ feld.quelle }}</span>
+            </label>
+            <div class="input-group">
+              <input
+                type="{{ 'number' if d.typ == 'zahl' else 'text' }}"
+                class="form-control {{ 'is-invalid' if fehler.get(d.key) }} {{ 'font-monospace' if d.typ == 'regex' }}"
+                id="{{ d.key }}"
+                name="{{ d.key }}"
+                value="{{ feld.wert }}"
+                {% if d.minimum is not none %}min="{{ d.minimum }}"{% endif %}
+              >
+              {% if feld.quelle == 'geändert' %}
+              {# Gehört zu eigenem Formular: hier drin wäre es der Standard-Button für die Enter-Taste #}
+              <button type="submit" class="btn btn-outline-secondary" form="reset-{{ d.key }}">Zurücksetzen</button>
+              {% endif %}
+              {% if fehler.get(d.key) %}<div class="invalid-feedback">{{ fehler[d.key] }}</div>{% endif %}
+            </div>
+            {% if d.hilfe %}<div class="form-text">{{ d.hilfe }}</div>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+
+    <button type="submit" class="btn btn-success mb-4">Speichern</button>
+  </form>
+
+  {% for felder in gruppen.values() %}
+    {% for feld in felder if feld.quelle == 'geändert' %}
+    <form id="reset-{{ feld.definition.key }}" method="post"
+          action="{{ url_for('admin.einstellungen.zuruecksetzen_route', key=feld.definition.key) }}"></form>
+    {% endfor %}
+  {% endfor %}
+
+  {% if env_status %}
+  <div class="card mb-4">
+    <div class="card-header bg-secondary text-white"><strong>System</strong></div>
+    <div class="card-body">
+      <p class="text-muted small">
+        Diese Werte stehen in der <code>.env</code> am Server und werden erst nach einem Neustart wirksam.
+        Zugangsdaten werden hier nie angezeigt.
+      </p>
+      <table class="table table-sm mb-0" style="max-width:600px;">
+        <tbody>
+          <tr><th>Version</th><td>{{ version }}</td></tr>
+          {% for name, wert in env_status %}
+          <tr><th class="font-monospace fw-normal">{{ name }}</th><td>{{ wert }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -5,14 +5,14 @@ from sqlalchemy import or_, func, text, desc
 from models import db, Mitglied, Artikel, Buchung
 from datetime import timedelta
 from utils.admin import calc_blacklist, suche_mitglied
+from utils.einstellungen import einstellung
 from utils.zeit import utcnow
 
 bar_bp = Blueprint("bar", __name__)
 
 
 def hotlist(limit: int = None):
-    from flask import current_app
-    hotlist_days = current_app.config.get("HOTLIST_DAYS", 14)
+    hotlist_days = einstellung("HOTLIST_DAYS")
     since = utcnow() - timedelta(days=hotlist_days)
 
     # Bucket 1: pinned, sorted A→Z — always included
@@ -198,7 +198,7 @@ def buchen():
             mitglied=mitglied,
             artikel_liste=artikel_liste,
             buchungen=buchungen,
-            schwaerzungs_text=current_app.config.get("SCHWAERZUNGS_TEXT"),
+            schwaerzungs_text=einstellung("SCHWAERZUNGS_TEXT"),
             schwaerzungs_bild=schwaerzungs_bild,
         )
 

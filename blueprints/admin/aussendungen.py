@@ -9,8 +9,8 @@ from utils.brevo import (
     single_mail,
     get_member_count,
 )
+from utils.einstellungen import einstellung
 from utils.zeit import utcnow
-from config import BREVO_TEMPLATE
 
 aussendungen_bp = Blueprint("aussendungen", __name__, url_prefix="/aussendungen")
 
@@ -34,7 +34,7 @@ def index():
     return render_template(
         "admin/aussendungen.html",
         aussendungen=alle,
-        brevo_template_default=BREVO_TEMPLATE,
+        brevo_template_default=einstellung("BREVO_TEMPLATE"),
     )
 
 

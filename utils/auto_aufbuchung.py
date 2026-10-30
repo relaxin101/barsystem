@@ -9,6 +9,7 @@ from html.parser import HTMLParser
 import config
 from models import Buchung, db
 from utils.admin import calc_blacklist, suche_mitglied, parse_betrag_cents
+from utils.einstellungen import einstellung
 from utils.zeit import utcnow
 
 logger = logging.getLogger(__name__)
@@ -84,18 +85,18 @@ def _get_body(msg: email.message.Message) -> str:
 # ---------------------------------------------------------------------------
 
 def cronjob(app):
-    missing = [k for k, v in {
-        "IMAP_HOST": config.IMAP_HOST,
-        "IMAP_USER": config.IMAP_USER,
-        "IMAP_PASSWORD": config.IMAP_PASSWORD,
-        "AUTO_KONTO_REGEX": config.AUTO_KONTO_REGEX,
-        "AUTO_BETRAG_REGEX": config.AUTO_BETRAG_REGEX,
-    }.items() if not v]
-    if missing:
-        logger.debug("Auto-Aufbuchung: übersprungen, fehlende Konfig: %s", ", ".join(missing))
-        return
-
     with app.app_context():
+        missing = [k for k, v in {
+            "IMAP_HOST": config.IMAP_HOST,
+            "IMAP_USER": config.IMAP_USER,
+            "IMAP_PASSWORD": config.IMAP_PASSWORD,
+            "AUTO_KONTO_REGEX": einstellung("AUTO_KONTO_REGEX"),
+            "AUTO_BETRAG_REGEX": einstellung("AUTO_BETRAG_REGEX"),
+        }.items() if not v]
+        if missing:
+            logger.debug("Auto-Aufbuchung: übersprungen, fehlende Konfig: %s", ", ".join(missing))
+            return
+
         try:
             _process_mailbox()
         except Exception:
@@ -111,18 +112,18 @@ def _process_mailbox():
 
         # IMAP-Suchkriterien aufbauen (AND-Semantik)
         parts = ["UNSEEN"]
-        if config.AUTO_SENDER:
-            parts.append(f'FROM "{config.AUTO_SENDER}"')
-        if config.AUTO_BETREFF:
-            parts.append(f'SUBJECT "{config.AUTO_BETREFF}"')
+        if einstellung("AUTO_SENDER"):
+            parts.append(f'FROM "{einstellung("AUTO_SENDER")}"')
+        if einstellung("AUTO_BETREFF"):
+            parts.append(f'SUBJECT "{einstellung("AUTO_BETREFF")}"')
         logger.debug("Suchkriterien: %s", parts)
         result, data = mail.search(None, *parts)
         logger.debug("UNSEEN search: result=%s data=%s", result, data)
         if result != "OK" or not data[0]:
             return
 
-        konto_re = re.compile(config.AUTO_KONTO_REGEX, re.MULTILINE)
-        betrag_re = re.compile(config.AUTO_BETRAG_REGEX, re.MULTILINE)
+        konto_re = re.compile(einstellung("AUTO_KONTO_REGEX"), re.MULTILINE)
+        betrag_re = re.compile(einstellung("AUTO_BETRAG_REGEX"), re.MULTILINE)
 
         for msg_id in data[0].split():
             _handle_message(mail, msg_id, konto_re, betrag_re)
@@ -158,26 +159,26 @@ def _handle_message(mail, msg_id, konto_re, betrag_re):
         return
 
     try:
-        konto_wert = konto_m.group(config.AUTO_KONTO_GROUP).strip()
+        konto_wert = konto_m.group(einstellung("AUTO_KONTO_GROUP")).strip()
     except IndexError:
         logger.error(
             "Auto-Aufbuchung: AUTO_KONTO_GROUP=%d existiert nicht im Match — from=%s, subject=%s",
-            config.AUTO_KONTO_GROUP, from_addr, subject,
+            einstellung("AUTO_KONTO_GROUP"), from_addr, subject,
         )
         return
 
     try:
-        betrag_cents = parse_betrag_cents(betrag_m.group(config.AUTO_BETRAG_GROUP))
+        betrag_cents = parse_betrag_cents(betrag_m.group(einstellung("AUTO_BETRAG_GROUP")))
     except IndexError:
         logger.error(
             "Auto-Aufbuchung: AUTO_BETRAG_GROUP=%d existiert nicht im Match — from=%s, subject=%s",
-            config.AUTO_BETRAG_GROUP, from_addr, subject,
+            einstellung("AUTO_BETRAG_GROUP"), from_addr, subject,
         )
         return
     except ValueError as exc:
         logger.error(
             "Auto-Aufbuchung: Betrag '%s' nicht parsierbar (%s) — from=%s, subject=%s",
-            betrag_m.group(config.AUTO_BETRAG_GROUP), exc, from_addr, subject,
+            betrag_m.group(einstellung("AUTO_BETRAG_GROUP")), exc, from_addr, subject,
         )
         return
 

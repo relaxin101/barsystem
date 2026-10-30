@@ -42,6 +42,23 @@ def auth_client(client, admin_user):
 
 
 @pytest.fixture()
+def superadmin_user(db):
+    u = User(username="testsuper", is_superadmin=True)
+    u.set_password("testpassword")
+    db.session.add(u)
+    db.session.commit()
+    return u
+
+
+@pytest.fixture()
+def superadmin_client(app, superadmin_user):
+    """Second test client, so it can run next to auth_client."""
+    client = app.test_client()
+    client.post("/login", data={"username": "testsuper", "password": "testpassword"})
+    return client
+
+
+@pytest.fixture()
 def mitglied(db):
     m = Mitglied(name="Test Mitglied", guthaben=1000, aktiv=True)
     db.session.add(m)

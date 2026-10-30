@@ -197,7 +197,7 @@
       >
 
       <h4 class="mb-0">
-        Ergo Bibamus!
+        {{ einstellung("SITE_NAME") }}
       </h4>
 
     </div>
@@ -243,6 +243,20 @@
 
     <a href="{{ url_for('admin.aussendungen.index') }}">
       ✉️ Aussendungen
+    </a>
+
+    <a href="{{ url_for('admin.einstellungen.index') }}">
+      ⚙️ Einstellungen
+    </a>
+
+    {% if current_user.is_superadmin %}
+    <a href="{{ url_for('admin.benutzer.index') }}">
+      🔐 Benutzer
+    </a>
+    {% endif %}
+
+    <a href="{{ url_for('auth.passwort') }}">
+      🔑 Passwort ändern
     </a>
 
     <a href="{{ url_for('auth.logout') }}">
@@ -300,7 +314,7 @@
   {% endif %}
 
   <h2>
-    {% if current_user.is_authenticated %}Creotorium{% else %}Ergo Bibamus!{% endif %}
+    {{ einstellung("SITE_NAME_ADMIN") if current_user.is_authenticated else einstellung("SITE_NAME") }}
   </h2>
 
 </a>

@@ -2,7 +2,9 @@
 
 import io
 from datetime import datetime, timedelta
-from flask import request, send_file, flash, redirect
+from functools import wraps
+from flask import abort, request, send_file, flash, redirect
+from flask_login import current_user, login_required
 import pandas as pd
 import numpy as np
 from sqlalchemy import text
@@ -11,6 +13,19 @@ from numbers import Real
 
 from models import db, Mitglied
 from utils.zeit import LOCAL_TZ, local_now, naive_local
+
+
+def superadmin_required(view):
+    """Wie login_required, angemeldete Admins ohne Superadmin-Rolle bekommen 403."""
+
+    @wraps(view)
+    @login_required
+    def wrapped(*args, **kwargs):
+        if not current_user.is_superadmin:
+            abort(403)
+        return view(*args, **kwargs)
+
+    return wrapped
 
 
 # -------------------------

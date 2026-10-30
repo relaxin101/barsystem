@@ -7,16 +7,21 @@ from datetime import timezone
 import numpy as np
 import pandas as pd
 from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file
-from flask_login import login_required
+from flask_login import current_user, login_required
 from sqlalchemy import text
+from sqlalchemy.exc import OperationalError
 
-from models import db, Bericht, Mitglied, Artikel, User, Buchung, Abrechnung, Aussendung, UTCDateTime
+from models import (
+    db, Bericht, Einstellung, Mitglied, Artikel, User, Buchung, Abrechnung, Aussendung, UTCDateTime,
+)
 from utils.admin import export_df_to_excel, normalize_line_endings, unescape_excel_cr
+from utils.bericht_engine import report_engine
 from utils.zeit import local_now, naive_local, naive_utc
 
 # Reihenfolge beachtet FK-Abhängigkeiten: Buchung zuletzt (referenziert Mitglied, Artikel, Abrechnung)
 _BACKUP_TABLES = [
     ("users", User),
+    ("einstellungen", Einstellung),
     ("berichte", Bericht),
     ("aussendungen", Aussendung),
     ("abrechnungen", Abrechnung),
@@ -24,8 +29,38 @@ _BACKUP_TABLES = [
     ("artikel", Artikel),
     ("buchungen", Buchung),
 ]
+# Nur für Superadmins, in beide Richtungen: users enthält Passwort-Hashes und ein
+# präpariertes ZIP könnte sonst Konten oder Superadmin-Einstellungen anlegen.
+_SUPERADMIN_TABLES = {"users", "einstellungen"}
 
 export_bp = Blueprint("export", __name__, url_prefix="/export")
+
+
+def _backup_tables():
+    if current_user.is_superadmin:
+        return _BACKUP_TABLES
+    return [t for t in _BACKUP_TABLES if t[0] not in _SUPERADMIN_TABLES]
+
+
+def _execute_query(query, schreiben=False):
+    """Führt Bericht-SQL aus und gibt (Spalten, Zeilen) zurück.
+
+    Immer lesend, auch für Superadmins: ein Bericht kann von jemand anderem
+    gespeichert worden sein. Schreibzugriff gibt es nur pro Ausführung.
+    """
+    engine = db.engine if schreiben and current_user.is_superadmin else report_engine()
+    try:
+        conn = engine.connect()
+    except OperationalError as e:
+        raise RuntimeError(
+            "Berichte-Zugang ist nicht eingerichtet (flask sync-report-role)."
+        ) from e
+    with conn:
+        conn = conn.execution_options(isolation_level="AUTOCOMMIT")
+        result_proxy = conn.execute(text(query))
+        if not result_proxy.returns_rows:  # UPDATE etc. mit Schreibzugriff
+            return [], []
+        return list(result_proxy.keys()), result_proxy.fetchall()
 
 
 @export_bp.route("/", methods=["GET", "POST"])
@@ -44,15 +79,11 @@ def admin_export():
 
     if query:
         try:
-            readonly_engine = db.get_engine()
-            with readonly_engine.connect() as conn:
-                conn = conn.execution_options(isolation_level="AUTOCOMMIT")
-                result_proxy = conn.execute(text(query))
-                columns = result_proxy.keys()
-                results = [
-                    dict(zip(columns, map(naive_local, row)))
-                    for row in result_proxy.fetchall()
-                ]
+            schreiben = request.method == "POST" and "schreiben" in request.form
+            columns, rows = _execute_query(query, schreiben)
+            results = [dict(zip(columns, map(naive_local, row))) for row in rows]
+            if schreiben and current_user.is_superadmin:
+                flash("Abfrage mit Schreibzugriff ausgeführt.", "success")
         except Exception as e:
             error = str(e.args)
 
@@ -104,12 +135,12 @@ def delete_berichte(bericht_id):
 @login_required
 def download():
     query = request.form.get("query", "").strip()
-    readonly_engine = db.get_engine()
-    with readonly_engine.connect() as conn:
-        conn = conn.execution_options(isolation_level="AUTOCOMMIT", readonly=True)
-        result_proxy = conn.execute(text(query))
-        df = pd.DataFrame(result_proxy.fetchall(), columns=result_proxy.keys())
-    return export_df_to_excel(df, "export.xlsx")
+    try:
+        columns, rows = _execute_query(query)
+    except RuntimeError as e:
+        flash(str(e), "error")
+        return redirect(url_for("admin.export.admin_export"))
+    return export_df_to_excel(pd.DataFrame(rows, columns=columns), "export.xlsx")
 
 
 def _get_db_revision():
@@ -132,7 +163,7 @@ def db_backup():
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
         zf.writestr("ebs_version.txt", _get_db_revision())
 
-        for name, model in _BACKUP_TABLES:
+        for name, model in _backup_tables():
             columns = [c.key for c in model.__table__.columns]
             rows = model.query.all()
             df = pd.DataFrame(
@@ -181,14 +212,17 @@ def db_restore():
             names_in_zip = {n[:-5] for n in zf.namelist() if n.endswith(".xlsx")}
             ordered = [
                 (name, model)
-                for name, model in _BACKUP_TABLES
+                for name, model in _backup_tables()
                 if name in names_in_zip
             ]
 
             for name, model in ordered:
-                df = pd.read_excel(io.BytesIO(zf.read(f"{name}.xlsx")))
+                # read_excel rät Typen auch bei Textzellen: aus "21" würde sonst 21.0
+                dtype = {"value": str} if model is Einstellung else None
+                df = pd.read_excel(io.BytesIO(zf.read(f"{name}.xlsx")), dtype=dtype)
                 df = df.replace({np.nan: None})
                 columns = [c.key for c in model.__table__.columns]
+                pk_column = model.__mapper__.primary_key[0].key
                 inserted = skipped = 0
 
                 for _, row in df.iterrows():
@@ -199,7 +233,7 @@ def db_restore():
                     }
                     if model is Bericht and row_data.get("sql"):
                         row_data["sql"] = normalize_line_endings(row_data["sql"])
-                    pk = row_data.get("id")
+                    pk = row_data.get(pk_column)
                     if pk is not None and db.session.get(model, pk) is not None:
                         skipped += 1
                         continue
@@ -207,11 +241,12 @@ def db_restore():
                     inserted += 1
 
                 # Sequenz nach Import zurücksetzen (nötig wenn IDs explizit gesetzt wurden)
-                table = model.__tablename__
-                db.session.execute(text(
-                    f"SELECT setval(pg_get_serial_sequence('{table}', 'id'), "
-                    f"COALESCE((SELECT MAX(id)+1 FROM \"{table}\"), 1))"
-                ))
+                if pk_column == "id":
+                    table = model.__tablename__
+                    db.session.execute(text(
+                        f"SELECT setval(pg_get_serial_sequence('{table}', 'id'), "
+                        f"COALESCE((SELECT MAX(id)+1 FROM \"{table}\"), 1))"
+                    ))
                 db.session.commit()
                 summary.append(f"{name}: {inserted} eingefügt, {skipped} übersprungen")
 

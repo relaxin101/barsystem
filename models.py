@@ -1,13 +1,18 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from datetime import timezone
-from sqlalchemy import DateTime
+from sqlalchemy import DateTime, false
 from sqlalchemy.types import TypeDecorator
 from werkzeug.security import generate_password_hash, check_password_hash
-from config import MINDEST_GUTHABEN
 from utils.zeit import utcnow
 
 db = SQLAlchemy()
+
+
+def _standard_schwaerzungs_grenze():
+    from utils.einstellungen import einstellung  # utils.einstellungen importiert models
+
+    return einstellung("MINDEST_GUTHABEN")
 
 
 class UTCDateTime(TypeDecorator):
@@ -44,7 +49,7 @@ class Mitglied(db.Model):
     blacklist = db.Column(db.Boolean, default=False)
     aktiv = db.Column(db.Boolean, nullable=False, default=True)
     gepinnt = db.Column(db.Boolean, nullable=False, default=False)
-    schwaerzungs_grenze = db.Column(db.Integer, nullable=True, default=MINDEST_GUTHABEN)
+    schwaerzungs_grenze = db.Column(db.Integer, nullable=True, default=_standard_schwaerzungs_grenze)
     buchungen_von_mitglied = db.relationship(
         "Buchung", back_populates="mitglied_obj", lazy=True
     )
@@ -75,7 +80,7 @@ class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.Text(), unique=True, nullable=False)
     password = db.Column(db.Text(), nullable=False)
-    is_admin = db.Column(db.Boolean, default=False)
+    is_superadmin = db.Column(db.Boolean, nullable=False, default=False, server_default=false())
 
     def set_password(self, password):
         self.password = generate_password_hash(password)
@@ -135,6 +140,13 @@ class Bericht(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.Text, nullable=False)
     sql = db.Column(db.Text, nullable=False)
+
+
+class Einstellung(db.Model):
+    key = db.Column(db.String(64), primary_key=True)
+    value = db.Column(db.Text, nullable=True)
+    updated_at = db.Column(UTCDateTime, nullable=True)
+    updated_by = db.Column(db.Text, nullable=True)
 
 
 class Aussendung(db.Model):

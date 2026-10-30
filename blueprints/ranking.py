@@ -3,8 +3,8 @@ from datetime import datetime, timedelta
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, session
 from sqlalchemy import func, case
 
-import config as app_config
 from models import db, Artikel, Buchung, Mitglied
+from utils.einstellungen import einstellung
 from utils.zeit import utcnow
 
 ranking_bp = Blueprint("ranking", __name__, url_prefix="/ranking")
@@ -19,7 +19,7 @@ def _check_and_expire_config():
     set_at_str = session.get(_SESSION_SET_AT)
     if not set_at_str:
         return
-    if datetime.now() - datetime.fromisoformat(set_at_str) > timedelta(hours=app_config.RANKING_CONFIG_TTL_STUNDEN):
+    if datetime.now() - datetime.fromisoformat(set_at_str) > timedelta(hours=einstellung("RANKING_CONFIG_TTL_STUNDEN")):
         session.pop(_SESSION_STUNDEN, None)
         session.pop(_SESSION_ARTIKEL, None)
         session.pop(_SESSION_MODUS,   None)
@@ -28,7 +28,7 @@ def _check_and_expire_config():
 
 def _get_session_stunden():
     if _SESSION_STUNDEN not in session:
-        session[_SESSION_STUNDEN] = app_config.RANKING_DEFAULT_STUNDEN
+        session[_SESSION_STUNDEN] = einstellung("RANKING_DEFAULT_STUNDEN")
     return session[_SESSION_STUNDEN]
 
 

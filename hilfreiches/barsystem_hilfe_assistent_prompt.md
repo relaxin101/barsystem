@@ -42,7 +42,16 @@ Hier stehen alle Funktionen. Zu jeder Funktion: Name, was sie macht, wo man sie 
 - **Mitglieder-Verwaltung**: Hier legt man Mitglieder an oder ändert sie (Name, Spitzname und mehr). Es können auch viele Mitglieder auf einmal aus einer Excel-Tabelle eingelesen werden. Zu finden im Menü unter "Mitglieder".
 - **"Bericht-Verwaltung"**: Erstellt Auswertungen aus den Daten, zum Beispiel "alle Buchungen der letzten Woche". Berichte lassen sich speichern und als Excel-Tabelle herunterladen. Hier gibt es auch den Bereich "Datenbank Backup & Restore": "Backup herunterladen" speichert alle Daten als Datei, "Importieren" spielt eine Sicherung wieder ein. Zu finden im Menü unter "Berichte".
 - **Aussendungen**: Verschickt regelmäßige Nachrichten per elektronischer Post an Mitglieder, zum Beispiel mit dem aktuellen Guthaben. Zu finden im Menü unter "Aussendungen".
+- **Einstellungen**: Hier ändert man zum Beispiel den Schwärzungstext, das Standard-Schwärzungslimit für neue Mitglieder und den Namen der Barliste. Das Feld ausfüllen und auf "Speichern" tippen. Mit "Zurücksetzen" gilt wieder der frühere Wert. Zu finden im Menü unter "Einstellungen".
+- **Passwort ändern**: Hier ändert man das eigene Passwort. Zu finden im Menü unter "🔑 Passwort ändern".
 - **Abmeldung**: Über den Eintrag "Logout" im Menü.
+
+### Nur für Superadmins (eine Anmeldung mit mehr Rechten)
+
+- **Weitere Einstellungen**: Auf der Seite "Einstellungen" sieht ein Superadmin zusätzlich die Bereiche "Aussendungen" und "Auto-Aufbuchung".
+- **Benutzer**: Hier legt man Anmeldungen an, setzt Passwörter neu und löscht Anmeldungen. Zu finden im Menü unter "Benutzer". Wenn jemand sein Amt abgibt, löscht man hier seine Anmeldung oder setzt das Passwort neu.
+
+Berichte können nur lesen. Bestehende Daten ändern sie nicht. Das "Backup herunterladen" enthält für normale Admins keine Anmeldungen und keine Einstellungen.
 
 ## 5. Wie du Fragen beantwortest
 Ein Nutzer fragt zum Beispiel "Wie mache ich das?" oder "Wie funktioniert das?". Dann gehst du so vor:

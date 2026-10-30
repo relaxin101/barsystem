@@ -23,7 +23,10 @@
         </div>
         <div class="card-body d-flex flex-wrap align-items-end gap-4">
           <div>
-            <p class="mb-2 text-muted small">Alle Tabellen als Excel-Dateien in einem ZIP herunterladen.</p>
+            <p class="mb-2 text-muted small">
+              Alle Tabellen als Excel-Dateien in einem ZIP herunterladen.
+              {% if not current_user.is_superadmin %}Benutzerkonten und Einstellungen sind nicht enthalten.{% endif %}
+            </p>
             <a href="{{ url_for('admin.export.db_backup') }}" class="btn btn-success">
               <i class="bi bi-download"></i> Backup herunterladen
             </a>
@@ -84,6 +87,13 @@
 
 {% if query %}
 <pre><code class="language-sql">{{ query }}</code></pre>
+{% endif %}
+
+{% if current_user.is_superadmin %}
+<div class="form-check mb-2">
+  <input class="form-check-input" type="checkbox" id="schreiben" name="schreiben">
+  <label class="form-check-label" for="schreiben">Mit Schreibzugriff ausführen (nur diese Ausführung, vorher SQL prüfen)</label>
+</div>
 {% endif %}
 
             <div class="mt-2">
