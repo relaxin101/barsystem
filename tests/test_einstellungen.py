@@ -255,7 +255,7 @@ class TestWirkung:
 
         from utils import auto_aufbuchung
 
-        speichern({"AUTO_KONTO_REGEX": "(a)", "AUTO_BETRAG_REGEX": "(b)"}, "tester")
+        speichern({"AUTO_SENDER": "bank@example.com", "AUTO_KONTO_REGEX": "(a)", "AUTO_BETRAG_REGEX": "(b)"}, "tester")
         with patch.object(auto_aufbuchung.config, "IMAP_HOST", "h"), \
                 patch.object(auto_aufbuchung.config, "IMAP_USER", "u"), \
                 patch.object(auto_aufbuchung.config, "IMAP_PASSWORD", "p"), \
@@ -270,3 +270,45 @@ def test_env_example_is_complete():
     documented = set(re.findall(r"^([A-Z_]+)=", example, re.MULTILINE))
     missing = (ENV_ONLY.keys() | DEFINITIONEN.keys()) - documented
     assert missing == {"SITE_NAME", "SITE_NAME_ADMIN"}  # neu, nur im Adminpanel
+
+
+class TestObergrenzen:
+    @pytest.mark.parametrize("key,wert", [
+        ("HOTLIST_DAYS", "999999"),
+        ("RANKING_DEFAULT_STUNDEN", "99999999"),
+        ("RANKING_CONFIG_TTL_STUNDEN", "99999999"),
+        ("MINDEST_GUTHABEN", "nan"),
+        ("MINDEST_GUTHABEN", "inf"),
+        ("MINDEST_GUTHABEN", "-inf"),
+        ("MINDEST_GUTHABEN", "1e300"),
+    ])
+    def test_rejected(self, app, key, wert):
+        assert key in pruefen({key: wert})
+
+    @pytest.mark.parametrize("key,wert", [
+        ("HOTLIST_DAYS", "3650"),
+        ("RANKING_DEFAULT_STUNDEN", "87600"),
+        ("MINDEST_GUTHABEN", "-100000"),
+    ])
+    def test_largest_allowed_value_works(self, client, app, key, wert):
+        assert pruefen({key: wert}) == {}
+        speichern({key: wert}, "tester")
+        assert client.get("/").status_code == 200
+        assert client.get("/ranking/").status_code == 200
+
+    def test_ranking_form_has_the_same_limit(self, client):
+        resp = client.post("/ranking/config/stunden", json={"stunden": 99999999})
+        assert resp.status_code == 400
+        assert client.get("/ranking/").status_code == 200
+
+
+class TestRankingDefault:
+    def test_new_default_reaches_an_open_kiosk(self, client, db):
+        client.get("/ranking/")  # the kiosk has visited before
+        speichern({"RANKING_DEFAULT_STUNDEN": "48"}, "tester")
+        assert "letzte 48 Stunden" in client.get("/ranking/").get_data(as_text=True)
+
+    def test_own_choice_still_wins(self, client):
+        client.post("/ranking/config/stunden", json={"stunden": 6})
+        speichern({"RANKING_DEFAULT_STUNDEN": "48"}, "tester")
+        assert "letzte 6 Stunden" in client.get("/ranking/").get_data(as_text=True)

@@ -356,6 +356,7 @@ document.addEventListener("DOMContentLoaded", function () {
   async function doFormSend(payload) {
     fSendBtn.disabled = true;
     fSendBtn.textContent = "⏳ Wird gesendet …";
+    var gestartet = false;
     try {
       var res  = await fetch("/admin/aussendungen/send", {
         method: "POST",
@@ -364,9 +365,12 @@ document.addEventListener("DOMContentLoaded", function () {
       });
       var data = await res.json();
       showToast(data.message, data.success ? "success" : "error");
+      gestartet = data.success && !payload.test_receiver;
     } finally {
-      fSendBtn.disabled = false;
-      fSendBtn.textContent = payload.test_receiver ? "🧪 Test-Email senden" : "📤 Jetzt senden";
+      // Nach dem Start gesperrt lassen: ein zweiter Klick würde alle nochmal anschreiben
+      fSendBtn.disabled = gestartet;
+      fSendBtn.textContent = gestartet ? "✅ Versand läuft"
+        : payload.test_receiver ? "🧪 Test-Email senden" : "📤 Jetzt senden";
     }
   }
 

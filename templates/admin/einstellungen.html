@@ -27,6 +27,7 @@
                 name="{{ d.key }}"
                 value="{{ feld.wert }}"
                 {% if d.minimum is not none %}min="{{ d.minimum }}"{% endif %}
+                {% if d.maximum is not none %}max="{{ d.maximum }}"{% endif %}
               >
               {% if feld.quelle == 'geändert' %}
               {# Gehört zu eigenem Formular: hier drin wäre es der Standard-Button für die Enter-Taste #}

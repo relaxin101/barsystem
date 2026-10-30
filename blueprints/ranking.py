@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request, jsonify, redirect, url_fo
 from sqlalchemy import func, case
 
 from models import db, Artikel, Buchung, Mitglied
-from utils.einstellungen import einstellung
+from utils.einstellungen import DEFINITIONEN, einstellung
 from utils.zeit import utcnow
 
 ranking_bp = Blueprint("ranking", __name__, url_prefix="/ranking")
@@ -27,9 +27,8 @@ def _check_and_expire_config():
 
 
 def _get_session_stunden():
-    if _SESSION_STUNDEN not in session:
-        session[_SESSION_STUNDEN] = einstellung("RANKING_DEFAULT_STUNDEN")
-    return session[_SESSION_STUNDEN]
+    # Standardwert nicht in die Session kopieren, sonst erreicht eine Änderung den Kiosk nie
+    return session.get(_SESSION_STUNDEN, einstellung("RANKING_DEFAULT_STUNDEN"))
 
 
 def _get_session_artikel_ids():
@@ -184,7 +183,7 @@ def set_stunden():
     data = request.get_json()
     try:
         stunden = int(data.get("stunden", 24))
-        if stunden < 1:
+        if not 1 <= stunden <= DEFINITIONEN["RANKING_DEFAULT_STUNDEN"].maximum:
             raise ValueError
     except (TypeError, ValueError):
         return jsonify({"success": False, "error": "Ungültiger Wert"}), 400

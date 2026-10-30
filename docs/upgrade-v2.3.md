@@ -54,6 +54,9 @@ Zugangsdaten (`BREVO_SECRET`, `IMAP_*`), Datenbank-Werte, `FLASK_SECRET_KEY` und
 4. **SQL in Berichten kann nichts mehr ändern.** `UPDATE`, `DELETE` usw. schlagen fehl und die Tabellen `user` und `einstellung` sind nicht lesbar. Wer Daten per SQL korrigieren muss, braucht einen Superadmin und das Häkchen „Mit Schreibzugriff ausführen". Gespeicherte Berichte, die nur lesen, laufen unverändert.
 5. **Excel-Backup als Admin** enthält keine Benutzerkonten und Einstellungen mehr. Für ein vollständiges Backup als Superadmin anmelden oder `flask backup` verwenden.
 6. **Angepasste Namen im Template:** Wurden `Ergo Bibamus!` oder `Creotorium` in `templates/base.html` geändert, kann `git stash pop` beim Update einen Konflikt melden. Dann die neue Version der Datei übernehmen und die Namen unter „Einstellungen" eintragen.
+7. **Auto-Aufbuchung bucht nur noch bestätigte Mails.** Der From-Header lässt sich fälschen, deshalb muss der eigene Mailserver die Domain aus `AUTO_SENDER` per DKIM oder DMARC bestätigen (oberster Header `Authentication-Results`). `AUTO_SENDER` ist damit Pflicht, ohne den Wert läuft der Job nicht. Setzt der Mailserver den Header nicht, wird keine Mail mehr gebucht.
+8. **Auto-Aufbuchung braucht den exakten Namen.** Name oder einer der Spitznamen muss genau passen (Groß-/Kleinschreibung egal). „Max" trifft nicht mehr „Maximilian". Mails ohne Treffer werden wie bisher als gelesen markiert und nur im Log vermerkt: das Guthaben muss dann von Hand aufgebucht werden.
+9. **Aussendungen laufen im Hintergrund.** „Jetzt senden" bei einer gespeicherten Aussendung geht innerhalb einer Minute über den Scheduler raus, der Versand über das Formular läuft ab dem Klick im Hintergrund. Das Ergebnis steht deshalb nicht mehr in der Meldung, sondern im Log (Formular) bzw. in der Spalte „letzter Lauf". Bricht ein Versand ab, bekommen die restlichen Mitglieder diese Aussendung nicht; doppelt verschickt wird sie nicht.
 
 ## Checkliste pro Standort
 
@@ -62,6 +65,7 @@ Zugangsdaten (`BREVO_SECRET`, `IMAP_*`), Datenbank-Werte, `FLASK_SECRET_KEY` und
 - [ ] **Vor dem Update prüfen, dass der Container in UTC läuft:** `docker compose exec app date`. Die Ausgabe muss `UTC` zeigen. Steht dort eine andere Zeitzone (z. B. weil `TZ` in `.env` gesetzt ist), enthält die Datenbank Ortszeiten und die Migration würde sie verschieben – dann **nicht** updaten, sondern zuerst klären.
 - [ ] Gespeicherte Berichte nach bestehenden Umrechnungen durchsuchen, also `AT TIME ZONE` oder `+ interval`. Solche Korrekturen rechnen die Zeit nach dem Update doppelt um und müssen entfernt werden.
 - [ ] Bei einem Standort außerhalb Österreichs: `APP_TIMEZONE` in `.env` setzen
+- [ ] **Bei Auto-Aufbuchung vor dem Update eine echte Bank-Mail prüfen:** im Mailprogramm „Quelltext anzeigen". Der oberste `Authentication-Results`-Header muss vom eigenen Mailserver stammen und `dkim=pass` mit `header.d=` oder `header.i=` der Bank-Domain bzw. `dmarc=pass` mit `header.from=` der Bank-Domain enthalten. `AUTO_SENDER` muss dieselbe Domain haben. Fehlt das, **nicht updaten**: Bank-Mails würden als gelesen markiert, aber nicht gebucht.
 - [ ] Update einspielen (unten)
 - [ ] Superadmin anlegen (unten). Bis dahin läuft alles normal aus der `.env`, nur Aussendungs- und Auto-Aufbuchungs-Einstellungen, Benutzerverwaltung und Schreibzugriff in Berichten sind nicht erreichbar
 - [ ] Prüfen, ob `admin` ein neues Passwort bekommen soll, z. B. wenn es Personen kennen, die nicht mehr im Amt sind

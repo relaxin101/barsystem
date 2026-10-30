@@ -30,8 +30,11 @@ class Definition:
     standard: object = None
     superadmin: bool = False
     minimum: int = None
+    maximum: int = None
     hilfe: str = ""
 
+
+MAX_EURO = 100000
 
 GRUPPE_ALLGEMEIN = "Allgemein"
 GRUPPE_AUSSENDUNGEN = "Aussendungen"
@@ -46,20 +49,26 @@ DEFINITIONEN = {d.key: d for d in (
         hilfe="Gilt für neue Mitglieder, z. B. -50. Leer heißt: kein Limit.",
     ),
     Definition(
-        "HOTLIST_DAYS", "Hotlist (Tage)", GRUPPE_ALLGEMEIN, typ="zahl", standard=14, minimum=1,
+        "HOTLIST_DAYS", "Hotlist (Tage)", GRUPPE_ALLGEMEIN, typ="zahl", standard=14, minimum=1, maximum=3650,
         hilfe="Wer in dieser Zeit gebucht hat, steht in der Barliste weiter oben.",
     ),
-    Definition("RANKING_DEFAULT_STUNDEN", "Ranking-Zeitraum (Stunden)", GRUPPE_ALLGEMEIN, typ="zahl", standard=24, minimum=1),
+    Definition(
+        "RANKING_DEFAULT_STUNDEN", "Ranking-Zeitraum (Stunden)", GRUPPE_ALLGEMEIN, typ="zahl",
+        standard=24, minimum=1, maximum=87600,
+    ),
     Definition(
         "RANKING_CONFIG_TTL_STUNDEN", "Ranking-Auswahl gilt (Stunden)", GRUPPE_ALLGEMEIN, typ="zahl",
-        standard=12, minimum=1,
+        standard=12, minimum=1, maximum=87600,
     ),
 
     Definition("BREVO_SENDER_MAIL", "Absender-Adresse", GRUPPE_AUSSENDUNGEN, superadmin=True, hilfe="Muss bei Brevo freigeschaltet sein."),
     Definition("BREVO_SENDER_NAME", "Absender-Name", GRUPPE_AUSSENDUNGEN, superadmin=True),
     Definition("BREVO_TEMPLATE", "Standard-Template (ID)", GRUPPE_AUSSENDUNGEN, typ="zahl", standard=0, superadmin=True, minimum=0),
 
-    Definition("AUTO_SENDER", "Filter: Absender", GRUPPE_AUTO, superadmin=True, hilfe="Leer heißt: kein Filter."),
+    Definition(
+        "AUTO_SENDER", "Absender der Bank", GRUPPE_AUTO, superadmin=True,
+        hilfe="Pflichtfeld, z. B. noreply@sparkasse.at. Gebucht wird nur, wenn der Mailserver diese Domain bestätigt.",
+    ),
     Definition("AUTO_BETREFF", "Filter: Betreff", GRUPPE_AUTO, superadmin=True, hilfe="Leer heißt: kein Filter."),
     Definition("AUTO_KONTO_REGEX", "Regex für das Konto", GRUPPE_AUTO, typ="regex", superadmin=True, hilfe="Leer deaktiviert die Auto-Aufbuchung."),
     Definition("AUTO_KONTO_GROUP", "Gruppe im Konto-Regex", GRUPPE_AUTO, typ="zahl", standard=1, superadmin=True, minimum=0),
@@ -139,11 +148,15 @@ def _fehler_im_wert(definition, wert):
             return "Bitte eine ganze Zahl eingeben."
         if definition.minimum is not None and zahl < definition.minimum:
             return f"Der Wert muss mindestens {definition.minimum} sein."
+        if definition.maximum is not None and zahl > definition.maximum:
+            return f"Der Wert darf höchstens {definition.maximum} sein."
     elif definition.typ == "euro" and wert:
         try:
-            float(wert.replace(",", "."))
+            betrag = float(wert.replace(",", "."))
         except ValueError:
             return "Bitte einen Betrag eingeben, z. B. -50."
+        if not abs(betrag) <= MAX_EURO:  # so herum fällt auch nan durch
+            return f"Der Betrag muss zwischen -{MAX_EURO} und {MAX_EURO} liegen."
     elif definition.typ == "regex":
         try:
             re.compile(wert)

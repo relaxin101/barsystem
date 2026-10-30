@@ -121,6 +121,7 @@ def single_mail(subject, recipient_mail, recipient_name, message, amount,
     template_id = _resolve_template(template)
     response = requests.post(
         url="https://api.brevo.com/v3/smtp/email",
+        timeout=10,
         headers={"api-key": BREVO_SECRET},
         json={
             "sender": {
@@ -247,6 +248,10 @@ def aussendungen(aussendung):
     mitglieder = _get_recipients(aussendung)
     since = _get_since(aussendung)
 
+    # Vor dem Versand: nach einem Abbruch sollen nicht alle dieselbe Mail nochmal bekommen
+    aussendung.last_run = utcnow()
+    db.session.commit()
+
     sent, failed = bulk_mail(
         mitglieder,
         aussendung.subject,
@@ -254,8 +259,5 @@ def aussendungen(aussendung):
         since=since,
         template=aussendung.brevo_template,
     )
-
-    aussendung.last_run = utcnow()
-    db.session.commit()
 
     return 0, f"Aussendung ausgefuehrt: {sent} gesendet, {failed} fehlgeschlagen."

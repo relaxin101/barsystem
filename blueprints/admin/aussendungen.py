@@ -1,6 +1,7 @@
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, current_app, render_template, request, jsonify
 from flask_login import login_required
 from datetime import timedelta
+from threading import Thread
 
 from models import db, Mitglied, Buchung, Aussendung
 from utils.brevo import (
@@ -24,6 +25,13 @@ def _freq_to_days(frequenz):
         return int(frequenz)
     except (ValueError, TypeError):
         return 7
+
+
+def _im_hintergrund_senden(app, mitglied_ids, subject, message, since, template):
+    with app.app_context():
+        mitglieder = Mitglied.query.filter(Mitglied.id.in_(mitglied_ids)).all()
+        sent, failed = bulk_mail(mitglieder, subject, message, since=since, template=template)
+        app.logger.info("Aussendung '%s': %d gesendet, %d fehlgeschlagen", subject, sent, failed)
 
 
 # Uebersicht
@@ -89,8 +97,14 @@ def send_aussendung():
 
     # since nur setzen wenn nach Konsumenten gefiltert wird
     since = (utcnow() - timedelta(days=days)) if not alle_mitglieder else None
-    sent, failed = bulk_mail(mitglieder, subject, message, since=since, template=brevo_tpl)
-    return jsonify({"success": True, "message": f"{sent} Mails gesendet, {failed} fehlgeschlagen."})
+    # Im Hintergrund: Gunicorn bricht Requests nach 30 s ab, das reicht nicht für alle Mitglieder
+    Thread(
+        target=_im_hintergrund_senden,
+        args=(current_app._get_current_object(), [m.id for m in mitglieder], subject, message, since, brevo_tpl),
+        daemon=True,
+    ).start()
+    anzahl = sum(1 for m in mitglieder if m.email)
+    return jsonify({"success": True, "message": f"Versand an {anzahl} Mitglieder gestartet."})
 
 
 # Neue Aussendung speichern
@@ -185,8 +199,12 @@ def preview_aussendung(id):
 @login_required
 def run_aussendung(id):
     a = Aussendung.query.get_or_404(id)
-    error, message = brevo_send(a)
-    return jsonify({"success": not bool(error), "message": message})
+    if not a.aktiv:
+        return jsonify({"success": False, "message": "Aussendung ist inaktiv."})
+    # Der Scheduler sendet alles ohne last_run; im Request würde Gunicorn nach 30 s abbrechen
+    a.last_run = None
+    db.session.commit()
+    return jsonify({"success": True, "message": "Wird innerhalb einer Minute versendet."})
 
 
 # Aussendung laden (fuer Bearbeitungs-Formular)
