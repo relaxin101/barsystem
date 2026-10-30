@@ -13,7 +13,7 @@
 
   <p class="text-muted mb-3" style="font-size:0.85rem;">
     Rollierendes Fenster: letzte {{ stunden }} Stunde{{ 'n' if stunden != 1 else '' }}
-    (seit {{ seit.strftime('%d.%m.%Y %H:%M') }})
+    (seit {{ seit|local_time }})
     · Modus: <strong>{{ 'Reinalkohol (mL)' if modus == 'reinalkohol' else ('Umsatz (€)' if modus == 'umsatz' else 'Menge') }}</strong>
   </p>
 

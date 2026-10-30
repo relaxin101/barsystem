@@ -6,6 +6,7 @@ from flask_migrate import Migrate
 from flask_login import LoginManager
 from logging.config import dictConfig
 from sqlalchemy import text
+from sqlalchemy.engine import make_url
 
 
 def create_app(config_name=None):
@@ -41,6 +42,13 @@ def create_app(config_name=None):
         for warning in validate_production_config(app.config):
             logging.getLogger(__name__).warning(warning)
 
+    # Session-Zeitzone: damit rechnet Postgres timestamptz-Spalten auch in
+    # gespeicherten Berichten (DATE, TO_CHAR, Datumsliterale) in Ortszeit.
+    if make_url(app.config["SQLALCHEMY_DATABASE_URI"]).get_backend_name() == "postgresql":
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+            "connect_args": {"options": f"-c timezone={app.config['APP_TIMEZONE']}"}
+        }
+
     from models import db, User
     Migrate(app, db)
     db.init_app(app)
@@ -66,6 +74,12 @@ def create_app(config_name=None):
     @app.template_filter("float_format")
     def float_format_filter(value):
         return "{:.2f}".format(value).replace(".", ",")
+
+    @app.template_filter("local_time")
+    def local_time_filter(value, fmt="%d.%m.%Y %H:%M"):
+        from utils.zeit import LOCAL_TZ
+
+        return value.astimezone(LOCAL_TZ).strftime(fmt) if value else ""
 
     @app.route("/healthz")
     def healthz():

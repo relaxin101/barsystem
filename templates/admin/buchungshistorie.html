@@ -45,7 +45,7 @@
     <tbody>
       {% for b in buchungen %}
       <tr data-buchung-id="{{ b.id }}" class="{% if b.storno %}table-danger{% endif %}">
-        <td>{{ b.zeitstempel.strftime('%d.%m.%Y %H:%M') }}</td>
+        <td>{{ b.zeitstempel|local_time }}</td>
         <td>{{ b.mitglied_obj.name }}</td>
           
         <td>{% if b.beschreibung is not none and b.beschreibung != '' %} {{b.beschreibung}} {% else %} {{ b.artikel_obj.name }} {% endif %}</td>

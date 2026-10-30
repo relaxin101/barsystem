@@ -138,7 +138,7 @@
               </div>
             </td>
             <td class="text-muted" style="font-size:.9em;">
-              {% if a.last_run %}{{ a.last_run.strftime('%d.%m.%Y %H:%M') }}{% else %}—{% endif %}
+              {% if a.last_run %}{{ a.last_run|local_time }}{% else %}—{% endif %}
             </td>
             <td>
               <div class="d-flex gap-1">

@@ -7,7 +7,7 @@
   <div class="d-flex justify-content-between align-items-center mb-4">
 
       <h2 class="mb-1">
-        📦 Abrechnung am {{ abrechnung.zeitstempel.strftime('%d.%m.%Y, um %H:%M') }} - {{ abrechnung.name }}
+        📦 Abrechnung am {{ abrechnung.zeitstempel|local_time('%d.%m.%Y, um %H:%M') }} - {{ abrechnung.name }}
       </h2>
 
     <a
@@ -37,7 +37,7 @@
             id="start"
             class="form-control"
             step="60"
-            value={{ von_datum.strftime('%Y-%m-%dT%H:%M:%S') }}
+            value={{ von_datum|local_time('%Y-%m-%dT%H:%M:%S') }}
           >
         </div>
 
@@ -48,7 +48,7 @@
             id="ende"
             class="form-control"
             step="60"
-            value={{ bis_datum.strftime('%Y-%m-%dT%H:%M:%S') }}
+            value={{ bis_datum|local_time('%Y-%m-%dT%H:%M:%S') }}
           >
         </div>
 
@@ -112,11 +112,11 @@
 
           <tr class="{% if b.storno %}table-danger{% endif %}">
             <td>
-              {{ b.zeitstempel.strftime('%d.%m.%Y %H:%M') }}
+              {{ b.zeitstempel|local_time }}
             </td>
 
             <td>
-              {{ b.storno_updated_at.strftime('%d.%m.%Y %H:%M') if b.storno_updated_at else '—' }}
+              {{ b.storno_updated_at|local_time or '—' }}
             </td>
 
             <td>
@@ -237,7 +237,7 @@
           <tr class="{% if b.storno %}table-danger{% endif %}">
 
             <td>
-              {{ b.zeitstempel.strftime('%d.%m.%Y %H:%M') }}
+              {{ b.zeitstempel|local_time }}
             </td>
 
             <td>

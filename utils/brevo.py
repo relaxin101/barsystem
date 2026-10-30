@@ -2,13 +2,14 @@
 Utils for sending requests to Brevo
 """
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import requests
 from sqlalchemy import func, case
 
 from config import BREVO_SECRET, BREVO_SENDER_MAIL, BREVO_SENDER_NAME, BREVO_TEMPLATE
 from models import db, Mitglied, Buchung, Artikel, Aussendung
+from utils.zeit import utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -190,7 +191,7 @@ def _get_since(aussendung):
     """Berechnet den 'since'-Zeitpunkt fuer eine Aussendung."""
     if aussendung.alle_mitglieder or not aussendung.member_days:
         return None
-    return datetime.now() - timedelta(days=aussendung.member_days)
+    return utcnow() - timedelta(days=aussendung.member_days)
 
 
 def _get_recipients(aussendung):
@@ -199,7 +200,7 @@ def _get_recipients(aussendung):
         return Mitglied.query.filter_by(aktiv=True).all()
 
     if aussendung.member_days and aussendung.member_days > 0:
-        since = datetime.now() - timedelta(days=aussendung.member_days)
+        since = utcnow() - timedelta(days=aussendung.member_days)
         return (
             db.session.query(Mitglied)
             .join(Buchung, Buchung.mitglied_id == Mitglied.id)
@@ -221,7 +222,7 @@ def get_member_count(aussendung):
         return Mitglied.query.filter_by(aktiv=True).count()
 
     if aussendung.member_days and aussendung.member_days > 0:
-        since = datetime.now() - timedelta(days=aussendung.member_days)
+        since = utcnow() - timedelta(days=aussendung.member_days)
         return (
             db.session.query(Mitglied.id)
             .join(Buchung, Buchung.mitglied_id == Mitglied.id)
@@ -253,7 +254,7 @@ def aussendungen(aussendung):
         template=aussendung.brevo_template,
     )
 
-    aussendung.last_run = datetime.now()
+    aussendung.last_run = utcnow()
     db.session.commit()
 
     return 0, f"Aussendung ausgefuehrt: {sent} gesendet, {failed} fehlgeschlagen."

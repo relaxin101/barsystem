@@ -5,6 +5,7 @@ from sqlalchemy import func, case
 
 import config as app_config
 from models import db, Artikel, Buchung, Mitglied
+from utils.zeit import utcnow
 
 ranking_bp = Blueprint("ranking", __name__, url_prefix="/ranking")
 
@@ -54,7 +55,7 @@ def index():
     stunden     = _get_session_stunden()
     selected_ids = _get_session_artikel_ids()
     modus       = _get_session_modus()
-    seit        = datetime.now() - timedelta(hours=stunden)
+    seit        = utcnow() - timedelta(hours=stunden)
 
     artikel_liste = (
         Artikel.query

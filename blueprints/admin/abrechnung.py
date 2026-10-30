@@ -2,11 +2,11 @@ from collections import defaultdict
 
 from flask import Blueprint, flash, render_template, request, jsonify, url_for
 from flask_login import login_required
-from datetime import datetime
 
 from sqlalchemy import func, text, or_, and_
 
 from models import db, Abrechnung, Buchung
+from utils.zeit import parse_local, utcnow
 
 
 abrechnung_bp = Blueprint(
@@ -77,8 +77,8 @@ def create():
     query = Buchung.query.filter(Buchung.abrechnungs_id.is_(None))
 
     if modus == "zeitraum":
-        start_dt = datetime.fromisoformat(start)
-        end_dt = datetime.fromisoformat(end)
+        start_dt = parse_local(start)
+        end_dt = parse_local(end)
         query = query.filter(
             Buchung.zeitstempel >= start_dt,
             Buchung.zeitstempel <= end_dt,
@@ -114,22 +114,12 @@ def detail(abrechnung_id):
         .all()
     )
 
-    # FIX: Crash wenn Abrechnung keine Buchungen hat
-    von_datum = None
-    bis_datum = None
-    if buchungen:
-        with db.engine.connect() as connection:
-            sql = f"""
-                SELECT MIN(b.zeitstempel) AS von_datum,
-                       MAX(b.zeitstempel) AS bis_datum
-                FROM buchung b
-                WHERE b.abrechnungs_id = {abrechnung_id}
-                GROUP BY abrechnungs_id
-            """
-            results = list(connection.execute(text(sql)))
-            if results:
-                von_datum = results[0][0]
-                bis_datum = results[0][1]
+    # Bei einer Abrechnung ohne Buchungen sind beide None
+    von_datum, bis_datum = (
+        db.session.query(func.min(Buchung.zeitstempel), func.max(Buchung.zeitstempel))
+        .filter(Buchung.abrechnungs_id == abrechnung.id)
+        .one()
+    )
 
     konten = defaultdict(lambda: {"mitglied": None, "einzahlungen": 0, "konsum": 0})
     for b in buchungen:
@@ -156,8 +146,8 @@ def detail(abrechnung_id):
 def update(abrechnung_id):
     abrechnung = Abrechnung.query.get_or_404(abrechnung_id)
     data = request.get_json()
-    start = datetime.fromisoformat(data["start"])
-    ende = datetime.fromisoformat(data["ende"])
+    start = parse_local(data["start"])
+    ende = parse_local(data["ende"])
 
     Buchung.query.filter_by(abrechnungs_id=abrechnung.id).update({"abrechnungs_id": None})
 
@@ -173,7 +163,7 @@ def update(abrechnung_id):
     for b in buchungen:
         b.abrechnungs_id = abrechnung.id
 
-    abrechnung.zeitstempel = datetime.now()
+    abrechnung.zeitstempel = utcnow()
     db.session.commit()
     return jsonify(success=True)
 
@@ -182,7 +172,7 @@ def update(abrechnung_id):
 @login_required
 def refresh(abrechnung_id):
     abrechnung = Abrechnung.query.get_or_404(abrechnung_id)
-    abrechnung.zeitstempel = datetime.now()
+    abrechnung.zeitstempel = utcnow()
     db.session.commit()
     return jsonify(success=True)
 

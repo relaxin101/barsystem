@@ -1,7 +1,7 @@
 """Tests for blueprints/admin/buchungen.py — storno toggle."""
-from datetime import datetime
 
 from models import Buchung, Mitglied, Artikel
+from utils.zeit import utcnow
 
 
 def _create_buchung(db, mitglied, artikel, preis=200, storno=False):
@@ -12,7 +12,7 @@ def _create_buchung(db, mitglied, artikel, preis=200, storno=False):
         preis_pro_einheit=preis,
         gesamtpreis=-preis,
         storno=storno,
-        zeitstempel=datetime.now(),
+        zeitstempel=utcnow(),
     )
     db.session.add(b)
     db.session.commit()
@@ -36,7 +36,7 @@ class TestStornoToggle:
 
     def test_undo_storno_re_deducts_guthaben(self, auth_client, db, mitglied, artikel):
         b = _create_buchung(db, mitglied, artikel, storno=True)
-        b.storno_updated_at = datetime.now()
+        b.storno_updated_at = utcnow()
         # Re-credit guthaben to simulate previous storno
         mitglied.guthaben += abs(b.gesamtpreis)
         db.session.commit()
@@ -76,7 +76,7 @@ class TestStornoToggle:
             preis_pro_einheit=200,
             gesamtpreis=-200,
             storno=False,
-            zeitstempel=datetime.now(),
+            zeitstempel=utcnow(),
         )
         db.session.add(b)
         mitglied.guthaben = 400  # already deducted

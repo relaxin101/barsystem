@@ -80,6 +80,7 @@
 
 <label for="query" class="form-label">SQL Abfrage</label>
 <textarea class="form-control mb-2" id="query" name="query" rows="5">{{ query }}</textarea>
+<p class="form-text">Alle Zeiten in Ortszeit ({{ config.APP_TIMEZONE }}). Zeitstempel-Spalten werden automatisch umgerechnet.</p>
 
 {% if query %}
 <pre><code class="language-sql">{{ query }}</code></pre>

@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from models import db, Mitglied, Buchung, Aussendung
 from utils.brevo import (
@@ -9,6 +9,7 @@ from utils.brevo import (
     single_mail,
     get_member_count,
 )
+from utils.zeit import utcnow
 from config import BREVO_TEMPLATE
 
 aussendungen_bp = Blueprint("aussendungen", __name__, url_prefix="/aussendungen")
@@ -70,7 +71,7 @@ def send_aussendung():
     if alle_mitglieder:
         mitglieder = Mitglied.query.filter_by(aktiv=True).all()
     else:
-        since = datetime.now() - timedelta(days=days)
+        since = utcnow() - timedelta(days=days)
         mitglieder = (
             db.session.query(Mitglied)
             .join(Buchung, Buchung.mitglied_id == Mitglied.id)
@@ -87,7 +88,7 @@ def send_aussendung():
         return jsonify({"success": False, "message": "Keine Mitglieder gefunden."})
 
     # since nur setzen wenn nach Konsumenten gefiltert wird
-    since = (datetime.now() - timedelta(days=days)) if not alle_mitglieder else None
+    since = (utcnow() - timedelta(days=days)) if not alle_mitglieder else None
     sent, failed = bulk_mail(mitglieder, subject, message, since=since, template=brevo_tpl)
     return jsonify({"success": True, "message": f"{sent} Mails gesendet, {failed} fehlgeschlagen."})
 
@@ -219,7 +220,7 @@ def send_preview():
     if alle:
         count = Mitglied.query.filter_by(aktiv=True).count()
     else:
-        since = datetime.now() - timedelta(days=days)
+        since = utcnow() - timedelta(days=days)
         count = (
             db.session.query(Mitglied.id)
             .join(Buchung, Buchung.mitglied_id == Mitglied.id)
@@ -240,5 +241,5 @@ def cronjob(app):
         alle = Aussendung.query.filter_by(aktiv=True).all()
         for a in alle:
             days = _freq_to_days(a.frequenz)
-            if a.last_run is None or a.last_run + timedelta(days=days) <= datetime.now():
+            if a.last_run is None or a.last_run + timedelta(days=days) <= utcnow():
                 brevo_send(a)

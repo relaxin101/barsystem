@@ -6,7 +6,7 @@ import pandas as pd
 
 from models import db, Buchung, Mitglied
 from utils.admin import calc_blacklist, export_df_to_excel
-from datetime import datetime
+from utils.zeit import utcnow
 
 guthaben_bp = Blueprint("guthaben", __name__, url_prefix="/guthaben")
 
@@ -77,7 +77,7 @@ def guthaben_import():
                     menge=1,
                     preis_pro_einheit=betrag,
                     gesamtpreis=betrag,
-                    zeitstempel=datetime.now(),
+                    zeitstempel=utcnow(),
                     beschreibung=beschreibung,
                     storno=False,
                 )
@@ -118,7 +118,7 @@ def aufbuchung(mitglied_id):
             preis_pro_einheit=betrag_cent,
             gesamtpreis=betrag_cent,
             beschreibung=beschreibung,
-            zeitstempel=datetime.now(),
+            zeitstempel=utcnow(),
         )
         db.session.add(buchung)
         db.session.add(mitglied)

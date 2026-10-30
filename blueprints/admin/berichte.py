@@ -2,7 +2,7 @@
 
 import io
 import zipfile
-from datetime import datetime
+from datetime import timezone
 
 import numpy as np
 import pandas as pd
@@ -10,8 +10,9 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required
 from sqlalchemy import text
 
-from models import db, Bericht, Mitglied, Artikel, User, Buchung, Abrechnung, Aussendung
+from models import db, Bericht, Mitglied, Artikel, User, Buchung, Abrechnung, Aussendung, UTCDateTime
 from utils.admin import export_df_to_excel, normalize_line_endings, unescape_excel_cr
+from utils.zeit import local_now, naive_local, naive_utc
 
 # Reihenfolge beachtet FK-Abhängigkeiten: Buchung zuletzt (referenziert Mitglied, Artikel, Abrechnung)
 _BACKUP_TABLES = [
@@ -48,7 +49,10 @@ def admin_export():
                 conn = conn.execution_options(isolation_level="AUTOCOMMIT")
                 result_proxy = conn.execute(text(query))
                 columns = result_proxy.keys()
-                results = [dict(zip(columns, row)) for row in result_proxy.fetchall()]
+                results = [
+                    dict(zip(columns, map(naive_local, row)))
+                    for row in result_proxy.fetchall()
+                ]
         except Exception as e:
             error = str(e.args)
 
@@ -114,6 +118,13 @@ def _get_db_revision():
         return row[0] if row else "unknown"
 
 
+def _restore_value(model, col, value):
+    """Backups speichern Zeitstempel als naives UTC (verlustfrei auch in der Umstellungsstunde)."""
+    if isinstance(model.__table__.columns[col].type, UTCDateTime):
+        return None if pd.isna(value) else value.replace(tzinfo=timezone.utc)
+    return unescape_excel_cr(value)
+
+
 @export_bp.route("/db-backup")
 @login_required
 def db_backup():
@@ -125,7 +136,7 @@ def db_backup():
             columns = [c.key for c in model.__table__.columns]
             rows = model.query.all()
             df = pd.DataFrame(
-                [{col: getattr(r, col) for col in columns} for r in rows],
+                [{col: naive_utc(getattr(r, col)) for col in columns} for r in rows],
                 columns=columns,
             )
             excel_buf = io.BytesIO()
@@ -134,7 +145,7 @@ def db_backup():
             zf.writestr(f"{name}.xlsx", excel_buf.getvalue())
 
     zip_buffer.seek(0)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = local_now().strftime("%Y%m%d_%H%M%S")
     return send_file(
         zip_buffer,
         as_attachment=True,
@@ -182,7 +193,7 @@ def db_restore():
 
                 for _, row in df.iterrows():
                     row_data = {
-                        col: unescape_excel_cr(row.get(col))
+                        col: _restore_value(model, col, row.get(col))
                         for col in columns
                         if col in df.columns
                     }

@@ -29,6 +29,7 @@ class BaseConfig:
     SECRET_KEY = _resolve_secret_key()
     ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
     ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "password!")
+    APP_TIMEZONE = os.environ.get("APP_TIMEZONE", "Europe/Vienna")
 
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         "SQLALCHEMY_DATABASE_URI",
@@ -91,6 +92,7 @@ config_map = {
 # Module-level variables kept for backward compatibility.
 # brevo.py imports these directly; auto_aufbuchung.py accesses them via `import config`.
 MINDEST_GUTHABEN = _parse_mindest_guthaben()
+APP_TIMEZONE = os.environ.get("APP_TIMEZONE", "Europe/Vienna")
 
 SCHWAERZUNGS_TEXT = os.environ.get("SCHWAERZUNGS_TEXT", "Du bist geschwärzt!")
 RANKING_DEFAULT_STUNDEN = int(os.environ.get("RANKING_DEFAULT_STUNDEN", 24))
@@ -113,4 +115,4 @@ AUTO_KONTO_GROUP = int(os.environ.get("AUTO_KONTO_GROUP", 1))
 AUTO_BETRAG_REGEX = os.environ.get("AUTO_BETRAG_REGEX")
 AUTO_BETRAG_GROUP = int(os.environ.get("AUTO_BETRAG_GROUP", 1))
 
-DEBUG = os.environ.get("FLASK_DEBUG", "0").lower() in ("1", "true")
+DEBUG =os.environ.get("FLASK_DEBUG", "0").lower() in ("1", "true")

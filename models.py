@@ -1,10 +1,38 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
-from datetime import datetime
+from datetime import timezone
+from sqlalchemy import DateTime
+from sqlalchemy.types import TypeDecorator
 from werkzeug.security import generate_password_hash, check_password_hash
 from config import MINDEST_GUTHABEN
+from utils.zeit import utcnow
 
 db = SQLAlchemy()
+
+
+class UTCDateTime(TypeDecorator):
+    """timestamptz, das in Python immer aware UTC ist.
+
+    Naive Werte werden abgelehnt: sie wären je nach Herkunft Orts- oder
+    UTC-Zeit und würden sonst unbemerkt um ein bis zwei Stunden falsch landen.
+    """
+
+    impl = DateTime(timezone=True)
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            raise ValueError(f"Naive datetime nicht erlaubt: {value!r}")
+        return value.astimezone(timezone.utc)
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        if value.tzinfo is None:  # SQLite (Tests) speichert keine Zeitzone
+            return value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)
 
 
 class Mitglied(db.Model):
@@ -80,9 +108,9 @@ class Buchung(db.Model):
     menge = db.Column(db.Integer, nullable=False)
     preis_pro_einheit = db.Column(db.Integer, nullable=False)
     gesamtpreis = db.Column(db.Integer, nullable=False)
-    zeitstempel = db.Column(db.DateTime, default=datetime.now, nullable=False)
+    zeitstempel = db.Column(UTCDateTime, default=utcnow, nullable=False)
     storno = db.Column(db.Boolean, nullable=False, default=False)
-    storno_updated_at = db.Column(db.DateTime, default=None, nullable=True)
+    storno_updated_at = db.Column(UTCDateTime, default=None, nullable=True)
 
     mitglied_obj = db.relationship("Mitglied", back_populates="buchungen_von_mitglied")
     artikel_obj = db.relationship("Artikel", back_populates="buchungen_von_artikel")
@@ -96,7 +124,7 @@ class Buchung(db.Model):
 class Abrechnung(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.Text, nullable=False)
-    zeitstempel = db.Column(db.DateTime, default=datetime.now, nullable=False)
+    zeitstempel = db.Column(UTCDateTime, default=utcnow, nullable=False)
     buchungen = db.relationship("Buchung", back_populates="abrechnung_obj", lazy=True)
 
     def __repr__(self):
@@ -118,7 +146,7 @@ class Aussendung(db.Model):
     alle_mitglieder = db.Column(db.Boolean, nullable=False, default=False)
     brevo_template = db.Column(db.Integer, nullable=True)
     aktiv = db.Column(db.Boolean, default=True)
-    last_run = db.Column(db.DateTime, nullable=True)
+    last_run = db.Column(UTCDateTime, nullable=True)
 
     def __repr__(self):
         return f"<Aussendung {self.subject} ({self.frequenz})>"

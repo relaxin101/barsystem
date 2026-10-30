@@ -74,10 +74,10 @@
             <td>{{ a.name }}</td>
 
             <td>
-              {{ a.zeitstempel.strftime('%d.%m.%Y %H:%M') }}
+              {{ a.zeitstempel|local_time }}
             </td>
             <td>
-              {{ a.von_datum.strftime('%d.%m.%Y %H:%M') }} - {{ a.bis_datum.strftime('%d.%m.%Y %H:%M') }}
+              {{ a.von_datum|local_time }} - {{ a.bis_datum|local_time }}
             </td>
 
             <td class="text-success">

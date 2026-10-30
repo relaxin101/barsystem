@@ -10,24 +10,25 @@ import re
 from numbers import Real
 
 from models import db, Mitglied
+from utils.zeit import LOCAL_TZ, local_now, naive_local
 
 
 # -------------------------
 # 📄 Hilfsfunktion: Zeitraum ermitteln
 # -------------------------
 def parse_daterange():
-    """Liest start/end-Parameter aus und gibt datetime-Objekte zurück."""
+    """Liest start/end-Parameter aus und gibt datetime-Objekte in Ortszeit zurück."""
     start_str = request.args.get("start")
     end_str = request.args.get("end")
 
-    now = datetime.now()
+    now = local_now()
     end_date = now.replace(second=0, microsecond=0)
     start_date = (end_date - timedelta(days=30)).replace(hour=0, minute=0)
 
     for fmt in ("%Y-%m-%dT%H:%M", "%Y-%m-%d"):
         if start_str:
             try:
-                start_date = datetime.strptime(start_str, fmt)
+                start_date = datetime.strptime(start_str, fmt).replace(tzinfo=LOCAL_TZ)
                 break
             except ValueError:
                 continue
@@ -35,7 +36,7 @@ def parse_daterange():
     for fmt in ("%Y-%m-%dT%H:%M", "%Y-%m-%d"):
         if end_str:
             try:
-                end_date = datetime.strptime(end_str, fmt)
+                end_date = datetime.strptime(end_str, fmt).replace(tzinfo=LOCAL_TZ)
                 break
             except ValueError:
                 continue
@@ -55,6 +56,8 @@ def export_model_to_excel(model, columns, filename):
 
 def export_df_to_excel(df, filename):
     output = io.BytesIO()
+    # Excel kennt keine Zeitzonen, Zeitstempel daher als Ortszeit ausgeben
+    df = df.astype(object).map(naive_local)
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
         df.to_excel(writer, index=False, sheet_name="Daten")
     output.seek(0)

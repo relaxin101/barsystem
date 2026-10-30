@@ -3,8 +3,9 @@ import os
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app, session
 from sqlalchemy import or_, func, text, desc
 from models import db, Mitglied, Artikel, Buchung
-from datetime import datetime, timedelta
+from datetime import timedelta
 from utils.admin import calc_blacklist, suche_mitglied
+from utils.zeit import utcnow
 
 bar_bp = Blueprint("bar", __name__)
 
@@ -12,7 +13,7 @@ bar_bp = Blueprint("bar", __name__)
 def hotlist(limit: int = None):
     from flask import current_app
     hotlist_days = current_app.config.get("HOTLIST_DAYS", 14)
-    since = datetime.now() - timedelta(days=hotlist_days)
+    since = utcnow() - timedelta(days=hotlist_days)
 
     # Bucket 1: pinned, sorted A→Z — always included
     pinned = (
@@ -316,7 +317,7 @@ def buchen():
                 menge=menge,
                 preis_pro_einheit=artikel.preis,
                 gesamtpreis=eintrag["gesamtpreis"],
-                zeitstempel=datetime.now(),
+                zeitstempel=utcnow(),
             )
 
             db.session.add(neue_buchung)

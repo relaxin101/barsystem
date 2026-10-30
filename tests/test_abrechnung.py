@@ -1,7 +1,8 @@
 """Tests for blueprints/admin/abrechnung.py — create, update, refresh, delete."""
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from models import Abrechnung, Buchung, Mitglied, Artikel
+from utils.zeit import local_now, utcnow
 
 
 def _buchung(db, mitglied, artikel, ts=None):
@@ -12,7 +13,7 @@ def _buchung(db, mitglied, artikel, ts=None):
         preis_pro_einheit=200,
         gesamtpreis=-200,
         storno=False,
-        zeitstempel=ts or datetime.now(),
+        zeitstempel=ts or utcnow(),
     )
     db.session.add(b)
     db.session.commit()
@@ -39,11 +40,11 @@ class TestAbrechnungCreate:
         assert b2.abrechnungs_id == a.id
 
     def test_create_zeitraum_filters_buchungen(self, auth_client, db, mitglied, artikel):
-        old = _buchung(db, mitglied, artikel, ts=datetime.now() - timedelta(days=10))
-        recent = _buchung(db, mitglied, artikel, ts=datetime.now())
+        old = _buchung(db, mitglied, artikel, ts=utcnow() - timedelta(days=10))
+        recent = _buchung(db, mitglied, artikel, ts=utcnow())
 
-        start = (datetime.now() - timedelta(days=1)).isoformat()
-        end = (datetime.now() + timedelta(hours=1)).isoformat()
+        start = (local_now() - timedelta(days=1)).strftime("%Y-%m-%dT%H:%M")
+        end = (local_now() + timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M")
 
         resp = auth_client.post(
             "/admin/abrechnung/create",
@@ -85,14 +86,14 @@ class TestAbrechnungUpdate:
         a = Abrechnung(name="Test Abrechnung")
         db.session.add(a)
 
-        b_old = _buchung(db, mitglied, artikel, ts=datetime.now() - timedelta(days=5))
+        b_old = _buchung(db, mitglied, artikel, ts=utcnow() - timedelta(days=5))
         b_old.abrechnungs_id = a.id
 
-        b_new = _buchung(db, mitglied, artikel, ts=datetime.now())
+        b_new = _buchung(db, mitglied, artikel, ts=utcnow())
         db.session.commit()
 
-        start = (datetime.now() - timedelta(hours=1)).isoformat()
-        end = (datetime.now() + timedelta(hours=1)).isoformat()
+        start = (local_now() - timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M")
+        end = (local_now() + timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M")
 
         resp = auth_client.post(
             f"/admin/abrechnung/{a.id}/update",
@@ -109,7 +110,7 @@ class TestAbrechnungUpdate:
 
 class TestAbrechnungRefresh:
     def test_refresh_updates_zeitstempel(self, auth_client, db):
-        old_ts = datetime.now() - timedelta(hours=2)
+        old_ts = utcnow() - timedelta(hours=2)
         a = Abrechnung(name="Refresh Test", zeitstempel=old_ts)
         db.session.add(a)
         db.session.commit()

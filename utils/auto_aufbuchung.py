@@ -3,13 +3,13 @@ import email
 import imaplib
 import logging
 import re
-from datetime import datetime
 from email.header import decode_header as _raw_decode
 from html.parser import HTMLParser
 
 import config
 from models import Buchung, db
 from utils.admin import calc_blacklist, suche_mitglied, parse_betrag_cents
+from utils.zeit import utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -219,7 +219,7 @@ def _handle_message(mail, msg_id, konto_re, betrag_re):
             menge=1,
             preis_pro_einheit=betrag_cents,
             gesamtpreis=betrag_cents,
-            zeitstempel=datetime.now(),
+            zeitstempel=utcnow(),
             beschreibung=f"Auto-Aufbuchung: {subject[:200]}",
             storno=False,
         )
