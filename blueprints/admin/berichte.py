@@ -242,6 +242,7 @@ def db_restore():
 
                 # Sequenz nach Import zurücksetzen (nötig wenn IDs explizit gesetzt wurden)
                 if pk_column == "id":
+                    db.session.flush()  # sonst fehlt die letzte Zeile in MAX(id)
                     table = model.__tablename__
                     db.session.execute(text(
                         f"SELECT setval(pg_get_serial_sequence('{table}', 'id'), "

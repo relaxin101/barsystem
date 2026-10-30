@@ -40,10 +40,10 @@ The branch is 10 commits ahead of `master` (27 files changed). This covers what 
 - [ ] Tile cookie: open the Barliste and check the cookie is `tile_limit=<n>-<W>x<H>`. Resize the window or rotate the screen and the count is re-measured. An old plain-number cookie is ignored and replaced.
 
 ## 6. `flask backup` (#22)
-- [ ] `docker compose exec app flask backup` writes `barsystem_<ts>.sql.gz` to `./backups/` on the host.
+- [ ] `docker compose exec app /app/.venv/bin/flask backup` writes `barsystem_<ts>.sql.gz` to `./backups/` on the host.
 - [ ] `gunzip -c` the file and restore it into a scratch DB to confirm it's complete.
 - [ ] With the wrong DB password the command exits 1 and leaves no partial file.
-- [ ] Host cron one-liner (`docker compose exec -T app flask backup`) works without a TTY.
+- [ ] Host cron one-liner (`docker compose exec -T app /app/.venv/bin/flask backup`) works without a TTY.
 
 ## 7. Footer (#24) and general smoke test
 - [ ] No footer on the Barliste, Buchen and Ranking pages. The footer shows in the admin area.

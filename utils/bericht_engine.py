@@ -43,7 +43,8 @@ def sync_report_role(engine, secret_key):
             f"PASSWORD '{password}'"
         ))
         conn.execute(text(f"ALTER ROLE {REPORT_ROLE} SET default_transaction_read_only = on"))
-        conn.execute(text(f"ALTER ROLE {REPORT_ROLE} SET statement_timeout = '30s'"))
+        # Unter dem 30-s-Timeout von Gunicorn, sonst stirbt der Worker vor der Fehlermeldung
+        conn.execute(text(f"ALTER ROLE {REPORT_ROLE} SET statement_timeout = '25s'"))
         conn.execute(text(f"GRANT USAGE ON SCHEMA public TO {REPORT_ROLE}"))
         conn.execute(text(f"REVOKE ALL ON ALL TABLES IN SCHEMA public FROM {REPORT_ROLE}"))
         conn.execute(text(f"GRANT SELECT ON {tables} TO {REPORT_ROLE}"))

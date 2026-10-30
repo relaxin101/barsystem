@@ -8,7 +8,7 @@ from html.parser import HTMLParser
 
 import config
 from models import Buchung, db
-from utils.admin import calc_blacklist, suche_mitglied, parse_betrag_cents
+from utils.admin import calc_blacklist, mitglied_sperren, suche_mitglied, parse_betrag_cents
 from utils.einstellungen import einstellung
 from utils.zeit import utcnow
 
@@ -238,7 +238,7 @@ def _handle_message(mail, msg_id, konto_re, betrag_re):
         )
         return
 
-    mitglied = treffer[0]
+    mitglied = mitglied_sperren(treffer[0].id)
 
     try:
         mitglied.blacklist = calc_blacklist(mitglied, betrag_cents)

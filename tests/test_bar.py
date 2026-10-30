@@ -209,3 +209,18 @@ class TestHotlist:
         data = resp.get_json()
         names = [x["name"] for x in data["members"]]
         assert "Inactive Person" not in names
+
+
+class TestFehlgeschlageneBuchung:
+    def test_is_logged_and_hides_details_from_guests(self, client, db, mitglied, artikel, caplog):
+        with patch("blueprints.bar.db.session.commit", side_effect=RuntimeError("geheime SQL-Details")):
+            resp = client.post(
+                "/bar/buchen",
+                json={"mitglied_id": mitglied.id, "artikel_id": artikel.id, "menge": 1},
+            )
+
+        assert resp.status_code == 500
+        assert "geheime SQL-Details" in caplog.text
+        html = client.get("/").get_data(as_text=True)
+        assert "geheime SQL-Details" not in html
+        assert "Buchung fehlgeschlagen" in html

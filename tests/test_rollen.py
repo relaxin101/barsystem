@@ -269,3 +269,9 @@ def test_sync_report_role_skips_sqlite(app):
     result = app.test_cli_runner().invoke(args=["sync-report-role"])
     assert result.exit_code == 0
     assert "Skipped" in result.output
+
+
+def test_report_role_cannot_see_accounts_or_settings():
+    from utils.bericht_engine import REPORT_TABLES
+
+    assert not {"user", "einstellung"} & set(REPORT_TABLES)

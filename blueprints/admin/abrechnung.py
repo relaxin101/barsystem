@@ -147,7 +147,8 @@ def update(abrechnung_id):
     abrechnung = Abrechnung.query.get_or_404(abrechnung_id)
     data = request.get_json()
     start = parse_local(data["start"])
-    ende = parse_local(data["ende"])
+    # Das Formular kennt nur ganze Sekunden, die letzte Buchung liegt meist knapp dahinter
+    ende = parse_local(data["ende"]).replace(microsecond=999999)
 
     Buchung.query.filter_by(abrechnungs_id=abrechnung.id).update({"abrechnungs_id": None})
 

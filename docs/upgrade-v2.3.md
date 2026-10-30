@@ -60,7 +60,7 @@ Zugangsdaten (`BREVO_SECRET`, `IMAP_*`), Datenbank-Werte, `FLASK_SECRET_KEY` und
 
 ## Checkliste pro Standort
 
-- [ ] `flask backup` ausführen und die Datei aus `./backups/` zusätzlich extern sichern: `docker compose exec app flask backup`
+- [ ] `flask backup` ausführen und die Datei aus `./backups/` zusätzlich extern sichern: `docker compose exec app /app/.venv/bin/flask backup`
 - [ ] Aktuelle Version notieren: `git log --oneline -n 1 | cat`
 - [ ] **Vor dem Update prüfen, dass der Container in UTC läuft:** `docker compose exec app date`. Die Ausgabe muss `UTC` zeigen. Steht dort eine andere Zeitzone (z. B. weil `TZ` in `.env` gesetzt ist), enthält die Datenbank Ortszeiten und die Migration würde sie verschieben – dann **nicht** updaten, sondern zuerst klären.
 - [ ] Gespeicherte Berichte nach bestehenden Umrechnungen durchsuchen, also `AT TIME ZONE` oder `+ interval`. Solche Korrekturen rechnen die Zeit nach dem Update doppelt um und müssen entfernt werden.
@@ -73,7 +73,7 @@ Zugangsdaten (`BREVO_SECRET`, `IMAP_*`), Datenbank-Werte, `FLASK_SECRET_KEY` und
 ## Update einspielen
 
 ```bash
-docker compose exec app flask backup   # Backup (App läuft noch)
+docker compose exec app /app/.venv/bin/flask backup   # Backup (App läuft noch)
 docker compose exec app date           # Muss UTC zeigen
 make prod-update                        # Update + Migrationen
 curl -s http://localhost/healthz        # Prüfen: DB ok, neue Version
@@ -85,17 +85,17 @@ Danach im Adminpanel eine neue Buchung ansehen: Die Uhrzeit muss der aktuellen O
 Superadmin anlegen (fragt nach dem Passwort):
 
 ```bash
-docker compose exec app uv run flask auth create-superadmin --username <name>
+docker compose exec app /app/.venv/bin/flask auth create-superadmin --username <name>
 ```
 
-Danach unter „Berichte" einen gespeicherten Bericht öffnen. Erscheint „Berichte-Zugang ist nicht eingerichtet", fehlt die Datenbank-Rolle: `docker compose exec app uv run flask sync-report-role`.
+Danach unter „Berichte" einen gespeicherten Bericht öffnen. Erscheint „Berichte-Zugang ist nicht eingerichtet", fehlt die Datenbank-Rolle: `docker compose exec app /app/.venv/bin/flask sync-report-role`.
 
 ## Rollback
 
 Die Migration muss zuerst zurückgenommen werden, solange der neue Code noch im Container liegt:
 
 ```bash
-docker compose exec app uv run flask db downgrade a7b8c9d0e1f2
+docker compose exec app /app/.venv/bin/flask db downgrade a7b8c9d0e1f2
 docker compose down
 git reset --hard <notierte Version>
 docker compose up --build -d

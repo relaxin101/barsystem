@@ -2,7 +2,7 @@
 from datetime import timedelta
 
 from models import Abrechnung, Buchung, Mitglied, Artikel
-from utils.zeit import local_now, utcnow
+from utils.zeit import LOCAL_TZ, local_now, utcnow
 
 
 def _buchung(db, mitglied, artikel, ts=None):
@@ -146,3 +146,23 @@ class TestAbrechnungDelete:
     def test_delete_nonexistent_returns_404(self, auth_client):
         resp = auth_client.post("/admin/abrechnung/99999/delete")
         assert resp.status_code == 404
+
+
+def test_update_keeps_the_newest_booking(auth_client, db, mitglied, artikel):
+    """The form shows whole seconds, the last booking sits a fraction after that."""
+    a = Abrechnung(name="Sekunden")
+    db.session.add(a)
+    db.session.commit()
+    ts = utcnow().replace(microsecond=900000)
+    b = _buchung(db, mitglied, artikel, ts=ts)
+
+    auth_client.post(
+        f"/admin/abrechnung/{a.id}/update",
+        json={
+            "start": (ts.astimezone(LOCAL_TZ) - timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%S"),
+            "ende": ts.astimezone(LOCAL_TZ).strftime("%Y-%m-%dT%H:%M:%S"),
+        },
+    )
+
+    db.session.refresh(b)
+    assert b.abrechnungs_id == a.id

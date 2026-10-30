@@ -219,9 +219,12 @@ function renderBestellung() {
 }
 
 // Buchung absenden (Flashes + Redirect)
-document.getElementById("buchen-btn").addEventListener("click", async () => {
+document.getElementById("buchen-btn").addEventListener("click", async (e) => {
 
   if (bestellung.length === 0) return;
+
+  // Die Seite wechselt danach ohnehin, ein Doppeltipp würde sonst doppelt buchen
+  e.currentTarget.disabled = true;
 
   try {
 

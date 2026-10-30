@@ -28,6 +28,15 @@ def superadmin_required(view):
     return wrapped
 
 
+def mitglied_sperren(mitglied_id):
+    """Liest ein Mitglied frisch und sperrt die Zeile bis zum Commit.
+
+    Sonst überschreiben sich gleichzeitige Buchungen gegenseitig das Guthaben.
+    populate_existing, weil with_for_update ein schon geladenes Objekt nicht aktualisiert.
+    """
+    return db.session.get(Mitglied, mitglied_id, with_for_update=True, populate_existing=True)
+
+
 # -------------------------
 # 📄 Hilfsfunktion: Zeitraum ermitteln
 # -------------------------

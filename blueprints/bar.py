@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from sqlalchemy import or_, func, text, desc
 from models import db, Mitglied, Artikel, Buchung
 from datetime import timedelta
-from utils.admin import calc_blacklist, suche_mitglied
+from utils.admin import calc_blacklist, mitglied_sperren, suche_mitglied
 from utils.einstellungen import einstellung
 from utils.zeit import utcnow
 
@@ -232,7 +232,7 @@ def buchen():
             "message": "Fehlende Daten."
         }), 400
 
-    mitglied = Mitglied.query.get(mitglied_id)
+    mitglied = mitglied_sperren(mitglied_id)
 
     if not mitglied:
         return jsonify({
@@ -336,8 +336,9 @@ def buchen():
             "redirect_url": url_for("bar.bar_interface")
         })
 
-    except Exception as e:
-        flash(str(e))
+    except Exception:
+        current_app.logger.exception("Buchung fehlgeschlagen")
+        flash("Buchung fehlgeschlagen, bitte nochmal versuchen.", "error")
 
         db.session.rollback()
 

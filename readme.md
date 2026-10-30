@@ -19,7 +19,7 @@ _Viele Werte lassen sich später im Adminpanel unter „Einstellungen" ändern, 
 Der Login aus der `.env` ist ein normaler Admin für das Tagesgeschäft. Für Mail- und Bank-Einstellungen und die Benutzerverwaltung legst du am Host einmalig einen Superadmin an:
 
 ```bash
-docker compose exec app uv run flask auth create-superadmin --username <name>
+docker compose exec app /app/.venv/bin/flask auth create-superadmin --username <name>
 ```
 
 Jetzt kannst du die Website starten! Wenn du ein Terminal in dem Ordner öffnest (Windows: im File Explorer in den Ordner navigieren, STRG+SHIFT+Rechtsklick in den ordner und "Terminal öffnen" klicken) und `docker compose up -d --build` (+ ENTER) eintippst, beginnt docker mit der Installation der nötigen Komponenten und startet die Website automatisch. (Je nach Internet und Rechenleistung des Computers dauert das beim ersten Mal 5-15 min) Nun kannst du in dem lokalen Netzwerk unter der IP-Adresse des Computers die Website abrufen. Auf dem Computer wo das Ganze läuft, funktioniert auch [localhost](http://localhost). 

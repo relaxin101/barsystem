@@ -6,7 +6,7 @@ from sqlalchemy import desc
 import pandas as pd
 
 from models import db, Buchung
-from utils.admin import export_df_to_excel, parse_daterange, calc_blacklist
+from utils.admin import export_df_to_excel, mitglied_sperren, parse_daterange, calc_blacklist
 from utils.zeit import LOCAL_TZ, utcnow
 
 buchungen_bp = Blueprint("buchungen", __name__, url_prefix="/buchungen")
@@ -43,15 +43,17 @@ def history():
 @buchungen_bp.route("/toggle/<int:buchung_id>", methods=["POST"])  # FIX: @login_required nach @route
 @login_required
 def toggle(buchung_id):
-    buchung = Buchung.query.get_or_404(buchung_id)
+    # Auch die Buchung sperren: zwei schnelle Klicks würden sonst beide denselben Stand lesen
+    buchung = db.get_or_404(Buchung, buchung_id, with_for_update=True, populate_existing=True)
+    mitglied = mitglied_sperren(buchung.mitglied_id)
     if buchung.storno:
         buchung.storno = False
-        buchung.mitglied_obj.blacklist = calc_blacklist(buchung.mitglied_obj, buchung.gesamtpreis)
-        buchung.mitglied_obj.guthaben += buchung.gesamtpreis
+        mitglied.blacklist = calc_blacklist(mitglied, buchung.gesamtpreis)
+        mitglied.guthaben += buchung.gesamtpreis
     else:
         buchung.storno = True
-        buchung.mitglied_obj.blacklist = calc_blacklist(buchung.mitglied_obj, -buchung.gesamtpreis)
-        buchung.mitglied_obj.guthaben -= buchung.gesamtpreis
+        mitglied.blacklist = calc_blacklist(mitglied, -buchung.gesamtpreis)
+        mitglied.guthaben -= buchung.gesamtpreis
     buchung.storno_updated_at = utcnow()
     db.session.commit()
 

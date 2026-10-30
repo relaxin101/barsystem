@@ -184,3 +184,37 @@ class TestGuthabenImport:
             mitglied_id=mitglied.id, beschreibung="Testeinzahlung"
         ).first()
         assert b is not None
+
+
+class TestImportMeldungen:
+    def _post(self, client, rows):
+        buf = io.BytesIO()
+        pd.DataFrame(rows).to_excel(buf, index=False)
+        buf.seek(0)
+        client.post(
+            "/admin/guthaben/guthaben_import",
+            data={
+                "mitglied_id_col": "id",
+                "aufbuchung_col": "betrag",
+                "beschreibung_col": "text",
+                "file": (buf, "guthaben.xlsx", "application/octet-stream"),
+            },
+            content_type="multipart/form-data",
+        )
+        with client.session_transaction() as s:
+            return [text for _, text in s.get("_flashes", [])]
+
+    def test_unknown_member_is_reported(self, auth_client, mitglied):
+        flashes = self._post(auth_client, [
+            {"id": mitglied.id, "betrag": 10.0, "text": "ok"},
+            {"id": 99999, "betrag": 5.0, "text": "weg"},
+        ])
+        assert any("99999" in f for f in flashes)
+        assert any(f.startswith("1 Guthaben") for f in flashes)
+
+    def test_empty_description_stays_empty(self, auth_client, mitglied):
+        self._post(auth_client, [
+            {"id": mitglied.id, "betrag": 10.0, "text": "Bar"},
+            {"id": mitglied.id, "betrag": 5.0, "text": None},
+        ])
+        assert {b.beschreibung for b in Buchung.query.all()} == {"Bar", None}
