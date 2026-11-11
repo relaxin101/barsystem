@@ -160,8 +160,8 @@ class TestSeite:
         assert 'name="AUTO_KONTO_REGEX"' not in html
         assert "System" not in html
 
-    def test_superadmin_sees_everything(self, superadmin_client):
-        html = superadmin_client.get(self.URL).get_data(as_text=True)
+    def test_superuser_sees_everything(self, superuser_client):
+        html = superuser_client.get(self.URL).get_data(as_text=True)
         assert all(f'name="{key}"' in html for key in DEFINITIONEN)
         assert all(key in html for key in ENV_ONLY)
 
@@ -170,27 +170,27 @@ class TestSeite:
         assert einstellung("HOTLIST_DAYS") == 21
         assert Einstellung.query.get("HOTLIST_DAYS").updated_by == "testadmin"
 
-    def test_admin_cannot_post_superadmin_key(self, auth_client):
+    def test_admin_cannot_post_superuser_key(self, auth_client):
         resp = auth_client.post(self.URL, data={"HOTLIST_DAYS": "21", "AUTO_SENDER": "boese@example.com"})
         assert resp.status_code == 403
         assert Einstellung.query.count() == 0
 
-    def test_admin_cannot_reset_superadmin_key(self, auth_client, db):
+    def test_admin_cannot_reset_superuser_key(self, auth_client, db):
         db.session.add(Einstellung(key="AUTO_SENDER", value="bank@example.com"))
         db.session.commit()
         assert auth_client.post(f"{self.URL}AUTO_SENDER/zuruecksetzen").status_code == 403
         assert Einstellung.query.count() == 1
 
-    def test_unchanged_values_stay_at_their_source(self, superadmin_client):
+    def test_unchanged_values_stay_at_their_source(self, superuser_client):
         """Saving the form as shown must not freeze .env values into the DB."""
-        html = superadmin_client.get(self.URL).get_data(as_text=True)
+        html = superuser_client.get(self.URL).get_data(as_text=True)
         form = dict(re.findall(r'name="([A-Z_]+)"\s+value="([^"]*)"', html))
         assert len(form) == len(DEFINITIONEN)
-        superadmin_client.post(self.URL, data=form)
+        superuser_client.post(self.URL, data=form)
         assert Einstellung.query.count() == 0
 
-    def test_invalid_input_saves_nothing_and_keeps_input(self, superadmin_client):
-        resp = superadmin_client.post(
+    def test_invalid_input_saves_nothing_and_keeps_input(self, superuser_client):
+        resp = superuser_client.post(
             self.URL, data={"HOTLIST_DAYS": "21", "AUTO_KONTO_REGEX": "(unclosed"}
         )
         html = resp.get_data(as_text=True)
@@ -205,8 +205,8 @@ class TestSeite:
         auth_client.post(f"{self.URL}HOTLIST_DAYS/zuruecksetzen")
         assert Einstellung.query.count() == 0
 
-    def test_unknown_key_returns_404(self, superadmin_client):
-        assert superadmin_client.post(f"{self.URL}GIBTSNICHT/zuruecksetzen").status_code == 404
+    def test_unknown_key_returns_404(self, superuser_client):
+        assert superuser_client.post(f"{self.URL}GIBTSNICHT/zuruecksetzen").status_code == 404
 
     def test_reset_button_is_not_part_of_the_main_form(self, auth_client):
         """Inside it, it would be the default button and Enter would reset instead of save."""
@@ -215,11 +215,11 @@ class TestSeite:
         assert 'form="reset-HOTLIST_DAYS"' in html
         assert 'formaction' not in html
 
-    def test_secrets_never_rendered(self, superadmin_client, monkeypatch):
+    def test_secrets_never_rendered(self, superuser_client, monkeypatch):
         monkeypatch.setenv("BREVO_SECRET", "streng-geheim-1")
         monkeypatch.setenv("IMAP_PASSWORD", "streng-geheim-2")
         monkeypatch.setenv("DATABASE_PASSWORD", "streng-geheim-3")
-        html = superadmin_client.get(self.URL).get_data(as_text=True)
+        html = superuser_client.get(self.URL).get_data(as_text=True)
         assert "streng-geheim" not in html
         assert "gesetzt" in html
 

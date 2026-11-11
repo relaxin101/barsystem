@@ -24,11 +24,11 @@
             <td>{{ b.username }}{% if b.id == current_user.id %} <span class="text-muted">(du)</span>{% endif %}</td>
             <td>
               <form method="post" action="{{ url_for('admin.benutzer.rolle', user_id=b.id) }}">
-                <span class="badge {{ 'bg-warning text-dark' if b.is_superadmin else 'bg-secondary' }}">
-                  {{ 'Superadmin' if b.is_superadmin else 'Admin' }}
+                <span class="badge {{ 'bg-warning text-dark' if b.is_superuser else 'bg-secondary' }}">
+                  {{ 'Superuser' if b.is_superuser else 'User' }}
                 </span>
                 <button type="submit" class="btn btn-sm btn-outline-secondary ms-2">
-                  {{ 'Zu Admin ändern' if b.is_superadmin else 'Zu Superadmin ändern' }}
+                  {{ 'Zu User ändern' if b.is_superuser else 'Zu Superuser ändern' }}
                 </button>
               </form>
             </td>
@@ -66,8 +66,8 @@
                  minlength="{{ min_laenge }}" autocomplete="new-password" required>
         </div>
         <div class="form-check mb-3">
-          <input class="form-check-input" type="checkbox" id="superadmin" name="superadmin">
-          <label class="form-check-label" for="superadmin">Superadmin</label>
+          <input class="form-check-input" type="checkbox" id="superuser" name="superuser">
+          <label class="form-check-label" for="superuser">Superuser</label>
         </div>
         <button type="submit" class="btn btn-success">Anlegen</button>
       </form>

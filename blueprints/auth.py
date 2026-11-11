@@ -26,12 +26,53 @@ def _safe_redirect_target(target):
     return target
 
 
-@auth_bp.cli.command("change-admin-password")
+@auth_bp.cli.command("create-default-user")
+def create_default_user():
+    """Standarduser aus der .env anlegen bzw. zum Superuser machen.
+
+    Läuft bei jedem Start (db-init) und ist idempotent. Das Passwort eines
+    bestehenden Kontos bleibt unverändert.
+    """
+    username = current_app.config["ADMIN_USERNAME"]
+    user = User.query.filter_by(username=username).first()
+    if user is None:
+        click.echo(f"Creating default user: {username}")
+        user = User(username=username, is_superuser=True)
+        user.set_password(current_app.config["ADMIN_PASSWORD"])
+        db.session.add(user)
+    elif not user.is_superuser:
+        click.echo(f"Default user '{username}' wird zum Superuser.")
+        user.is_superuser = True
+    else:
+        click.echo(f"Default user '{username}' already exists.")
+    db.session.commit()
+
+
+@auth_bp.cli.command("create-user")
+@click.option("--username", prompt="Benutzername", help="Name des neuen Benutzers.")
+@click.option("--superuser", is_flag=True, help="Als Superuser anlegen.")
+@click.password_option()
+def create_user(username, superuser, password):
+    """Benutzer anlegen (optional als Superuser).
+
+    Nur am Host möglich: wer die .env ändern kann, darf auch Superuser anlegen.
+    """
+    if User.query.filter_by(username=username).first():
+        raise click.ClickException(f"User '{username}' existiert bereits.")
+
+    user = User(username=username, is_superuser=superuser)
+    user.set_password(password)
+    db.session.add(user)
+    db.session.commit()
+    click.echo(f"{'Superuser' if superuser else 'User'} '{username}' angelegt.")
+
+
+@auth_bp.cli.command("change-password")
 @click.option("--username", default=None,
               help="Username to update. Defaults to ADMIN_USERNAME from config.")
 @click.password_option()
-def change_admin_password(username, password):
-    """Change the password of an admin user."""
+def change_password(username, password):
+    """Change the password of a user."""
     if username is None:
         username = current_app.config["ADMIN_USERNAME"]
 
@@ -42,25 +83,6 @@ def change_admin_password(username, password):
     user.set_password(password)
     db.session.commit()
     click.echo(f"Password for user '{username}' updated.")
-
-
-@auth_bp.cli.command("create-superadmin")
-@click.option("--username", prompt="Benutzername", help="Name des neuen Superadmins.")
-@click.password_option()
-def create_superadmin(username, password):
-    """Superadmin anlegen.
-
-    Nur am Host möglich: wer die .env ändern kann, darf auch Superadmin sein.
-    Das geteilte Admin-Konto wird absichtlich nicht hochgestuft.
-    """
-    if User.query.filter_by(username=username).first():
-        raise click.ClickException(f"User '{username}' existiert bereits.")
-
-    user = User(username=username, is_superadmin=True)
-    user.set_password(password)
-    db.session.add(user)
-    db.session.commit()
-    click.echo(f"Superadmin '{username}' angelegt.")
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])

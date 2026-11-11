@@ -2,14 +2,14 @@
 
 Alle Zeiten werden jetzt in Ortszeit angezeigt, eingegeben und ausgewertet – im Adminpanel, an der Bar, im Ranking, in Excel-Exporten und in gespeicherten Berichten. Vorher war überall UTC zu sehen, also im Sommer zwei Stunden und im Winter eine Stunde zu wenig.
 
-Neu ist außerdem eine Seite „Einstellungen" und die Trennung in Admin und Superadmin.
+Neu ist außerdem eine Seite „Einstellungen" und die Trennung in User und Superuser.
 
 ## Neu & behoben
 
 **Neu**
 - `APP_TIMEZONE` in `.env` (Standard `Europe/Vienna`) legt die Ortszeit fest
 - Einstellungen im Adminpanel, wirksam ohne Neustart (#38). Bestehende `.env`-Werte gelten weiter, bis jemand im Adminpanel einen anderen Wert speichert
-- Rollen Admin und Superadmin, Seite „Benutzer" und „Passwort ändern" (#38)
+- Rollen User und Superuser, Seite „Benutzer" und „Passwort ändern" (#38)
 - Name der Barliste und des Adminpanels als Einstellung statt fest im Template (#38)
 
 **Behoben**
@@ -29,7 +29,7 @@ Berichte laufen über die eigene Datenbank-Rolle `bericht_leser`, die nur Fachta
 
 ## Rollen
 
-| | Admin | Superadmin |
+| | User | Superuser |
 |---|---|---|
 | Tagesgeschäft (Buchungen, Guthaben, Abrechnungen, Artikel, Mitglieder, Aussendungen) | ja | ja |
 | Berichte: SQL bearbeiten, ausführen, speichern, Excel | ja, nur lesend | ja, lesend |
@@ -39,9 +39,9 @@ Berichte laufen über die eigene Datenbank-Rolle `bericht_leser`, die nur Fachta
 | Benutzer verwalten | nein | ja |
 | Excel-Backup und Restore | ja, ohne Benutzerkonten und Einstellungen | ja, alle Tabellen |
 
-Das bestehende Konto bleibt ein normaler Admin, weil mehrere Personen sein Passwort kennen. Ein Superadmin wird am Host angelegt.
+Das bestehende Konto bleibt ein normaler Admin, weil mehrere Personen sein Passwort kennen. Ein Superuser wird am Host angelegt.
 
-Zugangsdaten (`BREVO_SECRET`, `IMAP_*`), Datenbank-Werte, `FLASK_SECRET_KEY` und `APP_TIMEZONE` bleiben in der `.env`. Sie landen sonst in jedem Datenbank-Backup bzw. werden gebraucht, bevor die Datenbank erreichbar ist. Superadmins sehen sie auf der Seite „Einstellungen", Zugangsdaten nur als „gesetzt" oder „fehlt".
+Zugangsdaten (`BREVO_SECRET`, `IMAP_*`), Datenbank-Werte, `FLASK_SECRET_KEY` und `APP_TIMEZONE` bleiben in der `.env`. Sie landen sonst in jedem Datenbank-Backup bzw. werden gebraucht, bevor die Datenbank erreichbar ist. Superusers sehen sie auf der Seite „Einstellungen", Zugangsdaten nur als „gesetzt" oder „fehlt".
 
 ## Verhaltensänderungen
 
@@ -51,8 +51,8 @@ Zugangsdaten (`BREVO_SECRET`, `IMAP_*`), Datenbank-Werte, `FLASK_SECRET_KEY` und
    ```
 2. **Berichte mit festem Datum** (z. B. Chargenrabatt): `BETWEEN '2026-07-09' AND '2026-10-13'` gilt jetzt ab Mitternacht Ortszeit. Wiederholt man einen alten Bericht, können Buchungen knapp an der Grenze anders zugeordnet werden.
 3. **Alte Excel-Backups** lassen sich nach der Migration nicht mehr einspielen, weil die Datenbankversion nicht mehr übereinstimmt (das gilt für jede Migration).
-4. **SQL in Berichten kann nichts mehr ändern.** `UPDATE`, `DELETE` usw. schlagen fehl und die Tabellen `user` und `einstellung` sind nicht lesbar. Wer Daten per SQL korrigieren muss, braucht einen Superadmin und das Häkchen „Mit Schreibzugriff ausführen". Gespeicherte Berichte, die nur lesen, laufen unverändert.
-5. **Excel-Backup als Admin** enthält keine Benutzerkonten und Einstellungen mehr. Für ein vollständiges Backup als Superadmin anmelden oder `flask backup` verwenden.
+4. **SQL in Berichten kann nichts mehr ändern.** `UPDATE`, `DELETE` usw. schlagen fehl und die Tabellen `user` und `einstellung` sind nicht lesbar. Wer Daten per SQL korrigieren muss, braucht einen Superuser und das Häkchen „Mit Schreibzugriff ausführen". Gespeicherte Berichte, die nur lesen, laufen unverändert.
+5. **Excel-Backup als Admin** enthält keine Benutzerkonten und Einstellungen mehr. Für ein vollständiges Backup als Superuser anmelden oder `flask backup` verwenden.
 6. **Angepasste Namen im Template:** Wurden `Ergo Bibamus!` oder `Creotorium` in `templates/base.html` geändert, kann `git stash pop` beim Update einen Konflikt melden. Dann die neue Version der Datei übernehmen und die Namen unter „Einstellungen" eintragen.
 7. **Auto-Aufbuchung braucht den exakten Namen.** Name oder einer der Spitznamen muss genau passen (Groß-/Kleinschreibung egal). „Max" trifft nicht mehr „Maximilian". Mails ohne Treffer werden wie bisher als gelesen markiert und nur im Log vermerkt: das Guthaben muss dann von Hand aufgebucht werden.
 8. **Aussendungen laufen im Hintergrund.** „Jetzt senden" bei einer gespeicherten Aussendung geht innerhalb einer Minute über den Scheduler raus, der Versand über das Formular läuft ab dem Klick im Hintergrund. Das Ergebnis steht deshalb nicht mehr in der Meldung, sondern im Log (Formular) bzw. in der Spalte „letzter Lauf". Bricht ein Versand ab, bekommen die restlichen Mitglieder diese Aussendung nicht; doppelt verschickt wird sie nicht.
@@ -65,7 +65,7 @@ Zugangsdaten (`BREVO_SECRET`, `IMAP_*`), Datenbank-Werte, `FLASK_SECRET_KEY` und
 - [ ] Gespeicherte Berichte nach bestehenden Umrechnungen durchsuchen, also `AT TIME ZONE` oder `+ interval`. Solche Korrekturen rechnen die Zeit nach dem Update doppelt um und müssen entfernt werden.
 - [ ] Bei einem Standort außerhalb Österreichs: `APP_TIMEZONE` in `.env` setzen
 - [ ] Update einspielen (unten)
-- [ ] Superadmin anlegen (unten). Bis dahin läuft alles normal aus der `.env`, nur Aussendungs- und Auto-Aufbuchungs-Einstellungen, Benutzerverwaltung und Schreibzugriff in Berichten sind nicht erreichbar
+- [ ] Superuser anlegen (unten). Bis dahin läuft alles normal aus der `.env`, nur Aussendungs- und Auto-Aufbuchungs-Einstellungen, Benutzerverwaltung und Schreibzugriff in Berichten sind nicht erreichbar
 - [ ] Prüfen, ob `admin` ein neues Passwort bekommen soll, z. B. wenn es Personen kennen, die nicht mehr im Amt sind
 
 ## Update einspielen
@@ -80,10 +80,10 @@ docker compose logs app | tail -50
 
 Danach im Adminpanel eine neue Buchung ansehen: Die Uhrzeit muss der aktuellen Ortszeit entsprechen.
 
-Superadmin anlegen (fragt nach dem Passwort):
+Superuser anlegen (fragt nach dem Passwort):
 
 ```bash
-docker compose exec app /app/.venv/bin/flask auth create-superadmin --username <name>
+docker compose exec app /app/.venv/bin/flask auth create-user --superuser --username <name>
 ```
 
 Danach unter „Berichte" einen gespeicherten Bericht öffnen. Erscheint „Berichte-Zugang ist nicht eingerichtet", fehlt die Datenbank-Rolle: `docker compose exec app /app/.venv/bin/flask sync-report-role`.

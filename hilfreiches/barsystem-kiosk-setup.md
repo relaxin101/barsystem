@@ -176,7 +176,7 @@ AUTO_BETRAG_GROUP=1                 # which capture group holds the amount
  
 ### 6.2 First start
  
-Migrations and the admin account are created automatically (the repo's `db-init` service runs `flask db upgrade` then `flask create-admin` before the app starts, using the `ADMIN_*` values from `.env`):
+Migrations and the admin account are created automatically (the repo's `db-init` service runs `flask db upgrade` then `flask auth create-default-user` before the app starts, using the `ADMIN_*` values from `.env`):
  
 ```bash
 docker compose up -d --build   # first build takes 5-15 min

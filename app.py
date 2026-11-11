@@ -102,21 +102,6 @@ def create_app(config_name=None):
             return jsonify(status="error"), 503
         return jsonify(status="ok", version=get_version()), 200
 
-    @app.cli.command("create-admin")
-    def create_admin_cmd():
-        """Create the initial admin user if it doesn't exist."""
-        admin_username = app.config["ADMIN_USERNAME"]
-        admin_password = app.config["ADMIN_PASSWORD"]
-        if not User.query.filter_by(username=admin_username).first():
-            print(f"Creating admin user: {admin_username}")
-            user = User(username=admin_username)
-            user.set_password(admin_password)
-            db.session.add(user)
-            db.session.commit()
-            print("Done.")
-        else:
-            print(f"Admin user '{admin_username}' already exists.")
-
     @app.cli.command("sync-report-role")
     def sync_report_role_cmd():
         """Legt die Datenbank-Rolle für Berichte an bzw. bringt sie auf den Sollzustand."""

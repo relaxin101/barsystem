@@ -28,7 +28,7 @@ class Definition:
     gruppe: str
     typ: str = "text"  # text, zahl, euro, regex
     standard: object = None
-    superadmin: bool = False
+    superuser: bool = False
     minimum: int = None
     maximum: int = None
     hilfe: str = ""
@@ -61,19 +61,19 @@ DEFINITIONEN = {d.key: d for d in (
         standard=12, minimum=1, maximum=87600,
     ),
 
-    Definition("BREVO_SENDER_MAIL", "Absender-Adresse", GRUPPE_AUSSENDUNGEN, superadmin=True, hilfe="Muss bei Brevo freigeschaltet sein."),
-    Definition("BREVO_SENDER_NAME", "Absender-Name", GRUPPE_AUSSENDUNGEN, superadmin=True),
-    Definition("BREVO_TEMPLATE", "Standard-Template (ID)", GRUPPE_AUSSENDUNGEN, typ="zahl", standard=0, superadmin=True, minimum=0),
+    Definition("BREVO_SENDER_MAIL", "Absender-Adresse", GRUPPE_AUSSENDUNGEN, superuser=True, hilfe="Muss bei Brevo freigeschaltet sein."),
+    Definition("BREVO_SENDER_NAME", "Absender-Name", GRUPPE_AUSSENDUNGEN, superuser=True),
+    Definition("BREVO_TEMPLATE", "Standard-Template (ID)", GRUPPE_AUSSENDUNGEN, typ="zahl", standard=0, superuser=True, minimum=0),
 
     Definition(
-        "AUTO_SENDER", "Absender der Bank", GRUPPE_AUTO, superadmin=True,
+        "AUTO_SENDER", "Absender der Bank", GRUPPE_AUTO, superuser=True,
         hilfe="Pflichtfeld, z. B. noreply@sparkasse.at. Gebucht wird nur, wenn der Mailserver diese Domain bestätigt.",
     ),
-    Definition("AUTO_BETREFF", "Filter: Betreff", GRUPPE_AUTO, superadmin=True, hilfe="Leer heißt: kein Filter."),
-    Definition("AUTO_KONTO_REGEX", "Regex für das Konto", GRUPPE_AUTO, typ="regex", superadmin=True, hilfe="Leer deaktiviert die Auto-Aufbuchung."),
-    Definition("AUTO_KONTO_GROUP", "Gruppe im Konto-Regex", GRUPPE_AUTO, typ="zahl", standard=1, superadmin=True, minimum=0),
-    Definition("AUTO_BETRAG_REGEX", "Regex für den Betrag", GRUPPE_AUTO, typ="regex", superadmin=True, hilfe="Leer deaktiviert die Auto-Aufbuchung."),
-    Definition("AUTO_BETRAG_GROUP", "Gruppe im Betrag-Regex", GRUPPE_AUTO, typ="zahl", standard=1, superadmin=True, minimum=0),
+    Definition("AUTO_BETREFF", "Filter: Betreff", GRUPPE_AUTO, superuser=True, hilfe="Leer heißt: kein Filter."),
+    Definition("AUTO_KONTO_REGEX", "Regex für das Konto", GRUPPE_AUTO, typ="regex", superuser=True, hilfe="Leer deaktiviert die Auto-Aufbuchung."),
+    Definition("AUTO_KONTO_GROUP", "Gruppe im Konto-Regex", GRUPPE_AUTO, typ="zahl", standard=1, superuser=True, minimum=0),
+    Definition("AUTO_BETRAG_REGEX", "Regex für den Betrag", GRUPPE_AUTO, typ="regex", superuser=True, hilfe="Leer deaktiviert die Auto-Aufbuchung."),
+    Definition("AUTO_BETRAG_GROUP", "Gruppe im Betrag-Regex", GRUPPE_AUTO, typ="zahl", standard=1, superuser=True, minimum=0),
 )}
 
 _REGEX_GRUPPEN = (

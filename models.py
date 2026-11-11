@@ -80,7 +80,7 @@ class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.Text(), unique=True, nullable=False)
     password = db.Column(db.Text(), nullable=False)
-    is_superadmin = db.Column(db.Boolean, nullable=False, default=False, server_default=false())
+    is_superuser = db.Column(db.Boolean, nullable=False, default=False, server_default=false())
 
     def set_password(self, password):
         self.password = generate_password_hash(password)

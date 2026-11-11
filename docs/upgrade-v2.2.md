@@ -23,7 +23,7 @@ Von v2.1.0 auf v2.2. Hardening- und Bugfix-Release; **der Host-Port bleibt stand
    - `DATABASE_PASSWORD` = `postgres` / `bibamus`
    - `ADMIN_PASSWORD` = `password` / `password!`
 
-   Achtung: `ADMIN_PASSWORD` wird nur von `flask create-admin` gelesen. Wurde das Passwort in der App geändert, aber in `.env` blieb `password`, wird der Start trotzdem verweigert – in `.env` auf einen anderen Wert setzen (das ändert das bestehende Admin-Passwort nicht).
+   Achtung: `ADMIN_PASSWORD` wird nur von `flask auth create-default-user` gelesen. Wurde das Passwort in der App geändert, aber in `.env` blieb `password`, wird der Start trotzdem verweigert – in `.env` auf einen anderen Wert setzen (das ändert das bestehende Admin-Passwort nicht).
 2. **Datenbank-Passwort ändern ist nicht trivial:** Das Postgres-Volume behält das alte Passwort. Entweder `ALTER USER <DATABASE_USERNAME> PASSWORD '...'` in der laufenden DB ausführen *bevor* `.env` geändert wird, oder (bei leerer DB) das Volume neu anlegen.
 
 ## Checkliste pro Standort

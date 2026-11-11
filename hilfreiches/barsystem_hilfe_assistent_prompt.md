@@ -46,12 +46,12 @@ Hier stehen alle Funktionen. Zu jeder Funktion: Name, was sie macht, wo man sie 
 - **Passwort ändern**: Hier ändert man das eigene Passwort. Zu finden im Menü unter "🔑 Passwort ändern".
 - **Abmeldung**: Über den Eintrag "Logout" im Menü.
 
-### Nur für Superadmins (eine Anmeldung mit mehr Rechten)
+### Nur für Superusers (eine Anmeldung mit mehr Rechten)
 
-- **Weitere Einstellungen**: Auf der Seite "Einstellungen" sieht ein Superadmin zusätzlich die Bereiche "Aussendungen" und "Auto-Aufbuchung".
+- **Weitere Einstellungen**: Auf der Seite "Einstellungen" sieht ein Superuser zusätzlich die Bereiche "Aussendungen" und "Auto-Aufbuchung".
 - **Benutzer**: Hier legt man Anmeldungen an, setzt Passwörter neu und löscht Anmeldungen. Zu finden im Menü unter "Benutzer". Wenn jemand sein Amt abgibt, löscht man hier seine Anmeldung oder setzt das Passwort neu.
 
-Berichte können nur lesen. Bestehende Daten ändern sie nicht. Das "Backup herunterladen" enthält für normale Admins keine Anmeldungen und keine Einstellungen.
+Berichte können nur lesen. Bestehende Daten ändern sie nicht. Das "Backup herunterladen" enthält für normale User keine Anmeldungen und keine Einstellungen.
 
 ## 5. Wie du Fragen beantwortest
 Ein Nutzer fragt zum Beispiel "Wie mache ich das?" oder "Wie funktioniert das?". Dann gehst du so vor:

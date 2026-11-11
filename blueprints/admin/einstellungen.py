@@ -18,7 +18,7 @@ einstellungen_bp = Blueprint("einstellungen", __name__, url_prefix="/einstellung
 
 
 def _darf_aendern(definition):
-    return current_user.is_superadmin or not definition.superadmin
+    return current_user.is_superuser or not definition.superuser
 
 
 def _seite(eingaben=None, fehler=None, status=200):
@@ -35,7 +35,7 @@ def _seite(eingaben=None, fehler=None, status=200):
         "admin/einstellungen.html",
         gruppen=gruppen,
         fehler=fehler or {},
-        env_status=env_status() if current_user.is_superadmin else None,
+        env_status=env_status() if current_user.is_superuser else None,
         version=get_version(),
     ), status
 

@@ -15,13 +15,13 @@ from models import db, Mitglied
 from utils.zeit import LOCAL_TZ, local_now, naive_local
 
 
-def superadmin_required(view):
-    """Wie login_required, angemeldete Admins ohne Superadmin-Rolle bekommen 403."""
+def superuser_required(view):
+    """Wie login_required, angemeldete User ohne Superuser-Rolle bekommen 403."""
 
     @wraps(view)
     @login_required
     def wrapped(*args, **kwargs):
-        if not current_user.is_superadmin:
+        if not current_user.is_superuser:
             abort(403)
         return view(*args, **kwargs)
 

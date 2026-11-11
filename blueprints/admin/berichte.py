@@ -29,15 +29,15 @@ _BACKUP_TABLES = [
     ("artikel", Artikel),
     ("buchungen", Buchung),
 ]
-# Nur für Superadmins, in beide Richtungen: users enthält Passwort-Hashes und ein
-# präpariertes ZIP könnte sonst Konten oder Superadmin-Einstellungen anlegen.
+# Nur für Superuser, in beide Richtungen: users enthält Passwort-Hashes und ein
+# präpariertes ZIP könnte sonst Konten oder Superuser-Einstellungen anlegen.
 _SUPERADMIN_TABLES = {"users", "einstellungen"}
 
 export_bp = Blueprint("export", __name__, url_prefix="/export")
 
 
 def _backup_tables():
-    if current_user.is_superadmin:
+    if current_user.is_superuser:
         return _BACKUP_TABLES
     return [t for t in _BACKUP_TABLES if t[0] not in _SUPERADMIN_TABLES]
 
@@ -45,10 +45,10 @@ def _backup_tables():
 def _execute_query(query, schreiben=False):
     """Führt Bericht-SQL aus und gibt (Spalten, Zeilen) zurück.
 
-    Immer lesend, auch für Superadmins: ein Bericht kann von jemand anderem
+    Immer lesend, auch für Superuser: ein Bericht kann von jemand anderem
     gespeichert worden sein. Schreibzugriff gibt es nur pro Ausführung.
     """
-    engine = db.engine if schreiben and current_user.is_superadmin else report_engine()
+    engine = db.engine if schreiben and current_user.is_superuser else report_engine()
     try:
         conn = engine.connect()
     except OperationalError as e:
@@ -82,7 +82,7 @@ def admin_export():
             schreiben = request.method == "POST" and "schreiben" in request.form
             columns, rows = _execute_query(query, schreiben)
             results = [dict(zip(columns, map(naive_local, row))) for row in rows]
-            if schreiben and current_user.is_superadmin:
+            if schreiben and current_user.is_superuser:
                 flash("Abfrage mit Schreibzugriff ausgeführt.", "success")
         except Exception as e:
             error = str(e.args)

@@ -16,10 +16,10 @@ Die Datei `.env` enthält nun die (Standard-)Konfiguration der Website. Ändere 
 Mit `ADMIN_USERNAME`, `ADMIN_PASSWORD` konfigurierst du die Login-Daten für das Admin Panel, mit `MINDEST_GUTHABEN` setzt du das Limit, wie weit Personenkonten ins Minus gehen dürfen. Die restlichen Einstellungen kannst du nachlesen und ggf. entsprechend anpassen. 
 _Viele Werte lassen sich später im Adminpanel unter „Einstellungen" ändern, die Werte aus der `.env` sind dann nur noch der Ausgangspunkt. Datenbank-Werte, Zugangsdaten und `FLASK_SECRET_KEY` bleiben in der `.env`._
 
-Der Login aus der `.env` ist ein normaler Admin für das Tagesgeschäft. Für Mail- und Bank-Einstellungen und die Benutzerverwaltung legst du am Host einmalig einen Superadmin an:
+Der Login aus der `.env` ist immer ein Superuser. Weitere Konten legst du in der App unter „Benutzer" an oder am Host:
 
 ```bash
-docker compose exec app /app/.venv/bin/flask auth create-superadmin --username <name>
+docker compose exec app /app/.venv/bin/flask auth create-user --superuser --username <name>
 ```
 
 Jetzt kannst du die Website starten! Wenn du ein Terminal in dem Ordner öffnest (Windows: im File Explorer in den Ordner navigieren, STRG+SHIFT+Rechtsklick in den ordner und "Terminal öffnen" klicken) und `docker compose up -d --build` (+ ENTER) eintippst, beginnt docker mit der Installation der nötigen Komponenten und startet die Website automatisch. (Je nach Internet und Rechenleistung des Computers dauert das beim ersten Mal 5-15 min) Nun kannst du in dem lokalen Netzwerk unter der IP-Adresse des Computers die Website abrufen. Auf dem Computer wo das Ganze läuft, funktioniert auch [localhost](http://localhost). 

@@ -249,7 +249,7 @@
       ⚙️ Einstellungen
     </a>
 
-    {% if current_user.is_superadmin %}
+    {% if current_user.is_superuser %}
     <a href="{{ url_for('admin.benutzer.index') }}">
       🔐 Benutzer
     </a>

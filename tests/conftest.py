@@ -35,15 +35,9 @@ def admin_user(db):
 
 
 @pytest.fixture()
-def auth_client(client, admin_user):
-    """Test client with an active admin session."""
-    client.post("/login", data={"username": "testadmin", "password": "testpassword"})
-    return client
-
-
-@pytest.fixture()
-def superadmin_user(db):
-    u = User(username="testsuper", is_superadmin=True)
+def normal_user(db):
+    """Normaler User, der nicht der Standarduser aus der Config ist."""
+    u = User(username="testuser")
     u.set_password("testpassword")
     db.session.add(u)
     db.session.commit()
@@ -51,7 +45,23 @@ def superadmin_user(db):
 
 
 @pytest.fixture()
-def superadmin_client(app, superadmin_user):
+def auth_client(client, admin_user):
+    """Test client with an active admin session."""
+    client.post("/login", data={"username": "testadmin", "password": "testpassword"})
+    return client
+
+
+@pytest.fixture()
+def superuser_user(db):
+    u = User(username="testsuper", is_superuser=True)
+    u.set_password("testpassword")
+    db.session.add(u)
+    db.session.commit()
+    return u
+
+
+@pytest.fixture()
+def superuser_client(app, superuser_user):
     """Second test client, so it can run next to auth_client."""
     client = app.test_client()
     client.post("/login", data={"username": "testsuper", "password": "testpassword"})
