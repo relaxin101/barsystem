@@ -10,7 +10,6 @@ import pytest
 
 from models import Mitglied
 from utils.auto_aufbuchung import (
-    _absender_echt,
     _decode_header,
     _get_body,
     _handle_message,
@@ -105,54 +104,17 @@ def test_get_body_multipart_prefers_plain():
 # _handle_message — mocked IMAP + DB
 # ---------------------------------------------------------------------------
 
-ECHT = "mx.provider.at; spf=pass smtp.mailfrom=example.com; dkim=pass header.d=example.com"
-
-
-def _make_raw_email(subject: str, from_addr: str, body: str, auth: str = ECHT) -> bytes:
+def _make_raw_email(subject: str, from_addr: str, body: str) -> bytes:
     import email.mime.text
     msg = email.mime.text.MIMEText(body, "plain", "utf-8")
     msg["Subject"] = subject
     msg["From"] = from_addr
-    if auth:
-        msg["Authentication-Results"] = auth
     return msg.as_bytes()
 
 
 @pytest.fixture()
 def bank_sender(app):
     speichern({"AUTO_SENDER": "bank@example.com"}, "test")
-
-
-@pytest.mark.parametrize("auth,echt", [
-    (ECHT, True),
-    ("mx; dkim=pass header.i=@example.com header.s=sel", True),  # so schreibt es Gmail
-    ("mx; dkim=pass header.d=mail.example.com", True),
-    ("mx; dkim=fail header.d=example.com; dmarc=pass header.from=example.com", True),
-    ("mx; dmarc=pass action=none header.from=example.com", True),
-    ("", False),
-    ("mx; dkim=fail header.d=example.com", False),
-    ("mx; dkim=none; dmarc=fail header.from=example.com", False),
-    ("mx; dkim=pass header.d=evil.com", False),
-    ("mx; dkim=pass header.d=example.com.evil.com", False),
-    ("mx; dkim=pass header.d=notexample.com", False),
-    ("mx; dkim=fail header.d=evil.com header.from=example.com", False),
-])
-def test_absender_echt(app, bank_sender, auth, echt):
-    msg = email.message_from_bytes(_make_raw_email("s", "bank@example.com", "b", auth))
-    assert _absender_echt(msg) is echt
-
-
-def test_absender_echt_trusts_only_the_top_header(app, bank_sender):
-    """A forged header sits below the one our own mail server puts on top."""
-    msg = email.message.Message()
-    msg["Authentication-Results"] = "mx; dkim=none; dmarc=fail header.from=example.com"
-    msg["Authentication-Results"] = "evil; dkim=pass header.d=example.com"
-    assert _absender_echt(msg) is False
-
-
-def test_absender_echt_without_sender_setting(app):
-    msg = email.message_from_bytes(_make_raw_email("s", "bank@example.com", "b"))
-    assert _absender_echt(msg) is False
 
 
 @pytest.mark.parametrize("konto,passt", [
@@ -179,29 +141,11 @@ class TestHandleMessage:
         pass
 
     def _make_mail_mock(self, subject="Überweisung", from_addr="bank@example.com",
-                        body="Absender: Max Mustermann Betrag: 10,00", auth=ECHT):
-        raw = _make_raw_email(subject, from_addr, body, auth)
+                        body="Absender: Max Mustermann Betrag: 10,00"):
+        raw = _make_raw_email(subject, from_addr, body)
         mail = MagicMock()
         mail.fetch.return_value = ("OK", [(None, raw)])
         return mail
-
-    @pytest.mark.parametrize("auth", ["", "mx; dkim=fail header.d=example.com"])
-    def test_forged_sender_is_not_booked(self, app, db, auth):
-        import re
-        from models import Buchung
-
-        with app.app_context():
-            m = Mitglied(name="Max Mustermann", aktiv=True, guthaben=0)
-            db.session.add(m)
-            db.session.commit()
-            mail = self._make_mail_mock(auth=auth)
-
-            with patch("utils.auto_aufbuchung.suche_mitglied", return_value=[m]):
-                _handle_message(mail, b"1", re.compile(r"Absender: (.+?) Betrag"), re.compile(r"Betrag: (\d+,\d+)"))
-
-            db.session.refresh(m)
-            assert m.guthaben == 0
-            assert Buchung.query.count() == 0
 
     def test_partial_name_is_not_booked(self, app, db):
         """"Max" must not land on Maximilian just because he is the only substring hit."""

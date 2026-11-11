@@ -135,22 +135,6 @@ def _process_mailbox():
             logger.error(e)
 
 
-def _absender_echt(msg):
-    """Prüft, ob der eigene Mailserver die Mail als echt vom AUTO_SENDER bestätigt.
-
-    Der From-Header allein lässt sich beliebig fälschen.
-    """
-    # shortcut: vertraut dem obersten Authentication-Results-Header, das schützt nur,
-    # wenn der eigene Mailserver ihn setzt; bei einem Providerwechsel neu prüfen.
-    ergebnis = str(msg.get("Authentication-Results", "")).lower()
-    domain = re.escape(einstellung("AUTO_SENDER").rpartition("@")[2].lower())
-    return bool(domain) and bool(re.search(
-        rf";\s*(?:dkim=pass[^;]*header\.[di]=@?|dmarc=pass[^;]*header\.from=)"
-        rf"(?:[\w-]+\.)*{domain}(?![\w.-])",
-        ergebnis,
-    ))
-
-
 def _name_passt(mitglied, konto_wert):
     """Exakter Vergleich: die Suche findet auch Teilstrings, "Max" träfe sonst "Maximilian"."""
     namen = [mitglied.name, *(mitglied.nickname or "").split(",")]
@@ -166,13 +150,6 @@ def _handle_message(mail, msg_id, konto_re, betrag_re):
     msg = email.message_from_bytes(msg_data[0][1])
     subject = _decode_header(msg.get("Subject", ""))
     from_addr = _decode_header(msg.get("From", ""))
-
-    if not _absender_echt(msg):
-        logger.warning(
-            "Auto-Aufbuchung: Absender nicht bestätigt, nicht gebucht — from=%s, subject=%s",
-            from_addr, subject,
-        )
-        return
 
     body = _get_body(msg)
     search_text = f"{subject}\n{from_addr}\n{body}"
