@@ -195,7 +195,7 @@ def _handle_message(mail, msg_id, konto_re, betrag_re):
         )
         return
 
-    treffer = [m for m in suche_mitglied(konto_wert) if _name_passt(m, konto_wert)]
+    treffer = suche_mitglied(konto_wert)
 
     # Zuerst als gelesen markieren, damit die Mail nicht nochmals verarbeitet wird
     mail.store(msg_id, "+FLAGS", "\\Seen")
@@ -213,7 +213,6 @@ def _handle_message(mail, msg_id, konto_re, betrag_re):
             "Auto-Aufbuchung: Mehrdeutiger Treffer für '%s' (%s) — from=%s, subject=%s",
             konto_wert, namen, from_addr, subject,
         )
-        return
 
     mitglied = mitglied_sperren(treffer[0].id)
 

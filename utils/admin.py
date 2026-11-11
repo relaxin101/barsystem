@@ -3,6 +3,7 @@
 import io
 from datetime import datetime, timedelta
 from functools import wraps
+from typing import Optional
 from flask import abort, request, send_file, flash, redirect
 from flask_login import current_user, login_required
 import pandas as pd
@@ -181,8 +182,8 @@ def handle_excel_import(db_fields, model, redirect_url, unique_field=None):
     return redirect(redirect_url)
 
 
-def suche_mitglied(search_term: str, limit: int = None) -> list:
-    """Durchsucht aktive Mitglieder nach Name und Nickname (PostgreSQL Full-Text + iLike)."""
+def suche_mitglied(search_term: str, limit: Optional[int] = None) -> list[Mitglied]:
+    """Durchsucht aktive Mitglieder nach Name und Nickname iLike."""
     q = (
         Mitglied.query.filter(
             text(
