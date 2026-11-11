@@ -92,6 +92,21 @@ def create():
     return jsonify({"success": True})
 
 
+def _konten(buchungen):
+    """Summiert Ein- und Auszahlungen je Mitglied, stornierte Buchungen zählen nicht."""
+    konten = defaultdict(lambda: {"mitglied": None, "einzahlungen": 0, "konsum": 0})
+    for b in buchungen:
+        if b.storno:
+            continue
+        konto = konten[b.mitglied_id]
+        konto["mitglied"] = b.mitglied_obj
+        if b.gesamtpreis > 0:
+            konto["einzahlungen"] += b.gesamtpreis
+        else:
+            konto["konsum"] += abs(b.gesamtpreis)
+    return konten
+
+
 @abrechnung_bp.route("/<int:abrechnung_id>")
 @login_required
 def detail(abrechnung_id):
@@ -121,14 +136,7 @@ def detail(abrechnung_id):
         .one()
     )
 
-    konten = defaultdict(lambda: {"mitglied": None, "einzahlungen": 0, "konsum": 0})
-    for b in buchungen:
-        konto = konten[b.mitglied_id]
-        konto["mitglied"] = b.mitglied_obj
-        if b.gesamtpreis > 0:
-            konto["einzahlungen"] += b.gesamtpreis
-        else:
-            konto["konsum"] += abs(b.gesamtpreis)
+    konten = _konten(buchungen)
 
     return render_template(
         "admin/abrechnung/detail.html",

@@ -1,6 +1,7 @@
 """Tests for blueprints/admin/abrechnung.py — create, update, refresh, delete."""
 from datetime import timedelta
 
+from blueprints.admin.abrechnung import _konten
 from models import Abrechnung, Buchung, Mitglied, Artikel
 from utils.zeit import LOCAL_TZ, local_now, utcnow
 
@@ -106,6 +107,18 @@ class TestAbrechnungUpdate:
         db.session.refresh(b_new)
         assert b_old.abrechnungs_id is None  # outside new range → unassigned
         assert b_new.abrechnungs_id == a.id
+
+
+class TestAbrechnungDetail:
+    def test_konten_excludes_stornierte(self, db, mitglied, artikel):
+        gueltig = _buchung(db, mitglied, artikel)
+        storniert = _buchung(db, mitglied, artikel)
+        storniert.storno = True
+        db.session.commit()
+
+        konten = _konten([gueltig, storniert])
+        assert konten[mitglied.id]["konsum"] == 200
+        assert konten[mitglied.id]["einzahlungen"] == 0
 
 
 class TestAbrechnungRefresh:
