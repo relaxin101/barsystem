@@ -1,7 +1,7 @@
 """Hilfsfunktionen für die admin pages"""
 
 import io
-from datetime import datetime, timedelta
+from datetime import timedelta
 from functools import wraps
 from typing import Optional
 from flask import abort, request, send_file, flash, redirect
@@ -13,7 +13,7 @@ import re
 from numbers import Real
 
 from models import db, Mitglied
-from utils.zeit import LOCAL_TZ, local_now, naive_local
+from utils.zeit import local_now, naive_local, parse_local, parse_local_ende
 
 
 def superuser_required(view):
@@ -46,25 +46,19 @@ def parse_daterange():
     start_str = request.args.get("start")
     end_str = request.args.get("end")
 
-    now = local_now()
-    end_date = now.replace(second=0, microsecond=0)
-    start_date = (end_date - timedelta(days=30)).replace(hour=0, minute=0)
+    end_date = local_now()
+    start_date = (end_date - timedelta(days=30)).replace(hour=0, minute=0, second=0, microsecond=0)
 
-    for fmt in ("%Y-%m-%dT%H:%M", "%Y-%m-%d"):
+    try:
         if start_str:
-            try:
-                start_date = datetime.strptime(start_str, fmt).replace(tzinfo=LOCAL_TZ)
-                break
-            except ValueError:
-                continue
-
-    for fmt in ("%Y-%m-%dT%H:%M", "%Y-%m-%d"):
+            start_date = parse_local(start_str)
+    except ValueError:
+        pass
+    try:
         if end_str:
-            try:
-                end_date = datetime.strptime(end_str, fmt).replace(tzinfo=LOCAL_TZ)
-                break
-            except ValueError:
-                continue
+            end_date = parse_local_ende(end_str)
+    except ValueError:
+        pass
 
     return start_date, end_date
 

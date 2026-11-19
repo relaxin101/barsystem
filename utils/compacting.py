@@ -14,7 +14,7 @@ import pandas as pd
 from sqlalchemy import func, or_, true
 
 from models import db, Abrechnung, Artikel, Buchung, Mitglied
-from utils.zeit import LOCAL_TZ, naive_local, parse_local, utcnow
+from utils.zeit import LOCAL_TZ, naive_local, parse_local, parse_local_ende, utcnow
 
 # Ein Bar-Abend endet erst am Morgen: 23:00 und 02:00 zählen als derselbe Tag
 TAGESWECHSEL = timedelta(hours=6)
@@ -87,18 +87,8 @@ class Plan:
 # Zeitraum und Abrechnungen
 # ------------------------------------------------
 def parse_zeitraum(von, bis):
-    """Formularwerte (datetime-local) zu Ortszeit; leer heißt offen.
-
-    Ohne Sekunden zählt die ganze Bis-Minute dazu, sonst fiele 23:59:30 aus "bis 23:59".
-    """
-    von_dt = parse_local(von) if von else None
-    bis_dt = None
-    if bis:
-        bis_dt = parse_local(bis)
-        if len(bis) <= 16:
-            bis_dt = bis_dt.replace(second=59)
-        bis_dt = bis_dt.replace(microsecond=999999)
-    return von_dt, bis_dt
+    """Formularwerte (datetime-local) zu Ortszeit; leer heißt offen."""
+    return (parse_local(von) if von else None), (parse_local_ende(bis) if bis else None)
 
 
 def abrechnungen_im_zeitraum(von, bis):

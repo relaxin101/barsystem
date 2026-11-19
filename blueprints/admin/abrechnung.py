@@ -6,7 +6,7 @@ from flask_login import login_required
 from sqlalchemy import func, text, or_, and_
 
 from models import db, Abrechnung, Buchung
-from utils.zeit import parse_local, utcnow
+from utils.zeit import parse_local, parse_local_ende, utcnow
 
 
 abrechnung_bp = Blueprint(
@@ -78,7 +78,7 @@ def create():
 
     if modus == "zeitraum":
         start_dt = parse_local(start)
-        end_dt = parse_local(end)
+        end_dt = parse_local_ende(end)
         query = query.filter(
             Buchung.zeitstempel >= start_dt,
             Buchung.zeitstempel <= end_dt,
@@ -155,8 +155,7 @@ def update(abrechnung_id):
     abrechnung = Abrechnung.query.get_or_404(abrechnung_id)
     data = request.get_json()
     start = parse_local(data["start"])
-    # Das Formular kennt nur ganze Sekunden, die letzte Buchung liegt meist knapp dahinter
-    ende = parse_local(data["ende"]).replace(microsecond=999999)
+    ende = parse_local_ende(data["ende"])
 
     Buchung.query.filter_by(abrechnungs_id=abrechnung.id).update({"abrechnungs_id": None})
 

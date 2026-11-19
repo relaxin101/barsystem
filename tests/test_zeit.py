@@ -115,7 +115,8 @@ class TestDaterange:
         with app.test_request_context("/?start=2026-07-15T20:00&end=2026-07-15T21:00"):
             start, end = parse_daterange()
         assert start == datetime(2026, 7, 15, 18, 0, tzinfo=UTC)
-        assert end == datetime(2026, 7, 15, 19, 0, tzinfo=UTC)
+        # die ganze Bis-Minute zählt dazu
+        assert end == datetime(2026, 7, 15, 19, 0, 59, 999999, tzinfo=UTC)
 
     def test_default_starts_at_local_midnight(self, app):
         with app.test_request_context("/"):
@@ -166,6 +167,16 @@ class TestAbrechnung:
         )
         db.session.refresh(b)
         assert b.abrechnung_obj.name == "Orts-Fenster"
+
+    def test_zeitraum_includes_the_whole_end_minute(self, auth_client, db, mitglied, artikel):
+        b = _buchung(db, mitglied, artikel, ts=SOMMER + timedelta(seconds=40))  # 20:30:40
+
+        auth_client.post(
+            "/admin/abrechnung/create",
+            json={"name": "Bis 20:30", "modus": "zeitraum", "start": "2026-07-15T20:00", "end": "2026-07-15T20:30"},
+        )
+        db.session.refresh(b)
+        assert b.abrechnung_obj.name == "Bis 20:30"
 
     def test_detail_shows_local_time(self, auth_client, db, mitglied, artikel):
         a = Abrechnung(name="Detail", zeitstempel=WINTER)

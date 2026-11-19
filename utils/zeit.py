@@ -31,6 +31,14 @@ def parse_local(value):
     return parsed
 
 
+def parse_local_ende(value):
+    """Wie parse_local, aber für das Ende eines Zeitraums: "bis 23:59" schließt 23:59:30 ein."""
+    parsed = parse_local(value)
+    if len(value) <= 16:  # ohne Sekunden
+        parsed = parsed.replace(second=59)
+    return parsed.replace(microsecond=999999)
+
+
 def naive_local(value):
     """Aware datetime zu naiver Ortszeit (für Excel), alles andere bleibt unverändert."""
     if isinstance(value, datetime) and value.tzinfo is not None:
