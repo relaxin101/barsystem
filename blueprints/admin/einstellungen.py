@@ -29,6 +29,7 @@ def _seite(eingaben=None, fehler=None, status=200):
             gruppen.setdefault(definition.gruppe, []).append({
                 "definition": definition,
                 "wert": eingaben.get(definition.key, rohwert(definition.key)),
+                "gespeichert": rohwert(definition.key),
                 "quelle": quelle(definition.key),
             })
     return render_template(
