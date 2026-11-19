@@ -32,15 +32,15 @@ def index():
                COALESCE(summe_eingaenge.summe_eingaenge, 0) AS summe_eingaenge,
                COALESCE(summe_ausgaenge.summe_ausgaenge, 0) AS summe_ausgaenge
         FROM abrechnung a,
+             -- ohne GROUP BY liefert das Aggregat auch für Abrechnungen ohne Buchungen eine Zeile
              LATERAL (
-                 SELECT abrechnungs_id                                           AS id,
+                 SELECT a.id                                                     AS id,
                         count(b.id)                                              AS num_buchungen,
                         bool_or(COALESCE(b.storno_updated_at > a.zeitstempel, FALSE))   AS veraendert,
                         MIN(b.zeitstempel)                                       AS von_datum,
                         MAX(b.zeitstempel)                                       AS bis_datum
                  FROM buchung b
                  WHERE a.id = abrechnungs_id
-                 GROUP BY abrechnungs_id
              ) general
              NATURAL LEFT JOIN (
                  SELECT abrechnungs_id AS id, sum(gesamtpreis) AS summe_eingaenge
