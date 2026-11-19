@@ -325,6 +325,42 @@ thead.table-light th {
     --bs-table-bg: #3A3548;
 }
 
+/* Tabellen-Komponente (templates/macros/tabelle.html) */
+.tabelle-werkzeuge .tabelle-suche {
+    max-width: 400px;
+    flex: 1 1 240px;
+}
+
+.tabelle th[data-sort] {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.tabelle th[data-sort]::after {
+    content: " ↕";
+    opacity: 0.35;
+}
+
+.tabelle th[aria-sort="ascending"]::after {
+    content: " ▲";
+    opacity: 1;
+}
+
+.tabelle th[aria-sort="descending"]::after {
+    content: " ▼";
+    opacity: 1;
+}
+
+.tabelle-auswahl-kopf {
+    width: 1%;
+}
+
+tr[data-href],
+tr.klickbar {
+    cursor: pointer;
+}
+
 /* ============================================
    Badges
    ============================================ */

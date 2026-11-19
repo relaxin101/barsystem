@@ -1,0 +1,66 @@
+{#
+  Wiederverwendbare Tabelle. Verhalten (Suche, Sortierung, Leerzeile, klickbare
+  Zeilen, Alle auswählen) liefert static/js/tabelle.js.
+
+  {% from "macros/tabelle.html" import tabelle, auswahl_zelle %}
+  {% call tabelle("artikel-tabelle", ["ID", "Name", {"titel": "Aktiv", "sort": False}],
+                  suche="Artikel suchen...", hoehe="70vh") %}
+    {% for a in artikel %}
+    <tr data-href="...">            (oder class="klickbar" für eigene Klick-Handler)
+      <td>{{ a.id }}</td>
+      <td data-wert="{{ a.preis }}">€ ...</td>   (data-wert: Sortierwert statt Text)
+    </tr>
+    {% endfor %}
+  {% endcall %}
+
+  spalten: Strings oder Dicts {titel, sort (Default: sortierbar), klasse}
+  auswahl: fügt vorne eine Checkbox-Spalte und den Button "Alle auswählen" ein,
+           die Zeilen liefern ihre Checkbox mit auswahl_zelle().
+#}
+
+{% macro tabelle(id, spalten, suche=None, hoehe=None, auswahl=False, sortierbar=True,
+                 leer="Keine Einträge vorhanden.", klasse="table-hover", kopf_klasse="table-light") %}
+<div class="tabelle" data-tabelle data-leer="{{ leer }}">
+
+  {% if suche or auswahl %}
+  <div class="tabelle-werkzeuge d-flex flex-wrap gap-2 align-items-center p-3">
+    {% if suche %}
+    <input type="search" class="form-control tabelle-suche" placeholder="{{ suche }}" aria-label="{{ suche }}">
+    {% endif %}
+    {% if auswahl %}
+    <button type="button" class="btn btn-sm btn-outline-secondary tabelle-alle" aria-controls="{{ id }}">
+      Alle auswählen
+    </button>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <div class="table-responsive"{% if hoehe %} style="max-height:{{ hoehe }}; overflow:auto;"{% endif %}>
+    <table class="table table-striped align-middle mb-0 {{ klasse }}" id="{{ id }}">
+      <thead class="{{ kopf_klasse }} sticky-top">
+        <tr>
+          {% if auswahl %}<th class="tabelle-auswahl-kopf"><span class="visually-hidden">Auswahl</span></th>{% endif %}
+          {% for s in spalten %}
+            {% set s = s if s is mapping else {"titel": s} %}
+            {% set sort = sortierbar and s.get("sort", True) %}
+            <th{% if s.klasse %} class="{{ s.klasse }}"{% endif %}{% if sort %} data-sort tabindex="0" aria-sort="none"{% endif %}>{{ s.titel }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {{ caller() }}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+{% endmacro %}
+
+
+{% macro auswahl_zelle(name, wert, checked=False, disabled=False, titel=None) %}
+<td>
+  <input type="checkbox" class="form-check-input tabelle-auswahl" name="{{ name }}" value="{{ wert }}"
+         {% if checked %}checked{% endif %} {% if disabled %}disabled{% endif %}
+         {% if titel %}title="{{ titel }}" aria-label="{{ titel }}"{% endif %}>
+</td>
+{% endmacro %}
