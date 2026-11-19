@@ -82,7 +82,8 @@
           <form method="post" action="{{ url_for('admin.export.admin_export') }}" class="mb-3">
 
 <label for="query" class="form-label">SQL Abfrage</label>
-<textarea class="form-control mb-2" id="query" name="query" rows="5">{{ query }}</textarea>
+<textarea class="form-control mb-2" id="query" name="query" rows="5"
+          {% if id %}data-gespeichert="{{ gespeichert_sql }}" data-getestet="{{ getestet_sql }}"{% endif %}>{{ query }}</textarea>
 <p class="form-text">Alle Zeiten in Ortszeit ({{ config.APP_TIMEZONE }}). Zeitstempel-Spalten werden automatisch umgerechnet.</p>
 
 <div class="d-flex flex-wrap align-items-start mb-2" style="gap:5em;">
@@ -106,34 +107,79 @@
   {% endif %}
 </div>
 
-{% if not id %}
-{# Flex ohne align-items: der Button wird so hoch wie das Eingabefeld #}
+{# Flex ohne align-items: die Buttons werden so hoch wie das Eingabefeld #}
 <div>
-  <label for="name" class="form-label d-block w-auto">Bericht-Name</label>
+  <label for="name" class="form-label d-block w-auto">{{ 'Bericht-Verwaltung' if id else 'Bericht-Name' }}</label>
   <div class="d-flex gap-2">
-    <input type="text" class="form-control mb-0" style="width:260px;" id="name" name="name">
-    <button id="bericht-speichern" formaction="{{ url_for('admin.export.create_berichte') }}" formmethod="POST" class="btn btn-success text-nowrap">
+    <input type="text" class="form-control mb-0" style="width:260px;" id="name" name="name"
+           value="{{ bericht_name }}" {% if id %}data-original="{{ bericht_name }}"{% endif %}>
+    {% if not id %}
+    <button id="name-aktion" formaction="{{ url_for('admin.export.create_berichte') }}" formmethod="POST" class="btn btn-success text-nowrap">
       <i class="bi bi-bookmark"></i> Bericht speichern
     </button>
+    {% else %}
+    {# Grau und gesperrt, bis der Name vom gespeicherten abweicht #}
+    <button id="name-aktion" formaction="{{ url_for('admin.export.rename_bericht', bericht_id=id) }}" formmethod="POST" class="btn btn-secondary text-nowrap" disabled>
+      <i class="bi bi-pencil"></i> Name ändern
+    </button>
+    {% endif %}
   </div>
+  {% if id %}
+  <div class="form-text text-danger d-none" id="name-gesperrt">Erst die geänderte Abfrage speichern, dann den Namen ändern.</div>
+  <div class="d-flex gap-2 mt-2">
+    {# Nur sichtbar, wenn die SQL vom gespeicherten Bericht abweicht. Testen behält ?id= (Ausführen verwirft es: "als neuen Bericht speichern") #}
+    <button type="submit" id="bericht-testen" name="testen" value="1" formaction="{{ url_for('admin.export.admin_export', id=id) }}"
+            class="btn btn-warning text-nowrap d-none">
+      <i class="bi bi-play"></i> Bericht testen
+    </button>
+    <button type="submit" id="abfrage-aendern" formaction="{{ url_for('admin.export.update_bericht_sql', bericht_id=id) }}" formmethod="POST"
+            class="btn btn-primary text-nowrap d-none">
+      <i class="bi bi-save"></i> Abfrage ändern
+    </button>
+    {# Gehört zum Formular unten (verschachtelte Formulare gibt es nicht) und ist so auch nicht Standard-Button für Enter #}
+    <button type="submit" form="bericht-loeschen" class="btn btn-danger text-nowrap">
+      <i class="bi bi-bookmark-fill"></i> Bericht löschen
+    </button>
+  </div>
+  {% endif %}
 </div>
 <script>
-  // Enter im Namensfeld speichert den Bericht; sonst wäre "Ausführen" (erster Button im Formular) der Standard
-  document.getElementById("name").addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.isComposing) {
-      e.preventDefault();
-      document.getElementById("bericht-speichern").click();
+  (function () {
+    const name = document.getElementById("name");
+    const aktion = document.getElementById("name-aktion");
+    const sql = document.getElementById("query");
+    const gespeichert = name.dataset.original !== undefined;  // nur bei geladenem Bericht gesetzt
+    // Gleich wie der Server vergleicht: Zeilenenden vereinheitlicht, Leerraum am Rand egal
+    const norm = (s) => s.replace(/\r\n?/g, "\n").trim();
+
+    function aktualisieren() {
+      if (!gespeichert) return;
+      const sqlGeaendert = norm(sql.value) !== norm(sql.dataset.gespeichert);
+      const getestet = sql.dataset.getestet !== "" && norm(sql.value) === norm(sql.dataset.getestet);
+      document.getElementById("bericht-testen").classList.toggle("d-none", !sqlGeaendert || getestet);
+      document.getElementById("abfrage-aendern").classList.toggle("d-none", !sqlGeaendert || !getestet);
+
+      // Umbenennen lädt den Bericht neu und würde die geänderte SQL verwerfen
+      const nameGeaendert = name.value.trim() !== name.dataset.original;
+      const an = nameGeaendert && !sqlGeaendert;
+      aktion.disabled = !an;
+      aktion.classList.toggle("btn-primary", an);
+      aktion.classList.toggle("btn-secondary", !an);
+      document.getElementById("name-gesperrt").classList.toggle("d-none", !(nameGeaendert && sqlGeaendert));
     }
-  });
+    name.addEventListener("input", aktualisieren);
+    sql.addEventListener("input", aktualisieren);
+    aktualisieren();
+
+    // Enter im Namensfeld speichert bzw. benennt um; sonst wäre "Ausführen" (erster Button im Formular) der Standard
+    name.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.isComposing) {
+        e.preventDefault();
+        if (!aktion.disabled) aktion.click();
+      }
+    });
+  })();
 </script>
-{% else %}
-{# Gehört zum Formular unten (verschachtelte Formulare gibt es nicht) und ist so auch nicht Standard-Button für Enter #}
-<div>
-  <button type="submit" form="bericht-loeschen" class="btn btn-danger">
-    <i class="bi bi-bookmark-fill"></i> Bericht löschen
-  </button>
-</div>
-{% endif %}
 </div>
           </form>
           {% if id %}

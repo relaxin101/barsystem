@@ -290,6 +290,67 @@ class TestBerichte:
         assert "nicht eingerichtet" in html
         assert resp.status_code == 302
 
+    def test_saved_report_shows_its_name(self, auth_client, db):
+        b = Bericht(name="Umsatz", sql="SELECT 1")
+        db.session.add(b)
+        db.session.commit()
+        html = auth_client.get(f"/admin/export/?id={b.id}").get_data(as_text=True)
+        assert 'value="Umsatz" data-original="Umsatz"' in html
+
+    def test_rename_keeps_sql(self, auth_client, db):
+        b = Bericht(name="Alt", sql="SELECT 1")
+        db.session.add(b)
+        db.session.commit()
+        resp = auth_client.post(
+            f"/admin/export/berichte/{b.id}/umbenennen", data={"name": " Neu ", "query": "SELECT 2"}
+        )
+        assert resp.headers["Location"].endswith(f"?id={b.id}")
+        db.session.refresh(b)
+        assert (b.name, b.sql) == ("Neu", "SELECT 1")
+
+    @pytest.fixture()
+    def bericht(self, db):
+        b = Bericht(name="Alt", sql="SELECT 1 AS x")
+        db.session.add(b)
+        db.session.commit()
+        return b
+
+    def test_testing_keeps_report_active_and_ignores_write_access(self, superuser_client, bericht, engines):
+        html = superuser_client.post(
+            f"/admin/export/?id={bericht.id}", data={"query": "SELECT 2 AS x", "testen": "1", "schreiben": "on"}
+        ).get_data(as_text=True)
+        engines.assert_called_once()  # lesend wie ein gespeicherter Bericht
+        assert 'data-original="Alt"' in html
+        assert 'data-getestet="SELECT 2 AS x"' in html
+
+    def test_failed_test_offers_no_save(self, auth_client, bericht, engines):
+        html = auth_client.post(
+            f"/admin/export/?id={bericht.id}", data={"query": "SELECT FROM nirgends", "testen": "1"}
+        ).get_data(as_text=True)
+        assert 'data-getestet=""' in html
+
+    def test_update_sql_saves_only_the_query(self, auth_client, bericht, engines, db):
+        resp = auth_client.post(
+            f"/admin/export/berichte/{bericht.id}/abfrage", data={"query": "SELECT 2 AS x\r\n", "name": "Anders"}
+        )
+        assert resp.headers["Location"].endswith(f"?id={bericht.id}")
+        db.session.refresh(bericht)
+        assert (bericht.name, bericht.sql) == ("Alt", "SELECT 2 AS x")
+        engines.assert_called_once()
+
+    def test_update_sql_rejects_broken_query_without_test(self, auth_client, bericht, engines, db):
+        auth_client.post(f"/admin/export/berichte/{bericht.id}/abfrage", data={"query": "SELECT FROM nirgends"})
+        db.session.refresh(bericht)
+        assert bericht.sql == "SELECT 1 AS x"
+
+    def test_rename_rejects_empty_name(self, auth_client, db):
+        b = Bericht(name="Alt", sql="SELECT 1")
+        db.session.add(b)
+        db.session.commit()
+        auth_client.post(f"/admin/export/berichte/{b.id}/umbenennen", data={"name": "  "})
+        db.session.refresh(b)
+        assert b.name == "Alt"
+
 
 def test_sync_report_role_skips_sqlite(app):
     result = app.test_cli_runner().invoke(args=["sync-report-role"])

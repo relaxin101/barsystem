@@ -71,15 +71,20 @@ def admin_export():
     error = None
 
     bericht_id = request.args.get("id", "").strip()
+    bericht_name = gespeichert_sql = ""
     if bericht_id:
-        query = Bericht.query.get_or_404(bericht_id).sql
+        bericht = Bericht.query.get_or_404(bericht_id)
+        query = gespeichert_sql = bericht.sql
+        bericht_name = bericht.name
 
     if request.method == "POST":
         query = request.form.get("query", "").strip()
 
+    # "Bericht testen" (nur mit ?id=) läuft wie ein gespeicherter Bericht: immer lesend
+    testen = bool(bericht_id) and request.method == "POST" and "testen" in request.form
     if query:
         try:
-            schreiben = request.method == "POST" and "schreiben" in request.form
+            schreiben = request.method == "POST" and "schreiben" in request.form and not testen
             columns, rows = _execute_query(query, schreiben)
             results = [dict(zip(columns, map(naive_local, row))) for row in rows]
             if schreiben and current_user.is_superuser:
@@ -94,6 +99,10 @@ def admin_export():
     return render_template(
         "admin/admin_export.html",
         id=bericht_id,
+        bericht_name=bericht_name,
+        gespeichert_sql=gespeichert_sql,
+        # Diese SQL lief eben fehlerfrei als Test: erst dann bietet die Seite "Abfrage ändern" an
+        getestet_sql=query if testen and error is None else "",
         query=query,
         results=results,
         error=error,
@@ -129,6 +138,40 @@ def delete_berichte(bericht_id):
         db.session.commit()
         flash(f"Bericht '{bericht.name}' wurde gelöscht.", "success")
     return redirect(url_for("admin.export.admin_export"))
+
+
+@export_bp.route("/berichte/<int:bericht_id>/umbenennen", methods=["POST"])
+@login_required
+def rename_bericht(bericht_id):
+    bericht = Bericht.query.get_or_404(bericht_id)
+    name = request.form.get("name", "").strip()
+    if not name:
+        flash("Es muss ein Name angegeben werden", "error")
+    else:
+        bericht.name = name
+        db.session.commit()
+        flash(f"Bericht umbenannt in '{name}'.", "success")
+    return redirect(url_for("admin.export.admin_export", id=bericht_id))
+
+
+@export_bp.route("/berichte/<int:bericht_id>/abfrage", methods=["POST"])
+@login_required
+def update_bericht_sql(bericht_id):
+    bericht = Bericht.query.get_or_404(bericht_id)
+    query = request.form.get("query", "").strip()
+    if not query:
+        flash("Es muss eine Query angegeben werden", "error")
+        return redirect(url_for("admin.export.admin_export", id=bericht_id))
+    # Der Test im Browser beweist nichts: hier selbst prüfen, lesend wie jeder gespeicherte Bericht
+    try:
+        _execute_query(query)
+    except Exception as e:
+        flash(f"Abfrage nicht gespeichert, sie läuft nicht fehlerfrei: {e}", "error")
+        return redirect(url_for("admin.export.admin_export", id=bericht_id))
+    bericht.sql = normalize_line_endings(query)
+    db.session.commit()
+    flash(f"Abfrage von '{bericht.name}' gespeichert.", "success")
+    return redirect(url_for("admin.export.admin_export", id=bericht_id))
 
 
 @export_bp.route("/download", methods=["POST"])
