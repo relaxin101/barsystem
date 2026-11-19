@@ -2,13 +2,15 @@
 Utils for sending requests to Brevo
 """
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import requests
 from sqlalchemy import func, case
 
-from config import BREVO_SECRET, BREVO_SENDER_MAIL, BREVO_SENDER_NAME, BREVO_TEMPLATE
+from config import BREVO_SECRET
 from models import db, Mitglied, Buchung, Artikel, Aussendung
+from utils.einstellungen import einstellung
+from utils.zeit import utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +23,7 @@ def _resolve_template(template_override=None):
     """Gibt die Template-ID zurueck - Ueberschreibung hat Vorrang."""
     if template_override is not None:
         return int(template_override)
-    return BREVO_TEMPLATE
+    return einstellung("BREVO_TEMPLATE")
 
 
 def _get_verbrauch(mitglied_id, since):
@@ -119,11 +121,12 @@ def single_mail(subject, recipient_mail, recipient_name, message, amount,
     template_id = _resolve_template(template)
     response = requests.post(
         url="https://api.brevo.com/v3/smtp/email",
+        timeout=10,
         headers={"api-key": BREVO_SECRET},
         json={
             "sender": {
-                "email": BREVO_SENDER_MAIL,
-                "name": BREVO_SENDER_NAME,
+                "email": einstellung("BREVO_SENDER_MAIL"),
+                "name": einstellung("BREVO_SENDER_NAME"),
             },
             "subject": subject,
             "templateId": template_id,
@@ -190,7 +193,7 @@ def _get_since(aussendung):
     """Berechnet den 'since'-Zeitpunkt fuer eine Aussendung."""
     if aussendung.alle_mitglieder or not aussendung.member_days:
         return None
-    return datetime.now() - timedelta(days=aussendung.member_days)
+    return utcnow() - timedelta(days=aussendung.member_days)
 
 
 def _get_recipients(aussendung):
@@ -199,7 +202,7 @@ def _get_recipients(aussendung):
         return Mitglied.query.filter_by(aktiv=True).all()
 
     if aussendung.member_days and aussendung.member_days > 0:
-        since = datetime.now() - timedelta(days=aussendung.member_days)
+        since = utcnow() - timedelta(days=aussendung.member_days)
         return (
             db.session.query(Mitglied)
             .join(Buchung, Buchung.mitglied_id == Mitglied.id)
@@ -221,7 +224,7 @@ def get_member_count(aussendung):
         return Mitglied.query.filter_by(aktiv=True).count()
 
     if aussendung.member_days and aussendung.member_days > 0:
-        since = datetime.now() - timedelta(days=aussendung.member_days)
+        since = utcnow() - timedelta(days=aussendung.member_days)
         return (
             db.session.query(Mitglied.id)
             .join(Buchung, Buchung.mitglied_id == Mitglied.id)
@@ -245,6 +248,10 @@ def aussendungen(aussendung):
     mitglieder = _get_recipients(aussendung)
     since = _get_since(aussendung)
 
+    # Vor dem Versand: nach einem Abbruch sollen nicht alle dieselbe Mail nochmal bekommen
+    aussendung.last_run = utcnow()
+    db.session.commit()
+
     sent, failed = bulk_mail(
         mitglieder,
         aussendung.subject,
@@ -252,8 +259,5 @@ def aussendungen(aussendung):
         since=since,
         template=aussendung.brevo_template,
     )
-
-    aussendung.last_run = datetime.now()
-    db.session.commit()
 
     return 0, f"Aussendung ausgefuehrt: {sent} gesendet, {failed} fehlgeschlagen."

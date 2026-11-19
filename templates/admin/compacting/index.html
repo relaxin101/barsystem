@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Compacting{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">🗜️ Compacting</h2>
+    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#compactingModal">
+      ＋ Neu starten
+    </button>
+  </div>
+
+  <div class="card">
+    <div class="card-header bg-primary text-white"><strong>Was passiert beim Compacting?</strong></div>
+    <div class="card-body">
+      <ol class="mb-3 ps-3" style="list-style:decimal;">
+        <li class="border-0 p-0 mb-2 bg-transparent">
+          Alle Abrechnungen, deren Buchungen <strong>vollständig</strong> im gewählten Zeitraum liegen,
+          werden zu <strong>einer</strong> neuen Abrechnung zusammengefasst. Abrechnungen, die über den
+          Zeitraum hinausragen, bleiben unverändert.
+        </li>
+        <li class="border-0 p-0 mb-2 bg-transparent">
+          Pro Mitglied bleibt eine Saldo-Zeile übrig (Summe aller gültigen Buchungen zum Zeitpunkt der
+          letzten Buchung). Stornierte Buchungen fallen weg. Das Guthaben ändert sich nicht.
+        </li>
+        <li class="border-0 p-0 mb-2 bg-transparent">
+          Auf Wunsch werden Artikel und Mitglieder gelöscht, die danach von keiner Buchung mehr referenziert
+          werden (Mitglieder nur mit Guthaben € 0,00).
+        </li>
+        <li class="border-0 p-0 bg-transparent">
+          Vorher wird ein Bericht (Excel) über den Zeitraum erstellt: Summen, Konsum pro Artikel und
+          eine Übersicht pro Mitglied.
+        </li>
+      </ol>
+      <p class="text-muted mb-0">
+        Compacting lässt sich nicht rückgängig machen. Lade vorher ein
+        <a href="{{ url_for('admin.export.db_backup') }}">DB-Backup</a> herunter.
+      </p>
+    </div>
+  </div>
+
+</div>
+
+<div class="modal fade" id="compactingModal" tabindex="-1" aria-labelledby="compactingModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="get" action="{{ url_for('admin.compacting.vorschau') }}" class="form-schlicht">
+        <div class="modal-header">
+          <h5 class="modal-title" id="compactingModalLabel">Zeitraum wählen</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="von" class="form-label w-100">Von</label>
+            <input type="datetime-local" class="form-control" id="von" name="von" step="60">
+          </div>
+          <div class="mb-3">
+            <label for="bis" class="form-label w-100">Bis</label>
+            <input type="datetime-local" class="form-control" id="bis" name="bis" step="60">
+          </div>
+          <p class="text-muted small mb-0">Ein leeres Feld lässt den Zeitraum auf dieser Seite offen.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+          <button type="submit" class="btn btn-primary">Weiter</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

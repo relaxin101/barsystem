@@ -190,7 +190,7 @@ class TestExportDfToExcel:
     def test_returns_excel_response(self, client, admin_user):
         """Hit a real export endpoint to verify Excel generation end-to-end."""
         client.post("/login", data={"username": "testadmin", "password": "testpassword"})
-        resp = client.get("/admin/export/mitglieder")
+        resp = client.get("/admin/buchungen/download")
         assert resp.status_code == 200
         assert "spreadsheetml" in resp.content_type
 
@@ -258,3 +258,19 @@ class TestLineEndings:
                 )
         sql = Bericht.query.one().sql
         assert "_x000D_" not in sql and "\r" not in sql
+
+
+def test_mitglied_sperren_reads_the_current_balance(db, mitglied):
+    """with_for_update alone would keep the value already loaded in the session."""
+    from sqlalchemy import text
+    from utils.admin import mitglied_sperren
+
+    assert mitglied.guthaben == 1000
+    db.session.execute(text("UPDATE mitglied SET guthaben = 42 WHERE id = :id"), {"id": mitglied.id})
+
+    assert mitglied_sperren(mitglied.id).guthaben == 42
+
+
+def test_aufbuchung_unknown_member_returns_404(auth_client):
+    resp = auth_client.post("/admin/guthaben/aufbuchung/99999", json={"betrag": 1, "beschreibung": "Test"})
+    assert resp.status_code == 404

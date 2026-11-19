@@ -245,6 +245,24 @@
       ✉️ Aussendungen
     </a>
 
+    <a href="{{ url_for('admin.einstellungen.index') }}">
+      ⚙️ Einstellungen
+    </a>
+
+    {% if current_user.is_superuser %}
+    <a href="{{ url_for('admin.benutzer.index') }}">
+      🔐 Benutzer
+    </a>
+
+    <a href="{{ url_for('admin.compacting.index') }}">
+      🗜️ Compacting
+    </a>
+    {% endif %}
+
+    <a href="{{ url_for('auth.passwort') }}">
+      🔑 Passwort ändern
+    </a>
+
     <a href="{{ url_for('auth.logout') }}">
       🚪 Logout ({{ current_user.username }})
     </a>
@@ -378,6 +396,8 @@
 <!-- ===================================== -->
 
 {% block scripts %}{% endblock %}
+
+<script src="{{ url_for('static', filename='js/tabelle.js') }}"></script>
 
 <script>
 

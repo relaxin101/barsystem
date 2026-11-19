@@ -6,6 +6,7 @@ Es umfasst u.a.:
 - Produkte & Mitglieder Bulk-Import: Excellisten mit entsprechenden Daten können zum Anlegen und Updaten von Produkten und Mitglieds-Konten benutzt werden. **Für Updates ist die Angabe der entsprechenden ID notwendig.**
 - Hotlist von Mitgliedern: Auf der Homepage werden die Mitglieds-Konten, die in letzter Zeit viel gebucht haben, absteigend sortiert
 - Suche: Eine Postgres-Volltextsuche hilft beim schnellen Finden durch Namen und optionale Spitznamen
+- Compacting (nur Superuser): Ganze Abrechnungen eines Zeitraums werden zu einer Saldo-Zeile pro Mitglied zusammengefasst, nicht mehr referenzierte Artikel und Mitglieder können dabei gelöscht werden. Vorher entsteht ein Excel-Bericht über den Zeitraum.
 
 
 ## Installation
@@ -14,7 +15,13 @@ Zur Installation benötigst du [Docker](https://docs.docker.com/engine/install/)
 Nachdem du das installiert hast, dupliziere das File `.env.example` und speichere es als `.env`. (Auf Windows ist etwas schwieriger weil du dabei Dateiart änderst und Windows das standardmäßig verhindert [Link](https://support.microsoft.com/en-us/windows/experience/storage-filemanagement/common-file-name-extensions-in-windows)) 
 Die Datei `.env` enthält nun die (Standard-)Konfiguration der Website. Ändere am besten zunächst den Wert `FLASK_SECRET_KEY` auf einen zufälligen string (du brauchst ihn nachher nicht, das soll nur ein Geheimschlüssel sein den die App für diverse Hintergrunddinge benutzt). 
 Mit `ADMIN_USERNAME`, `ADMIN_PASSWORD` konfigurierst du die Login-Daten für das Admin Panel, mit `MINDEST_GUTHABEN` setzt du das Limit, wie weit Personenkonten ins Minus gehen dürfen. Die restlichen Einstellungen kannst du nachlesen und ggf. entsprechend anpassen. 
-_Versuche alles jetzt schon korrekt aufzusetzen, da einige Einstellungen in die Datenbank geschrieben werden und evt. nicht mehr leicht verändert werden können, ohne alle Daten zu löschen._
+_Viele Werte lassen sich später im Adminpanel unter „Einstellungen" ändern, die Werte aus der `.env` sind dann nur noch der Ausgangspunkt. Datenbank-Werte, Zugangsdaten und `FLASK_SECRET_KEY` bleiben in der `.env`._
+
+Der Login aus der `.env` ist immer ein Superuser. Weitere Konten legst du in der App unter „Benutzer" an oder am Host:
+
+```bash
+docker compose exec app /app/.venv/bin/flask auth create-user --superuser --username <name>
+```
 
 Jetzt kannst du die Website starten! Wenn du ein Terminal in dem Ordner öffnest (Windows: im File Explorer in den Ordner navigieren, STRG+SHIFT+Rechtsklick in den ordner und "Terminal öffnen" klicken) und `docker compose up -d --build` (+ ENTER) eintippst, beginnt docker mit der Installation der nötigen Komponenten und startet die Website automatisch. (Je nach Internet und Rechenleistung des Computers dauert das beim ersten Mal 5-15 min) Nun kannst du in dem lokalen Netzwerk unter der IP-Adresse des Computers die Website abrufen. Auf dem Computer wo das Ganze läuft, funktioniert auch [localhost](http://localhost). 
 

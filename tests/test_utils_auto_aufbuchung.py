@@ -6,12 +6,17 @@ import email.mime.text
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
+import pytest
+
+from models import Mitglied
 from utils.auto_aufbuchung import (
     _decode_header,
     _get_body,
     _handle_message,
+    _name_passt,
     _strip_html,
 )
+from utils.einstellungen import speichern
 
 
 # ---------------------------------------------------------------------------
@@ -107,13 +112,74 @@ def _make_raw_email(subject: str, from_addr: str, body: str) -> bytes:
     return msg.as_bytes()
 
 
+@pytest.fixture()
+def bank_sender(app):
+    speichern({"AUTO_SENDER": "bank@example.com"}, "test")
+
+
+@pytest.mark.parametrize("konto,passt", [
+    ("Max Mustermann", True),
+    ("max mustermann", True),
+    ("Stonks", True),
+    ("Maxi", True),
+    ("Max", False),
+    ("", False),
+    ("%", False),
+])
+def test_name_passt(konto, passt):
+    m = Mitglied(name="Max Mustermann", nickname="Stonks, Maxi ,")
+    assert _name_passt(m, konto) is passt
+
+
+def test_name_passt_empty_never_matches_without_nickname():
+    assert _name_passt(Mitglied(name="Max", nickname=None), "") is False
+
+
 class TestHandleMessage:
+    @pytest.fixture(autouse=True)
+    def _sender(self, bank_sender):
+        pass
+
     def _make_mail_mock(self, subject="Überweisung", from_addr="bank@example.com",
                         body="Absender: Max Mustermann Betrag: 10,00"):
         raw = _make_raw_email(subject, from_addr, body)
         mail = MagicMock()
         mail.fetch.return_value = ("OK", [(None, raw)])
         return mail
+
+    def test_partial_name_is_not_booked(self, app, db):
+        """"Max" must not land on Maximilian just because he is the only substring hit."""
+        import re
+
+        with app.app_context():
+            m = Mitglied(name="Maximilian", aktiv=True, guthaben=0)
+            db.session.add(m)
+            db.session.commit()
+            mail = self._make_mail_mock(body="Absender: Max Betrag: 10,00")
+
+            with patch("utils.auto_aufbuchung.suche_mitglied", return_value=[m]):
+                _handle_message(mail, b"1", re.compile(r"Absender: (.+?) Betrag"), re.compile(r"Betrag: (\d+,\d+)"))
+
+            db.session.refresh(m)
+            assert m.guthaben == 0
+
+    def test_exact_match_beats_longer_names(self, app, db):
+        import re
+
+        with app.app_context():
+            max_ = Mitglied(name="Max", aktiv=True, guthaben=0)
+            lang = Mitglied(name="Maximilian", aktiv=True, guthaben=0)
+            db.session.add_all([max_, lang])
+            db.session.commit()
+            mail = self._make_mail_mock(body="Absender: Max Betrag: 10,00")
+
+            with patch("utils.auto_aufbuchung.suche_mitglied", return_value=[max_, lang]):
+                _handle_message(mail, b"1", re.compile(r"Absender: (.+?) Betrag"), re.compile(r"Betrag: (\d+,\d+)"))
+
+            db.session.refresh(max_)
+            db.session.refresh(lang)
+            assert (max_.guthaben, lang.guthaben) == (1000, 0)
+            mail.store.assert_called_once_with(b"1", "+FLAGS", "\\Seen")
 
     def test_no_regex_match_marks_seen_and_returns(self, app, db):
         """When regex doesn't match, the mail is NOT marked seen (no member found)."""
@@ -180,8 +246,8 @@ class TestHandleMessage:
         from models import Mitglied, Buchung
 
         with app.app_context():
-            m1 = Mitglied(name="Max Mueller", aktiv=True, guthaben=0)
-            m2 = Mitglied(name="Max Meier", aktiv=True, guthaben=0)
+            m1 = Mitglied(name="Max", aktiv=True, guthaben=0)
+            m2 = Mitglied(name="Max", aktiv=True, guthaben=0)
             db.session.add_all([m1, m2])
             db.session.commit()
 

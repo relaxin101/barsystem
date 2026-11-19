@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros/tabelle.html" import tabelle %}
 
 {% block content %}
 <div class="container-fluid mt-4">
@@ -100,19 +101,14 @@
   <!-- ===== TABELLE ===== -->
   <h4>Gespeicherte Aussendungen</h4>
   <div class="card">
-    <div class="table-responsive">
-      <table class="table table-striped table-hover align-middle mb-0" id="aussendungen-table">
-        <thead class="table-light">
-          <tr>
-            <th>Betreff</th>
-            <th>Frequenz</th>
-            <th>Empfänger</th>
-            <th style="min-width:120px;">Aktiv</th>
-            <th>Letzte Ausführung</th>
-            <th>Aktionen</th>
-          </tr>
-        </thead>
-        <tbody>
+    {% call tabelle(
+      "aussendungen-table",
+      ["Betreff", "Frequenz", "Empfänger",
+       {"titel": "Aktiv", "sort": False, "klasse": "tabelle-spalte-aktiv"},
+       "Letzte Ausführung",
+       {"titel": "Aktionen", "sort": False}],
+      leer="Keine Aussendungen vorhanden."
+    ) %}
           {% for a in aussendungen %}
           <tr data-id="{{ a.id }}">
             <td>{{ a.subject }}</td>
@@ -137,8 +133,8 @@
                        style="cursor:pointer; width:2.5em; height:1.3em;">
               </div>
             </td>
-            <td class="text-muted" style="font-size:.9em;">
-              {% if a.last_run %}{{ a.last_run.strftime('%d.%m.%Y %H:%M') }}{% else %}—{% endif %}
+            <td class="text-muted" style="font-size:.9em;" data-wert="{{ a.last_run.isoformat() if a.last_run else '' }}">
+              {% if a.last_run %}{{ a.last_run|local_time }}{% else %}—{% endif %}
             </td>
             <td>
               <div class="d-flex gap-1">
@@ -149,14 +145,7 @@
             </td>
           </tr>
           {% endfor %}
-          {% if not aussendungen %}
-          <tr>
-            <td colspan="6" class="text-center text-muted py-4">Keine Aussendungen vorhanden.</td>
-          </tr>
-          {% endif %}
-        </tbody>
-      </table>
-    </div>
+    {% endcall %}
   </div>
 </div>
 
@@ -356,6 +345,7 @@ document.addEventListener("DOMContentLoaded", function () {
   async function doFormSend(payload) {
     fSendBtn.disabled = true;
     fSendBtn.textContent = "⏳ Wird gesendet …";
+    var gestartet = false;
     try {
       var res  = await fetch("/admin/aussendungen/send", {
         method: "POST",
@@ -364,9 +354,12 @@ document.addEventListener("DOMContentLoaded", function () {
       });
       var data = await res.json();
       showToast(data.message, data.success ? "success" : "error");
+      gestartet = data.success && !payload.test_receiver;
     } finally {
-      fSendBtn.disabled = false;
-      fSendBtn.textContent = payload.test_receiver ? "🧪 Test-Email senden" : "📤 Jetzt senden";
+      // Nach dem Start gesperrt lassen: ein zweiter Klick würde alle nochmal anschreiben
+      fSendBtn.disabled = gestartet;
+      fSendBtn.textContent = gestartet ? "✅ Versand läuft"
+        : payload.test_receiver ? "🧪 Test-Email senden" : "📤 Jetzt senden";
     }
   }
 

@@ -6,6 +6,7 @@ from flask_migrate import Migrate
 from flask_login import LoginManager
 from logging.config import dictConfig
 from sqlalchemy import text
+from sqlalchemy.engine import make_url
 
 
 def create_app(config_name=None):
@@ -41,6 +42,13 @@ def create_app(config_name=None):
         for warning in validate_production_config(app.config):
             logging.getLogger(__name__).warning(warning)
 
+    # Session-Zeitzone: damit rechnet Postgres timestamptz-Spalten auch in
+    # gespeicherten Berichten (DATE, TO_CHAR, Datumsliterale) in Ortszeit.
+    if make_url(app.config["SQLALCHEMY_DATABASE_URI"]).get_backend_name() == "postgresql":
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+            "connect_args": {"options": f"-c timezone={app.config['APP_TIMEZONE']}"}
+        }
+
     from models import db, User
     Migrate(app, db)
     db.init_app(app)
@@ -67,6 +75,15 @@ def create_app(config_name=None):
     def float_format_filter(value):
         return "{:.2f}".format(value).replace(".", ",")
 
+    @app.template_filter("local_time")
+    def local_time_filter(value, fmt="%d.%m.%Y %H:%M"):
+        from utils.zeit import LOCAL_TZ
+
+        return value.astimezone(LOCAL_TZ).strftime(fmt) if value else ""
+
+    from utils.einstellungen import einstellung
+    app.jinja_env.globals["einstellung"] = einstellung
+
     @app.route("/healthz")
     def healthz():
         """Authoritative "can the system take bookings" signal.
@@ -85,20 +102,16 @@ def create_app(config_name=None):
             return jsonify(status="error"), 503
         return jsonify(status="ok", version=get_version()), 200
 
-    @app.cli.command("create-admin")
-    def create_admin_cmd():
-        """Create the initial admin user if it doesn't exist."""
-        admin_username = app.config["ADMIN_USERNAME"]
-        admin_password = app.config["ADMIN_PASSWORD"]
-        if not User.query.filter_by(username=admin_username).first():
-            print(f"Creating admin user: {admin_username}")
-            user = User(username=admin_username)
-            user.set_password(admin_password)
-            db.session.add(user)
-            db.session.commit()
-            print("Done.")
-        else:
-            print(f"Admin user '{admin_username}' already exists.")
+    @app.cli.command("sync-report-role")
+    def sync_report_role_cmd():
+        """Legt die Datenbank-Rolle für Berichte an bzw. bringt sie auf den Sollzustand."""
+        from utils.bericht_engine import REPORT_ROLE, sync_report_role
+
+        if db.engine.dialect.name != "postgresql":
+            print("Skipped: only needed on Postgres.")
+            return
+        sync_report_role(db.engine, app.config["SECRET_KEY"])
+        print(f"Report role '{REPORT_ROLE}' is up to date.")
 
     @app.cli.command("backup")
     def backup_cmd():

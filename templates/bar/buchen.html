@@ -67,7 +67,7 @@
       <ul class="list-group mb-3">
         {% for b in buchungen %}
         <li class="list-group-item d-flex justify-content-between">
-          <span> {{ b.zeitstempel.strftime('%d.%m.%Y %H:%M') }}</span>
+          <span> {{ b.zeitstempel|local_time }}</span>
           <span>{% if b.beschreibung is not none %} {{b.beschreibung}} {%else%} {{ b.menge }} × {{ b.artikel_obj.name }} {% endif %}</span>
           <span>€&nbsp;{{ (b.gesamtpreis/100)|float|float_format }}</span>
         </li>
@@ -219,9 +219,12 @@ function renderBestellung() {
 }
 
 // Buchung absenden (Flashes + Redirect)
-document.getElementById("buchen-btn").addEventListener("click", async () => {
+document.getElementById("buchen-btn").addEventListener("click", async (e) => {
 
   if (bestellung.length === 0) return;
+
+  // Die Seite wechselt danach ohnehin, ein Doppeltipp würde sonst doppelt buchen
+  e.currentTarget.disabled = true;
 
   try {
 

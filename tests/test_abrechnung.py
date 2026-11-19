@@ -1,7 +1,9 @@
 """Tests for blueprints/admin/abrechnung.py — create, update, refresh, delete."""
-from datetime import datetime, timedelta
+from datetime import timedelta
 
+from blueprints.admin.abrechnung import _konten
 from models import Abrechnung, Buchung, Mitglied, Artikel
+from utils.zeit import LOCAL_TZ, local_now, utcnow
 
 
 def _buchung(db, mitglied, artikel, ts=None):
@@ -12,7 +14,7 @@ def _buchung(db, mitglied, artikel, ts=None):
         preis_pro_einheit=200,
         gesamtpreis=-200,
         storno=False,
-        zeitstempel=ts or datetime.now(),
+        zeitstempel=ts or utcnow(),
     )
     db.session.add(b)
     db.session.commit()
@@ -39,11 +41,11 @@ class TestAbrechnungCreate:
         assert b2.abrechnungs_id == a.id
 
     def test_create_zeitraum_filters_buchungen(self, auth_client, db, mitglied, artikel):
-        old = _buchung(db, mitglied, artikel, ts=datetime.now() - timedelta(days=10))
-        recent = _buchung(db, mitglied, artikel, ts=datetime.now())
+        old = _buchung(db, mitglied, artikel, ts=utcnow() - timedelta(days=10))
+        recent = _buchung(db, mitglied, artikel, ts=utcnow())
 
-        start = (datetime.now() - timedelta(days=1)).isoformat()
-        end = (datetime.now() + timedelta(hours=1)).isoformat()
+        start = (local_now() - timedelta(days=1)).strftime("%Y-%m-%dT%H:%M")
+        end = (local_now() + timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M")
 
         resp = auth_client.post(
             "/admin/abrechnung/create",
@@ -85,14 +87,14 @@ class TestAbrechnungUpdate:
         a = Abrechnung(name="Test Abrechnung")
         db.session.add(a)
 
-        b_old = _buchung(db, mitglied, artikel, ts=datetime.now() - timedelta(days=5))
+        b_old = _buchung(db, mitglied, artikel, ts=utcnow() - timedelta(days=5))
         b_old.abrechnungs_id = a.id
 
-        b_new = _buchung(db, mitglied, artikel, ts=datetime.now())
+        b_new = _buchung(db, mitglied, artikel, ts=utcnow())
         db.session.commit()
 
-        start = (datetime.now() - timedelta(hours=1)).isoformat()
-        end = (datetime.now() + timedelta(hours=1)).isoformat()
+        start = (local_now() - timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M")
+        end = (local_now() + timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M")
 
         resp = auth_client.post(
             f"/admin/abrechnung/{a.id}/update",
@@ -107,9 +109,21 @@ class TestAbrechnungUpdate:
         assert b_new.abrechnungs_id == a.id
 
 
+class TestAbrechnungDetail:
+    def test_konten_excludes_stornierte(self, db, mitglied, artikel):
+        gueltig = _buchung(db, mitglied, artikel)
+        storniert = _buchung(db, mitglied, artikel)
+        storniert.storno = True
+        db.session.commit()
+
+        konten = _konten([gueltig, storniert])
+        assert konten[mitglied.id]["konsum"] == 200
+        assert konten[mitglied.id]["einzahlungen"] == 0
+
+
 class TestAbrechnungRefresh:
     def test_refresh_updates_zeitstempel(self, auth_client, db):
-        old_ts = datetime.now() - timedelta(hours=2)
+        old_ts = utcnow() - timedelta(hours=2)
         a = Abrechnung(name="Refresh Test", zeitstempel=old_ts)
         db.session.add(a)
         db.session.commit()
@@ -145,3 +159,23 @@ class TestAbrechnungDelete:
     def test_delete_nonexistent_returns_404(self, auth_client):
         resp = auth_client.post("/admin/abrechnung/99999/delete")
         assert resp.status_code == 404
+
+
+def test_update_keeps_the_newest_booking(auth_client, db, mitglied, artikel):
+    """The form shows whole seconds, the last booking sits a fraction after that."""
+    a = Abrechnung(name="Sekunden")
+    db.session.add(a)
+    db.session.commit()
+    ts = utcnow().replace(microsecond=900000)
+    b = _buchung(db, mitglied, artikel, ts=ts)
+
+    auth_client.post(
+        f"/admin/abrechnung/{a.id}/update",
+        json={
+            "start": (ts.astimezone(LOCAL_TZ) - timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%S"),
+            "ende": ts.astimezone(LOCAL_TZ).strftime("%Y-%m-%dT%H:%M:%S"),
+        },
+    )
+
+    db.session.refresh(b)
+    assert b.abrechnungs_id == a.id

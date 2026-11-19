@@ -1,12 +1,12 @@
 """Guthaben blueprint in admin panel"""
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, abort, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required
 import pandas as pd
 
 from models import db, Buchung, Mitglied
-from utils.admin import calc_blacklist, export_df_to_excel
-from datetime import datetime
+from utils.admin import calc_blacklist, export_df_to_excel, mitglied_sperren
+from utils.zeit import utcnow
 
 guthaben_bp = Blueprint("guthaben", __name__, url_prefix="/guthaben")
 
@@ -60,13 +60,14 @@ def guthaben_import():
         return redirect(url_for("admin.guthaben.guthaben_management"))
 
     count = 0
+    nicht_gebucht = []
     for _, row in df.iterrows():
         try:
             mitglied_id = int(row[mitglied_col])
             betrag = int(round(float(row[aufbuchung_col]) * 100, 0))
-            beschreibung = str(row[beschreibung_col]) if has_beschreibung and row[beschreibung_col] is not None else None
+            beschreibung = str(row[beschreibung_col]) if has_beschreibung and pd.notna(row[beschreibung_col]) else None
 
-            mitglied = Mitglied.query.get(mitglied_id)
+            mitglied = mitglied_sperren(mitglied_id)
             if mitglied:
                 mitglied.blacklist = calc_blacklist(mitglied, betrag)
                 mitglied.guthaben += betrag
@@ -77,17 +78,22 @@ def guthaben_import():
                     menge=1,
                     preis_pro_einheit=betrag,
                     gesamtpreis=betrag,
-                    zeitstempel=datetime.now(),
+                    zeitstempel=utcnow(),
                     beschreibung=beschreibung,
                     storno=False,
                 )
                 db.session.add(buchung)
                 count += 1
+            else:
+                nicht_gebucht.append(mitglied_id)
         except Exception as e:
             print("Fehler bei Zeile:", e)
+            nicht_gebucht.append(row[mitglied_col])
 
     db.session.commit()
     flash(f"{count} Guthabenänderungen durchgeführt.", "success")
+    if nicht_gebucht:
+        flash(f"Nicht gebucht, Mitglied-ID prüfen: {', '.join(map(str, nicht_gebucht))}", "error")
     return redirect(url_for("admin.guthaben.guthaben_management"))
 
 
@@ -103,7 +109,7 @@ def aufbuchung(mitglied_id):
     if betrag is None:
         return jsonify({"success": False, "message": "Betrag fehlt"}), 400
 
-    mitglied = Mitglied.query.get_or_404(mitglied_id)
+    mitglied = mitglied_sperren(mitglied_id) or abort(404)
 
     try:
         betrag_cent = int(round(float(betrag) * 100, 0))
@@ -118,7 +124,7 @@ def aufbuchung(mitglied_id):
             preis_pro_einheit=betrag_cent,
             gesamtpreis=betrag_cent,
             beschreibung=beschreibung,
-            zeitstempel=datetime.now(),
+            zeitstempel=utcnow(),
         )
         db.session.add(buchung)
         db.session.add(mitglied)

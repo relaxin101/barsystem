@@ -2,11 +2,11 @@ from collections import defaultdict
 
 from flask import Blueprint, flash, render_template, request, jsonify, url_for
 from flask_login import login_required
-from datetime import datetime
 
 from sqlalchemy import func, text, or_, and_
 
 from models import db, Abrechnung, Buchung
+from utils.zeit import parse_local, parse_local_ende, utcnow
 
 
 abrechnung_bp = Blueprint(
@@ -32,15 +32,15 @@ def index():
                COALESCE(summe_eingaenge.summe_eingaenge, 0) AS summe_eingaenge,
                COALESCE(summe_ausgaenge.summe_ausgaenge, 0) AS summe_ausgaenge
         FROM abrechnung a,
+             -- ohne GROUP BY liefert das Aggregat auch für Abrechnungen ohne Buchungen eine Zeile
              LATERAL (
-                 SELECT abrechnungs_id                                           AS id,
+                 SELECT a.id                                                     AS id,
                         count(b.id)                                              AS num_buchungen,
                         bool_or(COALESCE(b.storno_updated_at > a.zeitstempel, FALSE))   AS veraendert,
                         MIN(b.zeitstempel)                                       AS von_datum,
                         MAX(b.zeitstempel)                                       AS bis_datum
                  FROM buchung b
                  WHERE a.id = abrechnungs_id
-                 GROUP BY abrechnungs_id
              ) general
              NATURAL LEFT JOIN (
                  SELECT abrechnungs_id AS id, sum(gesamtpreis) AS summe_eingaenge
@@ -77,8 +77,8 @@ def create():
     query = Buchung.query.filter(Buchung.abrechnungs_id.is_(None))
 
     if modus == "zeitraum":
-        start_dt = datetime.fromisoformat(start)
-        end_dt = datetime.fromisoformat(end)
+        start_dt = parse_local(start)
+        end_dt = parse_local_ende(end)
         query = query.filter(
             Buchung.zeitstempel >= start_dt,
             Buchung.zeitstempel <= end_dt,
@@ -90,6 +90,21 @@ def create():
 
     db.session.commit()
     return jsonify({"success": True})
+
+
+def _konten(buchungen):
+    """Summiert Ein- und Auszahlungen je Mitglied, stornierte Buchungen zählen nicht."""
+    konten = defaultdict(lambda: {"mitglied": None, "einzahlungen": 0, "konsum": 0})
+    for b in buchungen:
+        if b.storno:
+            continue
+        konto = konten[b.mitglied_id]
+        konto["mitglied"] = b.mitglied_obj
+        if b.gesamtpreis > 0:
+            konto["einzahlungen"] += b.gesamtpreis
+        else:
+            konto["konsum"] += abs(b.gesamtpreis)
+    return konten
 
 
 @abrechnung_bp.route("/<int:abrechnung_id>")
@@ -114,31 +129,14 @@ def detail(abrechnung_id):
         .all()
     )
 
-    # FIX: Crash wenn Abrechnung keine Buchungen hat
-    von_datum = None
-    bis_datum = None
-    if buchungen:
-        with db.engine.connect() as connection:
-            sql = f"""
-                SELECT MIN(b.zeitstempel) AS von_datum,
-                       MAX(b.zeitstempel) AS bis_datum
-                FROM buchung b
-                WHERE b.abrechnungs_id = {abrechnung_id}
-                GROUP BY abrechnungs_id
-            """
-            results = list(connection.execute(text(sql)))
-            if results:
-                von_datum = results[0][0]
-                bis_datum = results[0][1]
+    # Bei einer Abrechnung ohne Buchungen sind beide None
+    von_datum, bis_datum = (
+        db.session.query(func.min(Buchung.zeitstempel), func.max(Buchung.zeitstempel))
+        .filter(Buchung.abrechnungs_id == abrechnung.id)
+        .one()
+    )
 
-    konten = defaultdict(lambda: {"mitglied": None, "einzahlungen": 0, "konsum": 0})
-    for b in buchungen:
-        konto = konten[b.mitglied_id]
-        konto["mitglied"] = b.mitglied_obj
-        if b.gesamtpreis > 0:
-            konto["einzahlungen"] += b.gesamtpreis
-        else:
-            konto["konsum"] += abs(b.gesamtpreis)
+    konten = _konten(buchungen)
 
     return render_template(
         "admin/abrechnung/detail.html",
@@ -156,8 +154,8 @@ def detail(abrechnung_id):
 def update(abrechnung_id):
     abrechnung = Abrechnung.query.get_or_404(abrechnung_id)
     data = request.get_json()
-    start = datetime.fromisoformat(data["start"])
-    ende = datetime.fromisoformat(data["ende"])
+    start = parse_local(data["start"])
+    ende = parse_local_ende(data["ende"])
 
     Buchung.query.filter_by(abrechnungs_id=abrechnung.id).update({"abrechnungs_id": None})
 
@@ -173,7 +171,7 @@ def update(abrechnung_id):
     for b in buchungen:
         b.abrechnungs_id = abrechnung.id
 
-    abrechnung.zeitstempel = datetime.now()
+    abrechnung.zeitstempel = utcnow()
     db.session.commit()
     return jsonify(success=True)
 
@@ -182,7 +180,7 @@ def update(abrechnung_id):
 @login_required
 def refresh(abrechnung_id):
     abrechnung = Abrechnung.query.get_or_404(abrechnung_id)
-    abrechnung.zeitstempel = datetime.now()
+    abrechnung.zeitstempel = utcnow()
     db.session.commit()
     return jsonify(success=True)
 
