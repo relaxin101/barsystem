@@ -67,7 +67,7 @@ DEFINITIONEN = {d.key: d for d in (
 
     Definition(
         "AUTO_SENDER", "Absender der Bank", GRUPPE_AUTO, superuser=True,
-        hilfe="Pflichtfeld, z. B. noreply@sparkasse.at. Gebucht wird nur, wenn der Mailserver diese Domain bestätigt.",
+        hilfe="Pflichtfeld, z. B. noreply@sparkasse.at. Geprüft wird nur der Absender-Header, nicht ob die Mail echt ist.",
     ),
     Definition("AUTO_BETREFF", "Filter: Betreff", GRUPPE_AUTO, superuser=True, hilfe="Leer heißt: kein Filter."),
     Definition("AUTO_KONTO_REGEX", "Regex für das Konto", GRUPPE_AUTO, typ="regex", superuser=True, hilfe="Leer deaktiviert die Auto-Aufbuchung."),
