@@ -41,8 +41,6 @@ GRUPPE_AUSSENDUNGEN = "Aussendungen"
 GRUPPE_AUTO = "Auto-Aufbuchung"
 
 DEFINITIONEN = {d.key: d for d in (
-    Definition("SITE_NAME", "Name der Barliste", GRUPPE_ALLGEMEIN, standard="Ergo Bibamus!"),
-    Definition("SITE_NAME_ADMIN", "Name im Adminpanel", GRUPPE_ALLGEMEIN, standard="Creotorium"),
     Definition("SCHWAERZUNGS_TEXT", "Schwärzungstext", GRUPPE_ALLGEMEIN, standard="Du bist geschwärzt!"),
     Definition(
         "MINDEST_GUTHABEN", "Standard-Schwärzungslimit (€)", GRUPPE_ALLGEMEIN, typ="euro",

@@ -197,7 +197,7 @@
       >
 
       <h4 class="mb-0">
-        {{ einstellung("SITE_NAME") }}
+        Ergo Bibamus!
       </h4>
 
     </div>
@@ -318,7 +318,7 @@
   {% endif %}
 
   <h2>
-    {{ einstellung("SITE_NAME_ADMIN") if current_user.is_authenticated else einstellung("SITE_NAME") }}
+    {% if current_user.is_authenticated %}Creotorium{% else %}Ergo Bibamus!{% endif %}
   </h2>
 
 </a>

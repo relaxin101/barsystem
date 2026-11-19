@@ -82,7 +82,7 @@ class TestLookup:
         statements = []
         event.listen(db.engine, "before_cursor_execute", lambda *a: statements.append(a[2]))
         einstellung("HOTLIST_DAYS")
-        einstellung("SITE_NAME")
+        einstellung("SCHWAERZUNGS_TEXT")
         rohwert("AUTO_SENDER")
         assert len(statements) == 1
 
@@ -234,11 +234,6 @@ class TestWirkung:
         db.session.commit()
         assert "Erst zahlen!" in client.get(f"/bar/buchen?mitglied_id={mitglied.id}").get_data(as_text=True)
 
-    def test_site_names(self, client, auth_client):
-        speichern({"SITE_NAME": "Zur Linde", "SITE_NAME_ADMIN": "Linde Intern"}, "tester")
-        assert "Zur Linde" in client.get("/login").get_data(as_text=True)
-        assert "Linde Intern" in auth_client.get("/admin/buchungen/").get_data(as_text=True)
-
     def test_brevo_sender(self, app):
         from unittest.mock import patch
 
@@ -269,7 +264,7 @@ def test_env_example_is_complete():
     example = (Path(__file__).parent.parent / ".env.example").read_text("utf-8")
     documented = set(re.findall(r"^([A-Z_]+)=", example, re.MULTILINE))
     missing = (ENV_ONLY.keys() | DEFINITIONEN.keys()) - documented
-    assert missing == {"SITE_NAME", "SITE_NAME_ADMIN"}  # neu, nur im Adminpanel
+    assert not missing
 
 
 class TestObergrenzen:
