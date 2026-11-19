@@ -65,6 +65,9 @@
         Zugangsdaten werden hier nie angezeigt.
       </p>
       <table class="table table-sm mb-0" style="max-width:600px;">
+        <thead>
+          <tr><th>Variable</th><th>Wert</th></tr>
+        </thead>
         <tbody>
           <tr><th>Version</th><td>{{ version }}</td></tr>
           {% for name, wert in env_status %}
