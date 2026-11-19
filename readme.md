@@ -6,6 +6,7 @@ Es umfasst u.a.:
 - Produkte & Mitglieder Bulk-Import: Excellisten mit entsprechenden Daten können zum Anlegen und Updaten von Produkten und Mitglieds-Konten benutzt werden. **Für Updates ist die Angabe der entsprechenden ID notwendig.**
 - Hotlist von Mitgliedern: Auf der Homepage werden die Mitglieds-Konten, die in letzter Zeit viel gebucht haben, absteigend sortiert
 - Suche: Eine Postgres-Volltextsuche hilft beim schnellen Finden durch Namen und optionale Spitznamen
+- Compacting (nur Superuser): Ganze Abrechnungen eines Zeitraums werden zu einer Saldo-Zeile pro Mitglied zusammengefasst, nicht mehr referenzierte Artikel und Mitglieder können dabei gelöscht werden. Vorher entsteht ein Excel-Bericht über den Zeitraum.
 
 
 ## Installation
