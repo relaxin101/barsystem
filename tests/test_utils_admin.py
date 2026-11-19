@@ -190,7 +190,7 @@ class TestExportDfToExcel:
     def test_returns_excel_response(self, client, admin_user):
         """Hit a real export endpoint to verify Excel generation end-to-end."""
         client.post("/login", data={"username": "testadmin", "password": "testpassword"})
-        resp = client.get("/admin/export/mitglieder")
+        resp = client.get("/admin/buchungen/download")
         assert resp.status_code == 200
         assert "spreadsheetml" in resp.content_type
 

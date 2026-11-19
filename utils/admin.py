@@ -66,13 +66,6 @@ def parse_daterange():
 # --------------------------------
 # 🧠 Hilfsfunktion für den Export
 # --------------------------------
-def export_model_to_excel(model, columns, filename):
-    data = model.query.all()
-    rows = [{col: getattr(d, col) for col in columns} for d in data]
-    df = pd.DataFrame(rows)
-    return export_df_to_excel(df, filename)
-
-
 def export_df_to_excel(df, filename):
     output = io.BytesIO()
     # Excel kennt keine Zeitzonen, Zeitstempel daher als Ortszeit ausgeben
