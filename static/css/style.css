@@ -356,6 +356,10 @@ thead.table-light th {
     width: 1%;
 }
 
+.tabelle-spalte-aktiv {
+    min-width: 120px;
+}
+
 tr[data-href],
 tr.klickbar {
     cursor: pointer;

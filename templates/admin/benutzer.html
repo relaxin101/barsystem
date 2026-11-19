@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros/tabelle.html" import tabelle %}
 
 {% block title %}Benutzer{% endblock %}
 
@@ -8,16 +9,7 @@
 
   <div class="card mb-4">
     <div class="card-header bg-primary text-white"><strong>Konten</strong></div>
-    <div class="table-responsive">
-      <table class="table table-striped align-middle mb-0">
-        <thead>
-          <tr>
-            <th>Benutzername</th>
-            <th>Rolle</th>
-            <th>Neues Passwort</th>
-          </tr>
-        </thead>
-        <tbody>
+    {% call tabelle("benutzer-tabelle", ["Benutzername", "Rolle", "Neues Passwort"], sortierbar=False, klasse="") %}
           {% for b in benutzer %}
           <tr>
             <td>{{ b.username }}{% if b.id == current_user.id %} <span class="text-muted">(du)</span>{% endif %}</td>
@@ -47,9 +39,7 @@
             </td>
           </tr>
           {% endfor %}
-        </tbody>
-      </table>
-    </div>
+    {% endcall %}
   </div>
 
   <div class="card mb-4">
