@@ -109,24 +109,9 @@ def hotlist(limit: int = None):
 def bar_interface():
     """
     Hauptinterface für die Bar.
-    Zeigt eine Mitglieder-Suchleiste und nach der Auswahl die Artikel an.
+    Die Mitglieder-Kacheln lädt die Seite selbst über /api/members.
     """
-    # Mitglieder abrufen
-    mitglieder = hotlist()
-
-    return render_template(
-        "bar/bar_interface.html",
-        mitglieder=[
-            {
-                "id": mitglied.id,
-                "name": mitglied.name,
-                "nickname": mitglied.nickname,
-                "guthaben": mitglied.guthaben,
-                "blacklist": mitglied.blacklist,
-            }
-            for mitglied in mitglieder
-        ],
-    )
+    return render_template("bar/bar_interface.html")
 
 
 @bar_bp.route("/api/members", methods=["GET"])
