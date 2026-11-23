@@ -1,11 +1,11 @@
-"""Tests for the `flask auth change-admin-password` CLI command."""
+"""Tests for the `flask auth change-password` CLI command."""
 from models import User
 
 
 class TestChangeAdminPassword:
     def _run(self, app, args, input=None):
         runner = app.test_cli_runner()
-        return runner.invoke(args=["auth", "change-admin-password", *args], input=input)
+        return runner.invoke(args=["auth", "change-password", *args], input=input)
 
     def test_changes_password_of_default_admin(self, app, admin_user):
         # testadmin is the configured ADMIN_USERNAME (see TestingConfig)

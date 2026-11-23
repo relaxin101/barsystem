@@ -2,20 +2,26 @@
 
 import io
 import zipfile
-from datetime import datetime
+from datetime import timezone
 
 import numpy as np
 import pandas as pd
 from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file
-from flask_login import login_required
+from flask_login import current_user, login_required
 from sqlalchemy import text
+from sqlalchemy.exc import OperationalError
 
-from models import db, Bericht, Mitglied, Artikel, User, Buchung, Abrechnung, Aussendung
+from models import (
+    db, Bericht, Einstellung, Mitglied, Artikel, User, Buchung, Abrechnung, Aussendung, UTCDateTime,
+)
 from utils.admin import export_df_to_excel, normalize_line_endings, unescape_excel_cr
+from utils.bericht_engine import report_engine
+from utils.zeit import local_now, naive_local, naive_utc
 
 # Reihenfolge beachtet FK-Abhängigkeiten: Buchung zuletzt (referenziert Mitglied, Artikel, Abrechnung)
 _BACKUP_TABLES = [
     ("users", User),
+    ("einstellungen", Einstellung),
     ("berichte", Bericht),
     ("aussendungen", Aussendung),
     ("abrechnungen", Abrechnung),
@@ -23,8 +29,38 @@ _BACKUP_TABLES = [
     ("artikel", Artikel),
     ("buchungen", Buchung),
 ]
+# Nur für Superuser, in beide Richtungen: users enthält Passwort-Hashes und ein
+# präpariertes ZIP könnte sonst Konten oder Superuser-Einstellungen anlegen.
+_SUPERADMIN_TABLES = {"users", "einstellungen"}
 
 export_bp = Blueprint("export", __name__, url_prefix="/export")
+
+
+def _backup_tables():
+    if current_user.is_superuser:
+        return _BACKUP_TABLES
+    return [t for t in _BACKUP_TABLES if t[0] not in _SUPERADMIN_TABLES]
+
+
+def _execute_query(query, schreiben=False):
+    """Führt Bericht-SQL aus und gibt (Spalten, Zeilen) zurück.
+
+    Immer lesend, auch für Superuser: ein Bericht kann von jemand anderem
+    gespeichert worden sein. Schreibzugriff gibt es nur pro Ausführung.
+    """
+    engine = db.engine if schreiben and current_user.is_superuser else report_engine()
+    try:
+        conn = engine.connect()
+    except OperationalError as e:
+        raise RuntimeError(
+            "Berichte-Zugang ist nicht eingerichtet (flask sync-report-role)."
+        ) from e
+    with conn:
+        conn = conn.execution_options(isolation_level="AUTOCOMMIT")
+        result_proxy = conn.execute(text(query))
+        if not result_proxy.returns_rows:  # UPDATE etc. mit Schreibzugriff
+            return [], []
+        return list(result_proxy.keys()), result_proxy.fetchall()
 
 
 @export_bp.route("/", methods=["GET", "POST"])
@@ -35,20 +71,24 @@ def admin_export():
     error = None
 
     bericht_id = request.args.get("id", "").strip()
+    bericht_name = gespeichert_sql = ""
     if bericht_id:
-        query = Bericht.query.get_or_404(bericht_id).sql
+        bericht = Bericht.query.get_or_404(bericht_id)
+        query = gespeichert_sql = bericht.sql
+        bericht_name = bericht.name
 
     if request.method == "POST":
         query = request.form.get("query", "").strip()
 
+    # "Bericht testen" (nur mit ?id=) läuft wie ein gespeicherter Bericht: immer lesend
+    testen = bool(bericht_id) and request.method == "POST" and "testen" in request.form
     if query:
         try:
-            readonly_engine = db.get_engine()
-            with readonly_engine.connect() as conn:
-                conn = conn.execution_options(isolation_level="AUTOCOMMIT")
-                result_proxy = conn.execute(text(query))
-                columns = result_proxy.keys()
-                results = [dict(zip(columns, row)) for row in result_proxy.fetchall()]
+            schreiben = request.method == "POST" and "schreiben" in request.form and not testen
+            columns, rows = _execute_query(query, schreiben)
+            results = [dict(zip(columns, map(naive_local, row))) for row in rows]
+            if schreiben and current_user.is_superuser:
+                flash("Abfrage mit Schreibzugriff ausgeführt.", "success")
         except Exception as e:
             error = str(e.args)
 
@@ -59,6 +99,10 @@ def admin_export():
     return render_template(
         "admin/admin_export.html",
         id=bericht_id,
+        bericht_name=bericht_name,
+        gespeichert_sql=gespeichert_sql,
+        # Diese SQL lief eben fehlerfrei als Test: erst dann bietet die Seite "Abfrage ändern" an
+        getestet_sql=query if testen and error is None else "",
         query=query,
         results=results,
         error=error,
@@ -96,22 +140,63 @@ def delete_berichte(bericht_id):
     return redirect(url_for("admin.export.admin_export"))
 
 
+@export_bp.route("/berichte/<int:bericht_id>/umbenennen", methods=["POST"])
+@login_required
+def rename_bericht(bericht_id):
+    bericht = Bericht.query.get_or_404(bericht_id)
+    name = request.form.get("name", "").strip()
+    if not name:
+        flash("Es muss ein Name angegeben werden", "error")
+    else:
+        bericht.name = name
+        db.session.commit()
+        flash(f"Bericht umbenannt in '{name}'.", "success")
+    return redirect(url_for("admin.export.admin_export", id=bericht_id))
+
+
+@export_bp.route("/berichte/<int:bericht_id>/abfrage", methods=["POST"])
+@login_required
+def update_bericht_sql(bericht_id):
+    bericht = Bericht.query.get_or_404(bericht_id)
+    query = request.form.get("query", "").strip()
+    if not query:
+        flash("Es muss eine Query angegeben werden", "error")
+        return redirect(url_for("admin.export.admin_export", id=bericht_id))
+    # Der Test im Browser beweist nichts: hier selbst prüfen, lesend wie jeder gespeicherte Bericht
+    try:
+        _execute_query(query)
+    except Exception as e:
+        flash(f"Abfrage nicht gespeichert, sie läuft nicht fehlerfrei: {e}", "error")
+        return redirect(url_for("admin.export.admin_export", id=bericht_id))
+    bericht.sql = normalize_line_endings(query)
+    db.session.commit()
+    flash(f"Abfrage von '{bericht.name}' gespeichert.", "success")
+    return redirect(url_for("admin.export.admin_export", id=bericht_id))
+
+
 @export_bp.route("/download", methods=["POST"])
 @login_required
 def download():
     query = request.form.get("query", "").strip()
-    readonly_engine = db.get_engine()
-    with readonly_engine.connect() as conn:
-        conn = conn.execution_options(isolation_level="AUTOCOMMIT", readonly=True)
-        result_proxy = conn.execute(text(query))
-        df = pd.DataFrame(result_proxy.fetchall(), columns=result_proxy.keys())
-    return export_df_to_excel(df, "export.xlsx")
+    try:
+        columns, rows = _execute_query(query)
+    except RuntimeError as e:
+        flash(str(e), "error")
+        return redirect(url_for("admin.export.admin_export"))
+    return export_df_to_excel(pd.DataFrame(rows, columns=columns), "export.xlsx")
 
 
 def _get_db_revision():
     with db.engine.connect() as conn:
         row = conn.execute(text("SELECT version_num FROM alembic_version")).fetchone()
         return row[0] if row else "unknown"
+
+
+def _restore_value(model, col, value):
+    """Backups speichern Zeitstempel als naives UTC (verlustfrei auch in der Umstellungsstunde)."""
+    if isinstance(model.__table__.columns[col].type, UTCDateTime):
+        return None if pd.isna(value) else value.replace(tzinfo=timezone.utc)
+    return unescape_excel_cr(value)
 
 
 @export_bp.route("/db-backup")
@@ -121,11 +206,11 @@ def db_backup():
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
         zf.writestr("ebs_version.txt", _get_db_revision())
 
-        for name, model in _BACKUP_TABLES:
+        for name, model in _backup_tables():
             columns = [c.key for c in model.__table__.columns]
             rows = model.query.all()
             df = pd.DataFrame(
-                [{col: getattr(r, col) for col in columns} for r in rows],
+                [{col: naive_utc(getattr(r, col)) for col in columns} for r in rows],
                 columns=columns,
             )
             excel_buf = io.BytesIO()
@@ -134,7 +219,7 @@ def db_backup():
             zf.writestr(f"{name}.xlsx", excel_buf.getvalue())
 
     zip_buffer.seek(0)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = local_now().strftime("%Y%m%d_%H%M%S")
     return send_file(
         zip_buffer,
         as_attachment=True,
@@ -170,25 +255,28 @@ def db_restore():
             names_in_zip = {n[:-5] for n in zf.namelist() if n.endswith(".xlsx")}
             ordered = [
                 (name, model)
-                for name, model in _BACKUP_TABLES
+                for name, model in _backup_tables()
                 if name in names_in_zip
             ]
 
             for name, model in ordered:
-                df = pd.read_excel(io.BytesIO(zf.read(f"{name}.xlsx")))
+                # read_excel rät Typen auch bei Textzellen: aus "21" würde sonst 21.0
+                dtype = {"value": str} if model is Einstellung else None
+                df = pd.read_excel(io.BytesIO(zf.read(f"{name}.xlsx")), dtype=dtype)
                 df = df.replace({np.nan: None})
                 columns = [c.key for c in model.__table__.columns]
+                pk_column = model.__mapper__.primary_key[0].key
                 inserted = skipped = 0
 
                 for _, row in df.iterrows():
                     row_data = {
-                        col: unescape_excel_cr(row.get(col))
+                        col: _restore_value(model, col, row.get(col))
                         for col in columns
                         if col in df.columns
                     }
                     if model is Bericht and row_data.get("sql"):
                         row_data["sql"] = normalize_line_endings(row_data["sql"])
-                    pk = row_data.get("id")
+                    pk = row_data.get(pk_column)
                     if pk is not None and db.session.get(model, pk) is not None:
                         skipped += 1
                         continue
@@ -196,11 +284,13 @@ def db_restore():
                     inserted += 1
 
                 # Sequenz nach Import zurücksetzen (nötig wenn IDs explizit gesetzt wurden)
-                table = model.__tablename__
-                db.session.execute(text(
-                    f"SELECT setval(pg_get_serial_sequence('{table}', 'id'), "
-                    f"COALESCE((SELECT MAX(id)+1 FROM \"{table}\"), 1))"
-                ))
+                if pk_column == "id":
+                    db.session.flush()  # sonst fehlt die letzte Zeile in MAX(id)
+                    table = model.__tablename__
+                    db.session.execute(text(
+                        f"SELECT setval(pg_get_serial_sequence('{table}', 'id'), "
+                        f"COALESCE((SELECT MAX(id)+1 FROM \"{table}\"), 1))"
+                    ))
                 db.session.commit()
                 summary.append(f"{name}: {inserted} eingefügt, {skipped} übersprungen")
 

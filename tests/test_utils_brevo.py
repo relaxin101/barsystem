@@ -1,10 +1,11 @@
 """Tests for utils/brevo.py — external HTTP calls are mocked."""
-from datetime import datetime, timedelta
+from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from models import Aussendung, Buchung, Mitglied, Artikel
+from utils.zeit import utcnow
 from utils.brevo import (
     _eur,
     _get_recipients,
@@ -34,9 +35,8 @@ def test_resolve_template_uses_override():
     assert _resolve_template(99) == 99
 
 
-def test_resolve_template_falls_back_to_global():
-    import config
-    assert _resolve_template(None) == config.BREVO_TEMPLATE
+def test_resolve_template_falls_back_to_global(app):
+    assert _resolve_template(None) == 0
 
 
 def test_get_since_returns_none_for_alle_mitglieder():
@@ -65,7 +65,7 @@ def test_get_since_computes_timedelta(app):
     )
     since = _get_since(a)
     assert since is not None
-    assert abs((datetime.now() - since).days - 7) <= 1
+    assert abs((utcnow() - since).days - 7) <= 1
 
 
 # ---------------------------------------------------------------------------
@@ -121,7 +121,7 @@ def test_get_member_count_alle(db):
 
 
 def test_get_verbrauch_empty(db, mitglied):
-    result = _get_verbrauch(mitglied.id, datetime.now() - timedelta(days=30))
+    result = _get_verbrauch(mitglied.id, utcnow() - timedelta(days=30))
     assert result == ""
 
 
@@ -133,18 +133,18 @@ def test_get_verbrauch_with_buchung(db, mitglied, artikel):
         preis_pro_einheit=artikel.preis,
         gesamtpreis=-(artikel.preis * 2),
         storno=False,
-        zeitstempel=datetime.now(),
+        zeitstempel=utcnow(),
     )
     db.session.add(b)
     db.session.commit()
 
-    result = _get_verbrauch(mitglied.id, datetime.now() - timedelta(hours=1))
+    result = _get_verbrauch(mitglied.id, utcnow() - timedelta(hours=1))
     assert artikel.name in result
     assert "<table" in result
 
 
 def test_get_summen_no_buchungen(db, mitglied):
-    gutschrift, abbuchung = _get_summen(mitglied.id, datetime.now() - timedelta(days=1))
+    gutschrift, abbuchung = _get_summen(mitglied.id, utcnow() - timedelta(days=1))
     assert gutschrift == "€ 0,00"
     assert abbuchung == "€ 0,00"
 
@@ -153,18 +153,18 @@ def test_get_summen_with_buchungen(db, mitglied, artikel):
     b1 = Buchung(
         mitglied_id=mitglied.id, artikel_id=None,
         menge=1, preis_pro_einheit=500, gesamtpreis=500,
-        storno=False, zeitstempel=datetime.now(),
+        storno=False, zeitstempel=utcnow(),
         beschreibung="Aufladung",
     )
     b2 = Buchung(
         mitglied_id=mitglied.id, artikel_id=artikel.id,
         menge=1, preis_pro_einheit=200, gesamtpreis=-200,
-        storno=False, zeitstempel=datetime.now(),
+        storno=False, zeitstempel=utcnow(),
     )
     db.session.add_all([b1, b2])
     db.session.commit()
 
-    gutschrift, abbuchung = _get_summen(mitglied.id, datetime.now() - timedelta(hours=1))
+    gutschrift, abbuchung = _get_summen(mitglied.id, utcnow() - timedelta(hours=1))
     assert gutschrift == "€ 5,00"
     assert abbuchung == "€ 2,00"
 
@@ -173,7 +173,7 @@ def test_get_summen_with_buchungen(db, mitglied, artikel):
 # single_mail — mock HTTP
 # ---------------------------------------------------------------------------
 
-def test_single_mail_calls_brevo_api():
+def test_single_mail_calls_brevo_api(app):
     mock_response = MagicMock()
     mock_response.ok = True
 
@@ -192,7 +192,7 @@ def test_single_mail_calls_brevo_api():
     assert result.ok is True
 
 
-def test_single_mail_logs_on_failure():
+def test_single_mail_logs_on_failure(app):
     mock_response = MagicMock()
     mock_response.ok = False
     mock_response.status_code = 401

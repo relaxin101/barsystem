@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% from "macros/tabelle.html" import tabelle %}
+
+{% block title %}Benutzer{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+  <h2 class="mb-4">🔐 Benutzer</h2>
+
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white"><strong>Konten</strong></div>
+    {% call tabelle("benutzer-tabelle", ["Benutzername", "Rolle", "Neues Passwort"], sortierbar=False, klasse="") %}
+          {% for b in benutzer %}
+          <tr>
+            <td>{{ b.username }}{% if b.id == current_user.id %} <span class="text-muted">(du)</span>{% endif %}</td>
+            <td>
+              <form method="post" action="{{ url_for('admin.benutzer.rolle', user_id=b.id) }}" class="form-schlicht">
+                <span class="badge {{ 'bg-warning text-dark' if b.is_superuser else 'bg-secondary' }}">
+                  {{ 'Superuser' if b.is_superuser else 'User' }}
+                </span>
+                <button type="submit" class="btn btn-sm btn-outline-secondary ms-2">
+                  {{ 'Zu User ändern' if b.is_superuser else 'Zu Superuser ändern' }}
+                </button>
+              </form>
+            </td>
+            <td class="text-nowrap" style="width:1%;">
+              {# Flex ohne align-items: Buttons werden so hoch wie das Passwortfeld #}
+              <div class="d-flex gap-2">
+                <form method="post" action="{{ url_for('admin.benutzer.passwort', user_id=b.id) }}" class="form-schlicht d-flex gap-2">
+                  <input type="password" name="passwort" class="form-control form-control-sm mb-0" style="width:200px;"
+                         minlength="{{ min_laenge }}" autocomplete="new-password" aria-label="Neues Passwort für {{ b.username }}" required>
+                  <button type="submit" class="btn btn-sm btn-primary">Setzen</button>
+                </form>
+                <form method="post" action="{{ url_for('admin.benutzer.loeschen', user_id=b.id) }}" class="form-schlicht d-flex"
+                      data-confirm="Benutzer '{{ b.username }}' wirklich löschen?">
+                  <button type="submit" class="btn btn-sm btn-danger">Benutzer Löschen</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+    {% endcall %}
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header bg-success text-white"><strong>Neuer Benutzer</strong></div>
+    <div class="card-body">
+      <form method="post" action="{{ url_for('admin.benutzer.anlegen') }}" class="form-schlicht" id="neuer-benutzer">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label for="username" class="form-label d-block w-100">Benutzername</label>
+            <input type="text" class="form-control mb-0 w-100" id="username" name="username" autocomplete="off" required>
+          </div>
+          <div class="col-md-6">
+            <label for="passwort" class="form-label d-block w-100">Passwort</label>
+            <div class="position-relative">
+              <input type="password" class="form-control mb-0 w-100 pe-5" id="passwort" name="passwort"
+                     minlength="{{ min_laenge }}" autocomplete="new-password" aria-describedby="passwort-hinweis" required>
+              <button type="button" class="btn btn-link position-absolute top-50 end-0 translate-middle-y text-decoration-none passwort-toggle"
+                      aria-label="Passwort anzeigen" aria-controls="passwort">👁</button>
+            </div>
+            <div class="form-text" id="passwort-hinweis" data-min="{{ min_laenge }}">Mindestens {{ min_laenge }} Zeichen</div>
+          </div>
+          <div class="col-12 d-flex align-items-center gap-3">
+            <div class="form-check mb-0">
+              <input class="form-check-input" type="checkbox" id="superuser" name="superuser">
+              <label class="form-check-label" for="superuser">Superuser</label>
+            </div>
+            <button type="submit" class="btn btn-success">Anlegen</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Augen-Button im Passwortfeld: ohne Hintergrund und ohne die globalen Hover-Effekte für .btn */
+  .passwort-toggle, .passwort-toggle:hover, .passwort-toggle:focus {
+    background: transparent !important;
+    box-shadow: none !important;
+    transform: translateY(-50%) !important;
+    padding: 0 .75rem;
+  }
+</style>
+
+<script>
+  document.querySelectorAll("form[data-confirm]").forEach(form => {
+    form.addEventListener("submit", e => {
+      if (!confirm(form.dataset.confirm)) e.preventDefault();
+    });
+  });
+
+  (function () {
+    const form = document.getElementById("neuer-benutzer");
+    const passwort = document.getElementById("passwort");
+    const username = document.getElementById("username");
+    const hinweis = document.getElementById("passwort-hinweis");
+    const toggle = form.querySelector(".passwort-toggle");
+
+    toggle.addEventListener("click", () => {
+      const sichtbar = passwort.type === "password";
+      passwort.type = sichtbar ? "text" : "password";
+      toggle.textContent = sichtbar ? "🙈" : "👁";
+      toggle.setAttribute("aria-label", sichtbar ? "Passwort verbergen" : "Passwort anzeigen");
+    });
+
+    // Farbe erst, wenn eines der beiden Felder etwas enthält; [...] zählt Zeichen wie Python len()
+    function pruefeHinweis() {
+      const aktiv = username.value !== "" || passwort.value !== "";
+      const erfuellt = [...passwort.value].length >= Number(hinweis.dataset.min);
+      hinweis.classList.toggle("text-success", aktiv && erfuellt);
+      hinweis.classList.toggle("text-danger", aktiv && !erfuellt);
+    }
+    form.addEventListener("input", pruefeHinweis);
+    pruefeHinweis();
+  })();
+</script>
+{% endblock %}

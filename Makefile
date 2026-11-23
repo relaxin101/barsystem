@@ -1,4 +1,4 @@
-.PHONY: dev shell migrate migrate-create create-admin db db-stop \
+.PHONY: dev shell migrate migrate-create create-default-user db db-stop \
         test test-v test-cov \
         prod prod-logs prod-down prod-rebuild install
 
@@ -18,8 +18,8 @@ migrate:
 migrate-create:
 	FLASK_APP=$(FLASK_APP) APP_ENV=development uv run flask db migrate -m "$(msg)"
 
-create-admin:
-	FLASK_APP=$(FLASK_APP) APP_ENV=development uv run flask create-admin
+create-default-user:
+	FLASK_APP=$(FLASK_APP) APP_ENV=development uv run flask auth create-default-user
 
 # Start only the database container for local development
 db:

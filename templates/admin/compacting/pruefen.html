@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% from "macros/tabelle.html" import tabelle %}
+
+{% block title %}Compacting{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">🗜️ Compacting: Überprüfen &amp; ausführen</h2>
+  </div>
+
+  {% for f in fehler %}
+  <div class="alert alert-danger">{{ f }}</div>
+  {% endfor %}
+  {% for w in warnungen %}
+  <div class="alert alert-warning">{{ w }}</div>
+  {% endfor %}
+  {% if not fehler and not warnungen %}
+  <div class="alert alert-success">Keine Konflikte gefunden.</div>
+  {% endif %}
+
+  <!-- Zusammenfassung -->
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white"><strong>Das wird passieren</strong></div>
+    <div class="card-body">
+      <table class="table table-sm mb-0" style="max-width:700px;">
+        <tbody>
+          <tr><th>Zeitraum</th><td>{{ plan.von|local_time or "offen" }} – {{ plan.bis|local_time or "offen" }}</td></tr>
+          <tr><th>Buchungen</th><td>{{ plan.buchungen|length }} werden zu {{ plan.salden|length }} Saldo-Zeile(n){% if plan.stich %} zum {{ plan.stich|local_time }}{% endif %}</td></tr>
+          <tr><th>Neue Abrechnung</th><td>{{ plan.name }}</td></tr>
+          <tr><th>Artikel löschen</th><td>{{ artikel|length }}</td></tr>
+          <tr><th>Mitglieder löschen</th><td>{{ mitglieder|length }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    {% call tabelle("abrechnungen-tabelle", ["ID", "Name", "Abrechnungszeitpunkt", "Buchungen von", "Buchungen bis", "Buchungen"],
+                    hoehe="40vh", leer="Keine Abrechnung liegt vollständig im Zeitraum.") %}
+      {% for i in plan.abrechnungen %}
+      <tr class="{% if i.veraendert %}bg-warning{% endif %}">
+        <td>{{ i.abrechnung.id }}</td>
+        <td>{{ i.abrechnung.name }}</td>
+        <td data-wert="{{ i.abrechnung.zeitstempel.isoformat() }}">{{ i.abrechnung.zeitstempel|local_time }}</td>
+        <td data-wert="{{ i.von.isoformat() if i.von else '' }}">{{ i.von|local_time or "—" }}</td>
+        <td data-wert="{{ i.bis.isoformat() if i.bis else '' }}">{{ i.bis|local_time or "—" }}</td>
+        <td>{{ i.anzahl }}</td>
+      </tr>
+      {% endfor %}
+    {% endcall %}
+  </div>
+
+  <div class="row g-4 mb-4">
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-header bg-dark text-white"><strong>Gelöschte Artikel</strong></div>
+        {% call tabelle("artikel-tabelle", ["ID", "Name"], hoehe="40vh", leer="Keine Artikel werden gelöscht.") %}
+          {% for a in artikel %}
+          <tr><td>{{ a.id }}</td><td>{{ a.name }}</td></tr>
+          {% endfor %}
+        {% endcall %}
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-header bg-dark text-white"><strong>Gelöschte Mitglieder</strong></div>
+        {% call tabelle("mitglieder-tabelle", ["ID", "Name", "Nickname"], hoehe="40vh", leer="Keine Mitglieder werden gelöscht.") %}
+          {% for m in mitglieder %}
+          <tr><td>{{ m.id }}</td><td>{{ m.name }}</td><td>{{ m.nickname or "" }}</td></tr>
+          {% endfor %}
+        {% endcall %}
+      </div>
+    </div>
+  </div>
+
+  <form method="post" class="form-schlicht" id="plan-form">
+    <input type="hidden" name="von" value="{{ p.von }}">
+    <input type="hidden" name="bis" value="{{ p.bis }}">
+    <input type="hidden" name="fingerprint" value="{{ plan.fingerprint }}">
+    <input type="hidden" name="zurueck" value="1">
+    {% if p.purge_artikel %}<input type="hidden" name="purge_artikel" value="1">{% endif %}
+    {% if p.purge_mitglieder %}<input type="hidden" name="purge_mitglieder" value="1">{% endif %}
+    {% for i in p.artikel_auswahl %}<input type="hidden" name="artikel" value="{{ i }}">{% endfor %}
+    {% for i in p.mitglied_auswahl %}<input type="hidden" name="mitglied" value="{{ i }}">{% endfor %}
+
+    <div class="d-flex flex-wrap justify-content-end gap-2 mb-4">
+      <button type="submit" class="btn btn-secondary me-auto"
+              formmethod="get" formaction="{{ url_for('admin.compacting.vorschau') }}">
+        ← Zurück
+      </button>
+      <a href="{{ url_for('admin.export.db_backup') }}" class="btn btn-outline-secondary">DB-Backup herunterladen</a>
+      <button type="submit" class="btn btn-primary"
+              formmethod="post" formaction="{{ url_for('admin.compacting.bericht') }}">
+        Bericht erstellen
+      </button>
+      <button type="button" class="btn btn-danger" id="ausfuehren-btn" {% if fehler %}disabled{% endif %}>
+        Ausführen
+      </button>
+    </div>
+  </form>
+
+</div>
+
+<script>
+  document.getElementById("ausfuehren-btn").addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
+    if (!confirm("Compacting jetzt ausführen? Das lässt sich nicht rückgängig machen.")) return;
+
+    btn.disabled = true;
+    btn.textContent = "Wird ausgeführt…";
+    try {
+      const res = await fetch("{{ url_for('admin.compacting.ausfuehren') }}", {
+        method: "POST",
+        body: new FormData(document.getElementById("plan-form")),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.message || "Compacting fehlgeschlagen.");
+        btn.disabled = false;
+        btn.textContent = "Ausführen";
+        return;
+      }
+
+      // Bericht speichern, dann zur neuen Abrechnung
+      const name = (res.headers.get("Content-Disposition") || "").match(/filename="?([^";]+)"?/);
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(await res.blob());
+      link.download = name ? name[1] : "compacting.xlsx";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => { window.location.href = res.headers.get("X-Weiter"); }, 500);
+    } catch (err) {
+      console.error(err);
+      alert("Compacting fehlgeschlagen.");
+      btn.disabled = false;
+      btn.textContent = "Ausführen";
+    }
+  });
+</script>
+{% endblock %}

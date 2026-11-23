@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% from "macros/tabelle.html" import tabelle, auswahl_zelle %}
+
+{% block title %}Compacting{% endblock %}
+
+{% block content %}
+{% set mit_guthaben_null = plan.mitglieder | selectattr("guthaben", "equalto", 0) | list %}
+<div class="container-fluid mt-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">🗜️ Compacting: Übersicht</h2>
+    <a href="{{ url_for('admin.compacting.index') }}" class="btn btn-secondary">Abbrechen</a>
+  </div>
+
+  <form method="post" action="{{ url_for('admin.compacting.pruefen') }}" class="form-schlicht" id="compacting-form">
+    <input type="hidden" name="von" value="{{ p.von }}">
+    <input type="hidden" name="bis" value="{{ p.bis }}">
+
+    <!-- Übersicht -->
+    <div class="card mb-4">
+      <div class="card-header bg-primary text-white"><strong>Übersicht</strong></div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <table class="table table-sm mb-0">
+              <tbody>
+                <tr><th>Zeitraum</th><td>{{ plan.von|local_time or "offen" }} – {{ plan.bis|local_time or "offen" }}</td></tr>
+                <tr><th>Abrechnungen</th><td>{{ plan.abrechnungen|length }}</td></tr>
+                <tr><th>Buchungen</th><td>{{ plan.buchungen|length }} (davon storniert: {{ plan.buchungen|length - plan.gueltige|length }})</td></tr>
+                <tr><th>Saldo-Zeilen danach</th><td>{{ plan.salden|length }}{% if plan.stich %} zum {{ plan.stich|local_time }}{% endif %}</td></tr>
+                <tr><th>Artikel danach unreferenziert</th><td>{{ plan.artikel|length }}</td></tr>
+                <tr><th>Mitglieder danach unreferenziert</th><td>{{ plan.mitglieder|length }} (davon mit Guthaben € 0,00: {{ mit_guthaben_null|length }})</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="col-md-6">
+            <div class="form-check form-switch mb-2">
+              <input class="form-check-input purge-schalter" type="checkbox" role="switch" id="purge_artikel"
+                     name="purge_artikel" value="1" data-ziel="#artikel-sektion" {% if p.purge_artikel %}checked{% endif %}>
+              <label class="form-check-label w-auto" for="purge_artikel">Artikel purgen</label>
+            </div>
+            <div class="form-check form-switch mb-3">
+              <input class="form-check-input purge-schalter" type="checkbox" role="switch" id="purge_mitglieder"
+                     name="purge_mitglieder" value="1" data-ziel="#mitglieder-sektion" {% if p.purge_mitglieder %}checked{% endif %}>
+              <label class="form-check-label w-auto" for="purge_mitglieder">Mitglieder purgen</label>
+            </div>
+            {% if plan.durchtrennt %}
+            <div class="alert alert-warning mb-2">
+              <strong>Nicht enthalten</strong>, weil sie über den Zeitraum hinausragen:
+              {% for i in plan.durchtrennt %}
+                <a href="{{ url_for('admin.abrechnung.detail', abrechnung_id=i.abrechnung.id) }}">{{ i.abrechnung.name }}</a>{% if not loop.last %}, {% endif %}
+              {% endfor %}
+            </div>
+            {% endif %}
+            {% if plan.lose_buchungen %}
+            <div class="alert alert-warning mb-0">
+              {{ plan.lose_buchungen }} Buchung(en) im Zeitraum gehören zu keiner Abrechnung und bleiben unverändert.
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      {% call tabelle("abrechnungen-tabelle", ["ID", "Name", "Abrechnungszeitpunkt", "Buchungen von", "Buchungen bis", "Buchungen"],
+                      hoehe="40vh", leer="Keine Abrechnung liegt vollständig im Zeitraum.") %}
+        {% for i in plan.abrechnungen %}
+        <tr data-href="{{ url_for('admin.abrechnung.detail', abrechnung_id=i.abrechnung.id) }}"
+            class="{% if i.veraendert %}bg-warning{% endif %}">
+          <td>{{ i.abrechnung.id }}</td>
+          <td>{{ i.abrechnung.name }}</td>
+          <td data-wert="{{ i.abrechnung.zeitstempel.isoformat() }}">{{ i.abrechnung.zeitstempel|local_time }}</td>
+          <td data-wert="{{ i.von.isoformat() if i.von else '' }}">{{ i.von|local_time or "—" }}</td>
+          <td data-wert="{{ i.bis.isoformat() if i.bis else '' }}">{{ i.bis|local_time or "—" }}</td>
+          <td>{{ i.anzahl }}</td>
+        </tr>
+        {% endfor %}
+      {% endcall %}
+    </div>
+
+    <!-- Artikel -->
+    <div class="card mb-4 purge-sektion" id="artikel-sektion">
+      <div class="card-header bg-dark text-white"><strong>Artikel, die danach nicht mehr referenziert sind</strong></div>
+      {% call tabelle("artikel-tabelle", ["ID", "Name", "Preis", "Aktiv"], suche="Artikel suchen...",
+                      auswahl=True, hoehe="50vh", leer="Keine Artikel betroffen.") %}
+        {% for a in plan.artikel %}
+        <tr>
+          {{ auswahl_zelle("artikel", a.id, checked=a.id in artikel_auswahl, titel="Artikel " ~ a.name ~ " löschen") }}
+          <td>{{ a.id }}</td>
+          <td>{{ a.name }}</td>
+          <td data-wert="{{ a.preis }}">€&nbsp;{{ (a.preis / 100)|float_format }}</td>
+          <td>{% if a.aktiv %}<span class="badge bg-success">Aktiv</span>{% else %}<span class="badge bg-secondary">Inaktiv</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      {% endcall %}
+    </div>
+
+    <!-- Mitglieder -->
+    <div class="card mb-4 purge-sektion" id="mitglieder-sektion">
+      <div class="card-header bg-dark text-white"><strong>Mitglieder, die danach nicht mehr referenziert sind</strong></div>
+      {% call tabelle("mitglieder-tabelle", ["ID", "Name", "Nickname", "Guthaben", "Aktiv", {"titel": "Hinweis", "sort": False}],
+                      suche="Mitglied suchen...", auswahl=True, hoehe="50vh", leer="Keine Mitglieder betroffen.") %}
+        {% for m in plan.mitglieder %}
+        <tr>
+          {% if m.guthaben == 0 %}
+            {{ auswahl_zelle("mitglied", m.id, checked=m.id in mitglied_auswahl, titel="Mitglied " ~ m.name ~ " löschen") }}
+          {% else %}
+            <td></td>
+          {% endif %}
+          <td>{{ m.id }}</td>
+          <td>{{ m.name }}</td>
+          <td>{{ m.nickname or "" }}</td>
+          <td data-wert="{{ m.guthaben }}">€&nbsp;{{ (m.guthaben / 100)|float_format }}</td>
+          <td>{% if m.aktiv %}<span class="badge bg-success">Aktiv</span>{% else %}<span class="badge bg-secondary">Inaktiv</span>{% endif %}</td>
+          <td class="text-muted">{% if m.guthaben != 0 %}Guthaben ist nicht € 0,00, nicht löschbar{% endif %}</td>
+        </tr>
+        {% endfor %}
+      {% endcall %}
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 mb-4">
+      <a href="{{ url_for('admin.compacting.index') }}" class="btn btn-secondary">Abbrechen</a>
+      <button type="submit" class="btn btn-primary" {% if not plan.abrechnungen %}disabled{% endif %}>
+        Überprüfen &amp; ausführen
+      </button>
+    </div>
+  </form>
+
+</div>
+
+<style>
+  /* Gesperrt statt disabled: die Auswahl reist so mit und bleibt nach "Zurück" erhalten,
+     der Server löscht ohne Purge-Schalter trotzdem nichts */
+  .purge-sektion.gesperrt .tabelle { opacity: 0.45; pointer-events: none; }
+</style>
+
+<script>
+  document.querySelectorAll(".purge-schalter").forEach(schalter => {
+    const sektion = document.querySelector(schalter.dataset.ziel);
+    const anwenden = () => {
+      sektion.classList.toggle("gesperrt", !schalter.checked);
+      sektion.querySelector(".tabelle").setAttribute("aria-disabled", String(!schalter.checked));
+    };
+    schalter.addEventListener("change", anwenden);
+    anwenden();
+  });
+</script>
+{% endblock %}

@@ -1,8 +1,11 @@
 """Hilfsfunktionen für die admin pages"""
 
 import io
-from datetime import datetime, timedelta
-from flask import request, send_file, flash, redirect
+from datetime import timedelta
+from functools import wraps
+from typing import Optional
+from flask import abort, request, send_file, flash, redirect
+from flask_login import current_user, login_required
 import pandas as pd
 import numpy as np
 from sqlalchemy import text
@@ -10,35 +13,52 @@ import re
 from numbers import Real
 
 from models import db, Mitglied
+from utils.zeit import local_now, naive_local, parse_local, parse_local_ende
+
+
+def superuser_required(view):
+    """Wie login_required, angemeldete User ohne Superuser-Rolle bekommen 403."""
+
+    @wraps(view)
+    @login_required
+    def wrapped(*args, **kwargs):
+        if not current_user.is_superuser:
+            abort(403)
+        return view(*args, **kwargs)
+
+    return wrapped
+
+
+def mitglied_sperren(mitglied_id):
+    """Liest ein Mitglied frisch und sperrt die Zeile bis zum Commit.
+
+    Sonst überschreiben sich gleichzeitige Buchungen gegenseitig das Guthaben.
+    populate_existing, weil with_for_update ein schon geladenes Objekt nicht aktualisiert.
+    """
+    return db.session.get(Mitglied, mitglied_id, with_for_update=True, populate_existing=True)
 
 
 # -------------------------
 # 📄 Hilfsfunktion: Zeitraum ermitteln
 # -------------------------
 def parse_daterange():
-    """Liest start/end-Parameter aus und gibt datetime-Objekte zurück."""
+    """Liest start/end-Parameter aus und gibt datetime-Objekte in Ortszeit zurück."""
     start_str = request.args.get("start")
     end_str = request.args.get("end")
 
-    now = datetime.now()
-    end_date = now.replace(second=0, microsecond=0)
-    start_date = (end_date - timedelta(days=30)).replace(hour=0, minute=0)
+    end_date = local_now()
+    start_date = (end_date - timedelta(days=30)).replace(hour=0, minute=0, second=0, microsecond=0)
 
-    for fmt in ("%Y-%m-%dT%H:%M", "%Y-%m-%d"):
+    try:
         if start_str:
-            try:
-                start_date = datetime.strptime(start_str, fmt)
-                break
-            except ValueError:
-                continue
-
-    for fmt in ("%Y-%m-%dT%H:%M", "%Y-%m-%d"):
+            start_date = parse_local(start_str)
+    except ValueError:
+        pass
+    try:
         if end_str:
-            try:
-                end_date = datetime.strptime(end_str, fmt)
-                break
-            except ValueError:
-                continue
+            end_date = parse_local_ende(end_str)
+    except ValueError:
+        pass
 
     return start_date, end_date
 
@@ -46,15 +66,10 @@ def parse_daterange():
 # --------------------------------
 # 🧠 Hilfsfunktion für den Export
 # --------------------------------
-def export_model_to_excel(model, columns, filename):
-    data = model.query.all()
-    rows = [{col: getattr(d, col) for col in columns} for d in data]
-    df = pd.DataFrame(rows)
-    return export_df_to_excel(df, filename)
-
-
 def export_df_to_excel(df, filename):
     output = io.BytesIO()
+    # Excel kennt keine Zeitzonen, Zeitstempel daher als Ortszeit ausgeben
+    df = df.astype(object).map(naive_local)
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
         df.to_excel(writer, index=False, sheet_name="Daten")
     output.seek(0)
@@ -154,8 +169,8 @@ def handle_excel_import(db_fields, model, redirect_url, unique_field=None):
     return redirect(redirect_url)
 
 
-def suche_mitglied(search_term: str, limit: int = None) -> list:
-    """Durchsucht aktive Mitglieder nach Name und Nickname (PostgreSQL Full-Text + iLike)."""
+def suche_mitglied(search_term: str, limit: Optional[int] = None) -> list[Mitglied]:
+    """Durchsucht aktive Mitglieder nach Name und Nickname iLike."""
     q = (
         Mitglied.query.filter(
             text(

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Passwort ändern{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+  <h2 class="mb-4">🔑 Passwort ändern</h2>
+
+  <div class="card" style="max-width:480px;">
+    <div class="card-body">
+      <form method="post">
+        <div class="mb-3">
+          <label for="aktuell" class="form-label">Aktuelles Passwort</label>
+          <input type="password" class="form-control" id="aktuell" name="aktuell" autocomplete="current-password" required>
+        </div>
+        <div class="mb-3">
+          <label for="neu" class="form-label">Neues Passwort</label>
+          <input type="password" class="form-control" id="neu" name="neu" autocomplete="new-password" required>
+        </div>
+        <div class="mb-3">
+          <label for="wiederholung" class="form-label">Neues Passwort wiederholen</label>
+          <input type="password" class="form-control" id="wiederholung" name="wiederholung" autocomplete="new-password" required>
+        </div>
+        <button type="submit" class="btn btn-success">Passwort ändern</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

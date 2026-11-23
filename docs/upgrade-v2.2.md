@@ -23,25 +23,25 @@ Von v2.1.0 auf v2.2. Hardening- und Bugfix-Release; **der Host-Port bleibt stand
    - `DATABASE_PASSWORD` = `postgres` / `bibamus`
    - `ADMIN_PASSWORD` = `password` / `password!`
 
-   Achtung: `ADMIN_PASSWORD` wird nur von `flask create-admin` gelesen. Wurde das Passwort in der App geändert, aber in `.env` blieb `password`, wird der Start trotzdem verweigert – in `.env` auf einen anderen Wert setzen (das ändert das bestehende Admin-Passwort nicht).
+   Achtung: `ADMIN_PASSWORD` wird nur von `flask auth create-default-user` gelesen. Wurde das Passwort in der App geändert, aber in `.env` blieb `password`, wird der Start trotzdem verweigert – in `.env` auf einen anderen Wert setzen (das ändert das bestehende Admin-Passwort nicht).
 2. **Datenbank-Passwort ändern ist nicht trivial:** Das Postgres-Volume behält das alte Passwort. Entweder `ALTER USER <DATABASE_USERNAME> PASSWORD '...'` in der laufenden DB ausführen *bevor* `.env` geändert wird, oder (bei leerer DB) das Volume neu anlegen.
 
 ## Checkliste pro Standort
 
-- [ ] `flask backup` ausführen und die Datei aus `./backups/` zusätzlich extern sichern: `docker compose exec app flask backup`
+- [ ] `flask backup` ausführen und die Datei aus `./backups/` zusätzlich extern sichern: `docker compose exec app /app/.venv/bin/flask backup`
 - [ ] Aktuelle Version notieren: `git log --oneline -n 1 | cat`
 - [ ] `.env` prüfen: kein Default bei `FLASK_SECRET_KEY`, `DATABASE_PASSWORD`, `ADMIN_PASSWORD` (siehe oben)
 - [ ] Update einspielen (unten)
 - [ ] Kiosk-Unit: `ExecStartPre` auf `/healthz` umstellen, z. B.
       `ExecStartPre=/bin/sh -c 'until curl -sf -o /dev/null http://localhost/healthz; do sleep 2; done'`
-- [ ] Optional: Host-Cron für Backups, z. B. `docker compose exec -T app flask backup`
+- [ ] Optional: Host-Cron für Backups, z. B. `docker compose exec -T app /app/.venv/bin/flask backup`
 
 ## Update einspielen
 
 `make prod-update` führt `git stash` und `git reset --hard origin/master` aus. Customizations in *untracked* Dateien bleiben erhalten; ein Konflikt beim `git stash pop` lässt das System halb aktualisiert zurück – daher **immer zuerst das Backup**.
 
 ```bash
-docker compose exec app flask backup   # Backup (App läuft noch)
+docker compose exec app /app/.venv/bin/flask backup   # Backup (App läuft noch)
 make prod-update                        # Update + Migrationen
 curl -s http://localhost/healthz        # Prüfen: DB ok, neue Version
 docker compose logs app | tail -50

@@ -3,8 +3,9 @@ from datetime import datetime, timedelta
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, session
 from sqlalchemy import func, case
 
-import config as app_config
 from models import db, Artikel, Buchung, Mitglied
+from utils.einstellungen import DEFINITIONEN, einstellung
+from utils.zeit import utcnow
 
 ranking_bp = Blueprint("ranking", __name__, url_prefix="/ranking")
 
@@ -18,7 +19,7 @@ def _check_and_expire_config():
     set_at_str = session.get(_SESSION_SET_AT)
     if not set_at_str:
         return
-    if datetime.now() - datetime.fromisoformat(set_at_str) > timedelta(hours=app_config.RANKING_CONFIG_TTL_STUNDEN):
+    if datetime.now() - datetime.fromisoformat(set_at_str) > timedelta(hours=einstellung("RANKING_CONFIG_TTL_STUNDEN")):
         session.pop(_SESSION_STUNDEN, None)
         session.pop(_SESSION_ARTIKEL, None)
         session.pop(_SESSION_MODUS,   None)
@@ -26,9 +27,8 @@ def _check_and_expire_config():
 
 
 def _get_session_stunden():
-    if _SESSION_STUNDEN not in session:
-        session[_SESSION_STUNDEN] = app_config.RANKING_DEFAULT_STUNDEN
-    return session[_SESSION_STUNDEN]
+    # Standardwert nicht in die Session kopieren, sonst erreicht eine Änderung den Kiosk nie
+    return session.get(_SESSION_STUNDEN, einstellung("RANKING_DEFAULT_STUNDEN"))
 
 
 def _get_session_artikel_ids():
@@ -54,7 +54,7 @@ def index():
     stunden     = _get_session_stunden()
     selected_ids = _get_session_artikel_ids()
     modus       = _get_session_modus()
-    seit        = datetime.now() - timedelta(hours=stunden)
+    seit        = utcnow() - timedelta(hours=stunden)
 
     artikel_liste = (
         Artikel.query
@@ -183,7 +183,7 @@ def set_stunden():
     data = request.get_json()
     try:
         stunden = int(data.get("stunden", 24))
-        if stunden < 1:
+        if not 1 <= stunden <= DEFINITIONEN["RANKING_DEFAULT_STUNDEN"].maximum:
             raise ValueError
     except (TypeError, ValueError):
         return jsonify({"success": False, "error": "Ungültiger Wert"}), 400

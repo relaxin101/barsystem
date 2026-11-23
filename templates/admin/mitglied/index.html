@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros/tabelle.html" import tabelle %}
 
 {% block content %}
 <div class="container-fluid mt-4">
@@ -25,50 +26,19 @@
       <strong>Mitgliederübersicht</strong>
     </div>
 
-    <!-- Suche -->
-    <div class="row p-3">
-
-      <div class="col-md-6">
-
-        <input
-          type="text"
-          id="search"
-          class="form-control"
-          placeholder="Mitglied suchen..."
-        >
-
-      </div>
-
-    </div>
-
-    <!-- Tabelle -->
-    <div class="table-responsive" style="max-height:70vh; overflow:auto;">
-
-      <table
-        class="table table-striped table-hover align-middle"
-        id="mitglieder-tabelle"
-      >
-
-        <thead class="table-light sticky-top">
-
-          <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Nickname</th>
-            <th>Email</th>
-            <th>Aktiv</th>
-          </tr>
-
-        </thead>
-
-        <tbody>
+    {% call tabelle(
+      "mitglieder-tabelle",
+      ["ID", "Name", "Nickname", "Email", {"titel": "Aktiv", "sort": False}],
+      suche="Mitglied suchen...",
+      hoehe="70vh",
+      leer="Noch keine Mitglieder angelegt."
+    ) %}
 
           {% for m in mitglieder %}
 
           <tr
-            class="mitglied-row"
+            class="mitglied-row klickbar"
             data-id="{{ m.id }}"
-            style="cursor:pointer;"
           >
 
             <td>{{ m.id }}</td>
@@ -97,11 +67,7 @@
 
           {% endfor %}
 
-        </tbody>
-
-      </table>
-
-    </div>
+    {% endcall %}
 
   </div>
 
@@ -148,29 +114,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const modal = new window.bootstrap.Modal(
     document.getElementById("mitgliedModal")
   );
-
-  // --------------------------------------------------
-  // Suche
-  // --------------------------------------------------
-
-  document.getElementById("search")
-    .addEventListener("input", (e) => {
-
-      const value = e.target.value.toLowerCase();
-
-      document.querySelectorAll(".mitglied-row")
-        .forEach(row => {
-
-          const text = row.innerText.toLowerCase();
-
-          row.style.display =
-            text.includes(value)
-              ? ""
-              : "none";
-
-      });
-
-  });
 
   // --------------------------------------------------
   // Toggle aktiv

@@ -126,6 +126,14 @@ form {
     margin-bottom: 20px;
 }
 
+/* Formular ohne eigene Optik, z.B. in Tabellenzellen oder neben anderen Elementen */
+form.form-schlicht {
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+    background: transparent;
+}
+
 form label {
     display: inline-block;
     width: 120px;
@@ -315,6 +323,46 @@ thead.table-light th {
 
 .table-dark {
     --bs-table-bg: #3A3548;
+}
+
+/* Tabellen-Komponente (templates/macros/tabelle.html) */
+.tabelle-werkzeuge .tabelle-suche {
+    max-width: 400px;
+    flex: 1 1 240px;
+}
+
+.tabelle th[data-sort] {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.tabelle th[data-sort]::after {
+    content: " ↕";
+    opacity: 0.35;
+}
+
+.tabelle th[aria-sort="ascending"]::after {
+    content: " ▲";
+    opacity: 1;
+}
+
+.tabelle th[aria-sort="descending"]::after {
+    content: " ▼";
+    opacity: 1;
+}
+
+.tabelle-auswahl-kopf {
+    width: 1%;
+}
+
+.tabelle-spalte-aktiv {
+    min-width: 120px;
+}
+
+tr[data-href],
+tr.klickbar {
+    cursor: pointer;
 }
 
 /* ============================================

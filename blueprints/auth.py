@@ -7,6 +7,8 @@ from flask_login import login_user, logout_user, login_required, current_user
 
 auth_bp = Blueprint("auth", __name__)
 
+MIN_PASSWORT_LAENGE = 8
+
 
 def _safe_redirect_target(target):
     """Return target if it is a safe local URL, otherwise None.
@@ -24,12 +26,53 @@ def _safe_redirect_target(target):
     return target
 
 
-@auth_bp.cli.command("change-admin-password")
+@auth_bp.cli.command("create-default-user")
+def create_default_user():
+    """Standarduser aus der .env anlegen bzw. zum Superuser machen.
+
+    Läuft bei jedem Start (db-init) und ist idempotent. Das Passwort eines
+    bestehenden Kontos bleibt unverändert.
+    """
+    username = current_app.config["ADMIN_USERNAME"]
+    user = User.query.filter_by(username=username).first()
+    if user is None:
+        click.echo(f"Creating default user: {username}")
+        user = User(username=username, is_superuser=True)
+        user.set_password(current_app.config["ADMIN_PASSWORD"])
+        db.session.add(user)
+    elif not user.is_superuser:
+        click.echo(f"Default user '{username}' wird zum Superuser.")
+        user.is_superuser = True
+    else:
+        click.echo(f"Default user '{username}' already exists.")
+    db.session.commit()
+
+
+@auth_bp.cli.command("create-user")
+@click.option("--username", prompt="Benutzername", help="Name des neuen Benutzers.")
+@click.option("--superuser", is_flag=True, help="Als Superuser anlegen.")
+@click.password_option()
+def create_user(username, superuser, password):
+    """Benutzer anlegen (optional als Superuser).
+
+    Nur am Host möglich: wer die .env ändern kann, darf auch Superuser anlegen.
+    """
+    if User.query.filter_by(username=username).first():
+        raise click.ClickException(f"User '{username}' existiert bereits.")
+
+    user = User(username=username, is_superuser=superuser)
+    user.set_password(password)
+    db.session.add(user)
+    db.session.commit()
+    click.echo(f"{'Superuser' if superuser else 'User'} '{username}' angelegt.")
+
+
+@auth_bp.cli.command("change-password")
 @click.option("--username", default=None,
               help="Username to update. Defaults to ADMIN_USERNAME from config.")
 @click.password_option()
-def change_admin_password(username, password):
-    """Change the password of an admin user."""
+def change_password(username, password):
+    """Change the password of a user."""
     if username is None:
         username = current_app.config["ADMIN_USERNAME"]
 
@@ -59,6 +102,27 @@ def login():
             flash("Ungültige Anmeldedaten!", "error")
 
     return render_template("auth/login.html")
+
+
+@auth_bp.route("/passwort", methods=["GET", "POST"])
+@login_required
+def passwort():
+    """Eigenes Passwort ändern."""
+    if request.method == "POST":
+        neu = request.form.get("neu", "")
+        if not current_user.check_password(request.form.get("aktuell", "")):
+            flash("Das aktuelle Passwort stimmt nicht.", "error")
+        elif len(neu) < MIN_PASSWORT_LAENGE:
+            flash(f"Das neue Passwort braucht mindestens {MIN_PASSWORT_LAENGE} Zeichen.", "error")
+        elif neu != request.form.get("wiederholung"):
+            flash("Die beiden neuen Passwörter stimmen nicht überein.", "error")
+        else:
+            current_user.set_password(neu)
+            db.session.commit()
+            flash("Passwort geändert.", "success")
+            return redirect(url_for("admin.main_page"))
+
+    return render_template("auth/passwort.html")
 
 
 @auth_bp.route("/logout")
